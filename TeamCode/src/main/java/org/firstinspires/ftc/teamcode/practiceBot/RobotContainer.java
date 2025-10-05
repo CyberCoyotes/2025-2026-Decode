@@ -14,6 +14,7 @@ public class RobotContainer extends LinearOpMode {
 
 
     private MecanumDrive drive;
+    private LimelightSubsystem limelightSub;
 
     @Override
 
@@ -23,6 +24,7 @@ public class RobotContainer extends LinearOpMode {
         drive = new MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
         sensors = new Sensors(hardwareMap);
         bucketSub = new BucketSubsystem(hardwareMap,sensors);
+        limelightSub = new LimelightSubsystem(hardwareMap);
 
         bucketSub.setIntakeSubsystem(intakeSub);
         intakeSub.setBucketSubsystem(bucketSub);
@@ -111,6 +113,9 @@ public class RobotContainer extends LinearOpMode {
 
             // End of Button Bindings
 
+            // Update Limelight data
+            limelightSub.update();
+
             telemetry.clearAll(); // Clear previous telemetry data
             // Add drive telemetry
             telemetry.addLine("--- DRIVE ---");
@@ -136,10 +141,23 @@ public class RobotContainer extends LinearOpMode {
             telemetry.addData("Lift Status",String.format("%s, (%d)",bucketSub.getLiftStatus(),bucketSub.lift.getCurrentPosition()));
             telemetry.addData("Lift Motor Power",String.format("%.2f A",bucketSub.lift.getPower()));
 
+            // Limelight Subsystem (AprilTag Detection)
+            telemetry.addLine("--- LIMELIGHT ---");
+            telemetry.addData("Status", limelightSub.getStatusTelemetry());
+            telemetry.addData("AprilTags", limelightSub.getAprilTagTelemetry());
+            if (limelightSub.hasValidData() && limelightSub.getAprilTagCount() > 0) {
+                telemetry.addData("Target Angle", String.format("X: %.1f°, Y: %.1f°", 
+                    limelightSub.getTargetX(), limelightSub.getTargetY()));
+                telemetry.addData("Latency", String.format("%.1f ms", limelightSub.getTotalLatency()));
+            }
+
             bucketSub.updateLift();
             telemetry.update();
 
         } // end of while loop
+
+        // Clean up when OpMode stops
+        limelightSub.stop();
 
     } // end of runOpMode method
 
