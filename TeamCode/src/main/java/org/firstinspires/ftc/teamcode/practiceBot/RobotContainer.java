@@ -14,14 +14,13 @@ public class RobotContainer extends LinearOpMode {
     private boolean lastDpadUpState = false;
     private boolean lastDpadDownState = false;
     private LimelightSubsystem limelightSub; // Add Limelight references
-    limelightSub = new LimelightSubsystem(hardwareMap); // Initialize Limelight
-
-
+    
     @Override
 
     public void runOpMode() throws InterruptedException {
 
         /* Subsystems */
+        limelightSub = new LimelightSubsystem(hardwareMap);
         shooterSub = new ShooterSubsystem(hardwareMap);
 
         // Required to initialize the subsystems when starting the OpMode
@@ -86,6 +85,9 @@ public class RobotContainer extends LinearOpMode {
 
             // End of Button Bindings
 
+            // Update Limelight data
+            limelightSub.update();
+
             telemetry.clearAll(); // Clear previous telemetry data
             // Add drive telemetry
             telemetry.addLine("--- DRIVE ---");
@@ -108,8 +110,8 @@ public class RobotContainer extends LinearOpMode {
 
         } // end of while loop
 
-        // Cleanup
-        // limelightSub.stop();
+        // Clean up when OpMode stops
+        limelightSub.stop();
 
     } // end of runOpMode method
 
