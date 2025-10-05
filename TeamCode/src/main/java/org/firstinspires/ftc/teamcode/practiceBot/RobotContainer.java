@@ -13,6 +13,9 @@ public class RobotContainer extends LinearOpMode {
     private ShooterSubsystem shooterSub;
     private boolean lastDpadUpState = false;
     private boolean lastDpadDownState = false;
+    private LimelightSubsystem limelightSub; // Add Limelight references
+    limelightSub = new LimelightSubsystem(hardwareMap); // Initialize Limelight
+
 
     @Override
 
@@ -28,6 +31,8 @@ public class RobotContainer extends LinearOpMode {
 
         // While loop to keep the robot running
         while (opModeIsActive()) {
+            // Main loop
+            limelightSub.update();
 
             /* Driver 1 Controls (Movement & Intake Arm) */
             // Driving controls
@@ -94,9 +99,17 @@ public class RobotContainer extends LinearOpMode {
             telemetry.addData("Motor 1 Power",String.format("%.2f",shooterSub.shooterMotor1.getPower()));
             telemetry.addData("Motor 2 Power",String.format("%.2f",shooterSub.shooterMotor2.getPower()));
 
+            // Telemetry
+            telemetry.addLine("--- LIMELIGHT ---");
+            telemetry.addData("Status", limelightSub.getStatusTelemetry());
+            telemetry.addData("AprilTags", limelightSub.getAprilTagTelemetry());
+
             telemetry.update();
 
         } // end of while loop
+
+        // Cleanup
+        // limelightSub.stop();
 
     } // end of runOpMode method
 
