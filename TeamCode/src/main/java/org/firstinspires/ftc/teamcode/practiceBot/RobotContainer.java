@@ -14,6 +14,9 @@ public class RobotContainer extends LinearOpMode {
 
 
     private MecanumDrive drive;
+    private ShooterSubsystem shooterSub;
+    private boolean lastDpadUpState = false;
+    private boolean lastDpadDownState = false;
 
     @Override
 
@@ -23,6 +26,7 @@ public class RobotContainer extends LinearOpMode {
         drive = new MecanumDrive(hardwareMap, new Pose2d(0, 0, 0));
         sensors = new Sensors(hardwareMap);
         bucketSub = new BucketSubsystem(hardwareMap,sensors);
+        shooterSub = new ShooterSubsystem(hardwareMap);
 
         bucketSub.setIntakeSubsystem(intakeSub);
         intakeSub.setBucketSubsystem(bucketSub);
@@ -91,6 +95,27 @@ public class RobotContainer extends LinearOpMode {
             else if (gamepad1.left_bumper) intakeSub.smartPowerIntakeWheel(-1.0);
             else intakeSub.powerIntakeWheel(0);
 
+            // Shooter controls
+            // D-pad UP increases power by 10%
+            if (gamepad1.dpad_up && !lastDpadUpState) {
+                shooterSub.increasePower();
+            }
+            lastDpadUpState = gamepad1.dpad_up;
+
+            // D-pad DOWN decreases power by 10%
+            if (gamepad1.dpad_down && !lastDpadDownState) {
+                shooterSub.decreasePower();
+            }
+            lastDpadDownState = gamepad1.dpad_down;
+
+            // X button runs the shooter at target power, release stops it
+            // Note: Using X instead of A to avoid conflict with intake arm control
+            if (gamepad1.x) {
+                shooterSub.runShooter();
+            } else {
+                shooterSub.stopShooter();
+            }
+
             /* Driver 2 Controls (Scoring & Mechanisms) */
             // Bucket controls
             if (gamepad2.a) bucketSub.setBucket(BUCKET_DOWN);
@@ -135,6 +160,12 @@ public class RobotContainer extends LinearOpMode {
             telemetry.addData("Bucket Status",String.format("%s, (%.2f)",bucketSub.getBucketStatus(),bucketSub.bucketServo.getPosition()));
             telemetry.addData("Lift Status",String.format("%s, (%d)",bucketSub.getLiftStatus(),bucketSub.lift.getCurrentPosition()));
             telemetry.addData("Lift Motor Power",String.format("%.2f A",bucketSub.lift.getPower()));
+
+            // Shooter Subsystem
+            telemetry.addLine("--- SHOOTER ---");
+            telemetry.addData("Shooter Target Power",String.format("%.0f%%",shooterSub.getTargetPower() * 100));
+            telemetry.addData("Motor 1 Power",String.format("%.2f",shooterSub.shooterMotor1.getPower()));
+            telemetry.addData("Motor 2 Power",String.format("%.2f",shooterSub.shooterMotor2.getPower()));
 
             bucketSub.updateLift();
             telemetry.update();
