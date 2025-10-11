@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.practiceBot;
+package org.firstinspires.ftc.teamcode.practicebot;
 
 // import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 @TeleOp(group = "drive", name = "TeleOp")
 
-public class RobotContainer extends LinearOpMode {
+public class SpeedyTeleOp extends LinearOpMode {
 
     private ShooterSubsystem shooterSub;
     private boolean lastDpadUpState = false;
