@@ -30,7 +30,8 @@ public class RobotContainer extends LinearOpMode {
 
         // While loop to keep the robot running
         while (opModeIsActive()) {
-            // Main loop
+
+            // Update Limelight data
             limelightSub.update();
 
             /* Driver 1 Controls (Movement & Intake Arm) */
@@ -85,8 +86,7 @@ public class RobotContainer extends LinearOpMode {
 
             // End of Button Bindings
 
-            // Update Limelight data
-            limelightSub.update();
+
 
             telemetry.clearAll(); // Clear previous telemetry data
             // Add drive telemetry
