@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.team11940;
+package org.firstinspires.ftc.teamcode.common.subsystems;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;

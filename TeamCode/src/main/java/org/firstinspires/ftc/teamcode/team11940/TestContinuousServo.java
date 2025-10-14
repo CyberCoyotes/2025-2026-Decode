@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.team11940;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import org.firstinspires.ftc.teamcode.common.ContinuousServoSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.ContinuousServoSubsystem;
 
 @TeleOp(name = "Test: Continuous Servo")
 public class TestContinuousServo extends LinearOpMode {
