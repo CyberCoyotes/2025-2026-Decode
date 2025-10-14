@@ -4,43 +4,39 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 /**
- * Subsystem for controlling a continuous rotation servo (like GoBilda servos)
- * In continuous mode:
- * - 0.0 = full speed reverse
- * - 0.5 = stop
- * - 1.0 = full speed forward
+ * Intake subsystem for collecting and ejecting game artifacts
+ * Uses a continuous rotation servo
  */
-public class ContinuousServoSubsystem {
+public class IntakeSubsystem {
 
-    // Hardware map and servo object
-    private final Servo servo;
+    // Hardware
+    private final Servo intakeServo;
+
+    // Hardware configuration name - hardcoded here!
+    private static final String SERVO_NAME = "intakeServo";
 
     // Constants for continuous rotation
     private static final double STOP_POSITION = 0.5;
-    private static final double FORWARD_RANGE = 0.5;  // 0.5 to 1.0
-    private static final double REVERSE_RANGE = 0.5;  // 0.0 to 0.5
 
     /**
-     * Constructor
+     * Constructor - only needs HardwareMap
      * @param hardwareMap The hardware map from the OpMode
-     * @param name The name of the servo in the robot configuration
      */
-    public ContinuousServoSubsystem(HardwareMap hardwareMap, String name) {
-        servo = hardwareMap.get(Servo.class, name);
+    public IntakeSubsystem(HardwareMap hardwareMap) {
+        intakeServo = hardwareMap.get(Servo.class, SERVO_NAME);
         stop(); // Initialize to stopped position
     }
 
     /**
      * Periodic method called once per scheduler run
-     * Can be used for telemetry or state management
      */
     public void periodic() {
         // Add any periodic updates here if needed
     }
 
     /**
-     * Set the speed of the continuous rotation servo
-     * @param speed Speed from -1.0 (full reverse) to 1.0 (full forward), 0.0 is stop
+     * Set the speed of the intake servo
+     * @param speed Speed from -1.0 (eject) to 1.0 (intake), 0.0 is stop
      */
     public void setSpeed(double speed) {
         // Clamp speed to valid range
@@ -48,53 +44,52 @@ public class ContinuousServoSubsystem {
 
         // Convert speed (-1.0 to 1.0) to servo position (0.0 to 1.0)
         double position = STOP_POSITION + (speed * 0.5);
-        servo.setPosition(position);
+        intakeServo.setPosition(position);
     }
 
     /**
-     * Stop the servo
+     * Stop the intake
      */
     public void stop() {
-        servo.setPosition(STOP_POSITION);
+        intakeServo.setPosition(STOP_POSITION);
     }
 
     /**
-     * Run forward at full speed
+     * Run intake to collect artifacts at full speed
      */
-    public void forward() {
+    public void intakeArtifact() {
         setSpeed(1.0);
     }
 
     /**
-     * Run reverse at full speed
+     * Run intake in reverse to eject artifacts at full speed
      */
-    public void reverse() {
+    public void ejectArtifact() {
         setSpeed(-1.0);
     }
 
     /**
-     * Run forward at a specific speed
+     * Run intake to collect at a specific speed
      * @param speed Speed from 0.0 to 1.0
      */
-    public void forward(double speed) {
+    public void intakeArtifact(double speed) {
         setSpeed(Math.abs(speed));
     }
 
     /**
-     * Run reverse at a specific speed
+     * Run intake in reverse at a specific speed
      * @param speed Speed from 0.0 to 1.0
      */
-    public void reverse(double speed) {
+    public void ejectArtifact(double speed) {
         setSpeed(-Math.abs(speed));
     }
 
     /**
      * Get the current servo position (raw value 0.0-1.0)
-     * Note: This returns the commanded position, not actual position/speed
      * @return Current position
      */
     public double getPosition() {
-        return servo.getPosition();
+        return intakeServo.getPosition();
     }
 
     /**
@@ -102,7 +97,7 @@ public class ContinuousServoSubsystem {
      * @return Current speed
      */
     public double getSpeed() {
-        double position = servo.getPosition();
+        double position = intakeServo.getPosition();
         return (position - STOP_POSITION) * 2.0;
     }
 }
