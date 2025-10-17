@@ -198,25 +198,27 @@ package org.firstinspires.ftc.teamcode.practicebot;  // Package: lowercase
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import org.firstinspires.ftc.teamcode.practicebot.subsystems.DriveSubsystem;
+
 /**
  * JavaDoc comment for class documentation
  */
 @TeleOp(name = "Example TeleOp", group = "Examples")
 public class ExampleTeleOp {  // Class: PascalCase
-    
+
     // Constants: ALL_CAPS_WITH_UNDERSCORES
     private static final double MAX_POWER = 1.0;
     private static final int COUNTS_PER_REV = 1440;
-    
+
     // Instance variables: camelCase
     private DcMotor leftMotor;
     private DcMotor rightMotor;
     private double targetPower;
     private boolean isRunning;
-    
+
     // Subsystems: camelCase
     private DriveSubsystem driveSubsystem;
-    
+
     /**
      * JavaDoc for public methods
      * @param power Motor power value
@@ -225,7 +227,7 @@ public class ExampleTeleOp {  // Class: PascalCase
         targetPower = power;
         updateMotors();
     }
-    
+
     /**
      * Get current power level
      * @return Current power
@@ -233,7 +235,7 @@ public class ExampleTeleOp {  // Class: PascalCase
     public double getPower() {  // Getter: starts with "get"
         return targetPower;
     }
-    
+
     /**
      * Check if motors are running
      * @return true if running
@@ -241,7 +243,7 @@ public class ExampleTeleOp {  // Class: PascalCase
     public boolean isRunning() {  // Boolean getter: starts with "is"
         return isRunning;
     }
-    
+
     /**
      * Update motor powers
      */

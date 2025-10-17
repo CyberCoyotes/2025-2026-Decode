@@ -1,8 +1,14 @@
 package org.firstinspires.ftc.teamcode.practicebot;
 
+
+/* Common Imports */
 // import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
+
+/* Robot Specific */
+import org.firstinspires.ftc.teamcode.practicebot.subsystems.LimelightSubsystem;
 
 // @Disabled
 
@@ -10,9 +16,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 public class SpeedyTeleOp extends LinearOpMode {
 
-    private ShooterSubsystem shooterSub;
-    private boolean lastDpadUpState = false;
-    private boolean lastDpadDownState = false;
     private LimelightSubsystem limelightSub; // Add Limelight references
     
     @Override
@@ -21,7 +24,6 @@ public class SpeedyTeleOp extends LinearOpMode {
 
         /* Subsystems */
         limelightSub = new LimelightSubsystem(hardwareMap);
-        shooterSub = new ShooterSubsystem(hardwareMap);
 
         // Required to initialize the subsystems when starting the OpMode
         waitForStart();
@@ -63,30 +65,7 @@ public class SpeedyTeleOp extends LinearOpMode {
 
             // Update drive with new powers
 
-            // Shooter controls
-            // D-pad UP increases power by 10%
-            if (gamepad1.dpad_up && !lastDpadUpState) {
-                shooterSub.increasePower();
-            }
-            lastDpadUpState = gamepad1.dpad_up;
-
-            // D-pad DOWN decreases power by 10%
-            if (gamepad1.dpad_down && !lastDpadDownState) {
-                shooterSub.decreasePower();
-            }
-            lastDpadDownState = gamepad1.dpad_down;
-
-            // X button runs the shooter at target power, release stops it
-            // Note: Using X instead of A to avoid conflict with intake arm control
-            if (gamepad1.x) {
-                shooterSub.runShooter();
-            } else {
-                shooterSub.stopShooter();
-            }
-
             // End of Button Bindings
-
-
 
             telemetry.clearAll(); // Clear previous telemetry data
             // Add drive telemetry
@@ -94,12 +73,6 @@ public class SpeedyTeleOp extends LinearOpMode {
 
             // Intake Subsystem
             telemetry.addLine("--- INTAKE ---");
-
-            // Shooter Subsystem
-            telemetry.addLine("--- SHOOTER ---");
-            telemetry.addData("Shooter Target Power",String.format("%.0f%%",shooterSub.getTargetPower() * 100));
-            telemetry.addData("Motor 1 Power",String.format("%.2f",shooterSub.shooterMotor1.getPower()));
-            telemetry.addData("Motor 2 Power",String.format("%.2f",shooterSub.shooterMotor2.getPower()));
 
             // Telemetry
             telemetry.addLine("--- LIMELIGHT ---");

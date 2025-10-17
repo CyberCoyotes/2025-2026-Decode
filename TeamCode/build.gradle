@@ -16,7 +16,37 @@ apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
 
 android {
+
     namespace = 'org.firstinspires.ftc.teamcode'
+
+    // Enable BuildConfig Features
+    buildFeatures {
+        buildConfig = true
+    }
+
+    // ============================================
+    // MULTI-ROBOT BUILD FLAVORS
+    // ============================================
+    flavorDimensions "robot"
+
+    productFlavors {
+        practiceBot {
+            dimension "robot"
+            buildConfigField "String", "ROBOT_NAME", '"PracticeBot"'
+        }
+
+        team11940 {
+            dimension "robot"
+            buildConfigField "String", "ROBOT_NAME", '"Team11940"'
+        }
+
+        team22091 {
+            dimension "robot"
+            buildConfigField "String", "ROBOT_NAME", '"Team22091"'
+        }
+    }
+    // ============================================
+
 
     packagingOptions {
         jniLibs.useLegacyPackaging true
