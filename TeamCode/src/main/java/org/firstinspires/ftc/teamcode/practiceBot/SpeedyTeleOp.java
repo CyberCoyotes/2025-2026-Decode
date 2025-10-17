@@ -6,9 +6,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 // @Disabled
 
-@TeleOp(group = "drive", name = "TeleOp")
+@TeleOp(group = "TeleOp", name = "Speedy TeleOp")
 
-public class RobotContainer extends LinearOpMode {
+public class SpeedyTeleOp extends LinearOpMode {
 
     private ShooterSubsystem shooterSub;
     private boolean lastDpadUpState = false;
