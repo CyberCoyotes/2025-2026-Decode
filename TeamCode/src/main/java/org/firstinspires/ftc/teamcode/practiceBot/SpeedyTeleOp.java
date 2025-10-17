@@ -6,21 +6,21 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 // @Disabled
 
-@TeleOp(group = "drive", name = "TeleOp")
+@TeleOp(group = "TeleOp", name = "Speedy TeleOp")
 
-public class RobotContainer extends LinearOpMode {
+public class SpeedyTeleOp extends LinearOpMode {
 
     private ShooterSubsystem shooterSub;
     private boolean lastDpadUpState = false;
     private boolean lastDpadDownState = false;
-    private LimelightSubsystem limelightSub; // Add Limelight references
+    // private LimelightSubsystem limelightSub; // Add Limelight references
     
     @Override
 
     public void runOpMode() throws InterruptedException {
 
         /* Subsystems */
-        limelightSub = new LimelightSubsystem(hardwareMap);
+//        limelightSub = new LimelightSubsystem(hardwareMap);
         shooterSub = new ShooterSubsystem(hardwareMap);
 
         // Required to initialize the subsystems when starting the OpMode
@@ -31,7 +31,7 @@ public class RobotContainer extends LinearOpMode {
         // While loop to keep the robot running
         while (opModeIsActive()) {
             // Main loop
-            limelightSub.update();
+//            limelightSub.update();
 
             /* Driver 1 Controls (Movement & Intake Arm) */
             // Driving controls
@@ -86,7 +86,7 @@ public class RobotContainer extends LinearOpMode {
             // End of Button Bindings
 
             // Update Limelight data
-            limelightSub.update();
+//            limelightSub.update();
 
             telemetry.clearAll(); // Clear previous telemetry data
             // Add drive telemetry
@@ -103,15 +103,15 @@ public class RobotContainer extends LinearOpMode {
 
             // Telemetry
             telemetry.addLine("--- LIMELIGHT ---");
-            telemetry.addData("Status", limelightSub.getStatusTelemetry());
-            telemetry.addData("AprilTags", limelightSub.getAprilTagTelemetry());
+//            telemetry.addData("Status", limelightSub.getStatusTelemetry());
+//            telemetry.addData("AprilTags", limelightSub.getAprilTagTelemetry());
 
             telemetry.update();
 
         } // end of while loop
 
         // Clean up when OpMode stops
-        limelightSub.stop();
+//        limelightSub.stop();
 
     } // end of runOpMode method
 
