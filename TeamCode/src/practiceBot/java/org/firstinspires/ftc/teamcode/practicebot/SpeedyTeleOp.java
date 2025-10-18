@@ -98,7 +98,7 @@ public class SpeedyTeleOp extends LinearOpMode {
              * DRIVER 1 - DRIVE CONTROLS
              * ======================================== */
             double axial = -gamepad1.left_stick_y;    // Forward/backward
-            double lateral = gamepad1.left_stick_x;    // Strafe left/right
+            double lateral = -gamepad1.left_stick_x;    // Strafe left/right //TODO Test this fix
             double yaw = gamepad1.right_stick_x;       // Turn left/right
 
             // Temporary speed modifiers (don't affect base speed setting)

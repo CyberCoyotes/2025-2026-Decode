@@ -1,13 +1,17 @@
 package org.firstinspires.ftc.teamcode.common.subsystems;
 
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.IMU;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 /**
  * Mecanum Drive Subsystem for Teams 11940 & Teams 22091
- * Supports configurable speed, sensitivity, and deadzone
+ * Supports field-centric and robot-centric drive modes
+ * Configurable speed, sensitivity, and deadzone
  */
 public class MecanumDriveSubsystem {
 
@@ -18,6 +22,7 @@ public class MecanumDriveSubsystem {
     private final DcMotorEx leftBack;
     private final DcMotorEx rightFront;
     private final DcMotorEx rightBack;
+    private final IMU imu;
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -25,6 +30,7 @@ public class MecanumDriveSubsystem {
     private double speedMultiplier = 1.0;      // Overall speed (0.0 to 1.0)
     private double sensitivityMultiplier = 1.0; // Sensitivity curve (0.5 to 2.0)
     private double deadzone = 0.1;              // Joystick deadzone (0.0 to 0.3)
+    private boolean fieldCentric = true;        // Enable/disable field-centric drive
 
     /* ========================================
      * CONSTANTS
@@ -41,7 +47,6 @@ public class MecanumDriveSubsystem {
      * ======================================== */
     public MecanumDriveSubsystem(HardwareMap hardwareMap) {
         // Initialize motors with hardware map names
-        // TODO: Verify these names match your robot configuration!
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
@@ -65,6 +70,26 @@ public class MecanumDriveSubsystem {
         leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        // Initialize IMU
+        imu = hardwareMap.get(IMU.class, "imu");
+
+        // Configure IMU orientation based on Control Hub mounting
+        // ADJUST THESE VALUES FOR YOUR SPECIFIC MOUNTING!
+        //
+        // Common configurations:
+        // 1. Control Hub flat, USB forward: LogoFacingDirection.UP, UsbFacingDirection.FORWARD
+        // 2. Control Hub rotated 90° CW: LogoFacingDirection.UP, UsbFacingDirection.RIGHT
+        // 3. Control Hub rotated 90° CCW: LogoFacingDirection.UP, UsbFacingDirection.LEFT
+        // 4. Control Hub rotated 180°: LogoFacingDirection.UP, UsbFacingDirection.BACKWARD
+        // 5. Control Hub vertical, logo inward, USB up: LogoFacingDirection.FORWARD, UsbFacingDirection.UP
+        //
+        // For vertically mounted Control Hub (logo facing inward toward robot, USB pointing up):
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.FORWARD,  // Logo faces inward (robot forward)
+                RevHubOrientationOnRobot.UsbFacingDirection.UP         // USB ports face up
+        ));
+        imu.initialize(parameters);
     }
 
     /* ========================================
@@ -73,12 +98,14 @@ public class MecanumDriveSubsystem {
 
     /**
      * Main drive method for mecanum wheels
+     * Supports both field-centric and robot-centric modes
+     *
      * @param axial Forward/backward motion (left stick Y)
      * @param lateral Left/right strafe motion (left stick X)
      * @param yaw Rotation motion (right stick X)
      */
     public void drive(double axial, double lateral, double yaw) {
-        // Apply deadzone
+        // Apply deadzone first
         axial = applyDeadzone(axial);
         lateral = applyDeadzone(lateral);
         yaw = applyDeadzone(yaw);
@@ -87,6 +114,20 @@ public class MecanumDriveSubsystem {
         axial = applySensitivity(axial);
         lateral = applySensitivity(lateral);
         yaw = applySensitivity(yaw);
+
+        // Apply field-centric transformation if enabled
+        if (fieldCentric) {
+            // Get the robot's current heading from the IMU
+            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+            // Rotate the movement direction to be relative to the field
+            // This uses a 2D rotation matrix to transform joystick inputs
+            double rotatedAxial = axial * Math.cos(-botHeading) - lateral * Math.sin(-botHeading);
+            double rotatedLateral = axial * Math.sin(-botHeading) + lateral * Math.cos(-botHeading);
+
+            axial = rotatedAxial;
+            lateral = rotatedLateral;
+        }
 
         // Calculate wheel powers using mecanum drive kinematics
         double leftFrontPower = axial + lateral + yaw;
@@ -130,9 +171,35 @@ public class MecanumDriveSubsystem {
         rightBack.setPower(0);
     }
 
+    /**
+     * Reset the IMU yaw to zero
+     * This defines the current heading as "forward" for field-centric mode
+     * Call this at the start of TeleOp or when repositioning the robot
+     */
+    public void resetHeading() {
+        imu.resetYaw();
+    }
+
     /* ========================================
      * CONFIGURATION METHODS
      * ======================================== */
+
+    /**
+     * Enable or disable field-centric drive
+     * @param enabled true for field-centric, false for robot-centric
+     */
+    public void setFieldCentric(boolean enabled) {
+        this.fieldCentric = enabled;
+    }
+
+    /**
+     * Toggle between field-centric and robot-centric modes
+     * @return The new state (true = field-centric, false = robot-centric)
+     */
+    public boolean toggleFieldCentric() {
+        this.fieldCentric = !this.fieldCentric;
+        return this.fieldCentric;
+    }
 
     /**
      * Set the overall speed multiplier
@@ -203,6 +270,18 @@ public class MecanumDriveSubsystem {
 
     public double getDeadzone() {
         return deadzone;
+    }
+
+    public boolean isFieldCentric() {
+        return fieldCentric;
+    }
+
+    /**
+     * Get the current robot heading from the IMU
+     * @return Heading in degrees (-180 to +180)
+     */
+    public double getHeading() {
+        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
     }
 
     public double getLeftFrontPower() {
@@ -277,11 +356,14 @@ public class MecanumDriveSubsystem {
     public String getTelemetry() {
         return String.format(
                 "Speed: %.0f%% | Sensitivity: %.1fx | Deadzone: %.2f\n" +
+                        "Mode: %s | Heading: %.1f°\n" +
                         "LF: %.2f | RF: %.2f\n" +
                         "LB: %.2f | RB: %.2f",
                 speedMultiplier * 100,
                 sensitivityMultiplier,
                 deadzone,
+                fieldCentric ? "FIELD" : "ROBOT",
+                getHeading(),
                 leftFront.getPower(),
                 rightFront.getPower(),
                 leftBack.getPower(),
