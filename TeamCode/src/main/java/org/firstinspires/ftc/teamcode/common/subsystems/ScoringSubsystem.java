@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.hardware.Servo;
  * - Hood Adjustment with a goBilda position based servo
  * - Ball launcher-flywheel with a goBilda motor
  */
-
 public class ScoringSubsystem {
 
     // Hardware
@@ -24,15 +23,19 @@ public class ScoringSubsystem {
     private static final String HOOD_SERVO_NAME = "hoodServo";
     private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
 
-    // Constants for turret positions (adjust based on your robot's configuration)
-    private static final double TURRET_CENTER_POSITION = 0.5;
+    // Constants for turret servo positions
     private static final double TURRET_MIN_POSITION = 0.0;
     private static final double TURRET_MAX_POSITION = 1.0;
+    private static final double TURRET_CENTER_POSITION = 0.5;
 
-    // Constants for hood positions (adjust based on your robot's configuration)
-    private static final double HOOD_DOWN_POSITION = 0.0;
-    private static final double HOOD_UP_POSITION = 1.0;
-    private static final double HOOD_DEFAULT_POSITION = 0.3;
+    // Constants for hood servo positions
+    private static final double HOOD_MIN_POSITION = 0.0;
+    private static final double HOOD_MAX_POSITION = 1.0;
+    private static final double HOOD_DEFAULT_POSITION = 0.5;
+
+    // Constants for flywheel motor
+    private static final double FLYWHEEL_MIN_POWER = 0.0;
+    private static final double FLYWHEEL_MAX_POWER = 1.0;
 
     /**
      * Constructor - only needs HardwareMap
@@ -42,16 +45,18 @@ public class ScoringSubsystem {
         // Initialize servos
         turretServo = hardwareMap.get(Servo.class, TURRET_SERVO_NAME);
         hoodServo = hardwareMap.get(Servo.class, HOOD_SERVO_NAME);
-        
-        // Initialize motor
-        flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Initialize to safe positions
+        // Initialize flywheel motor
+        flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
+        
+        // Configure flywheel motor
+        flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        // Initialize to default positions
         turretServo.setPosition(TURRET_CENTER_POSITION);
         hoodServo.setPosition(HOOD_DEFAULT_POSITION);
-        flywheelMotor.setPower(0.0);
+        flywheelMotor.setPower(0);
     }
 
     /**
@@ -76,6 +81,13 @@ public class ScoringSubsystem {
     }
 
     /**
+     * Center the turret
+     */
+    public void centerTurret() {
+        turretServo.setPosition(TURRET_CENTER_POSITION);
+    }
+
+    /**
      * Get the current turret position
      * @return Current position (0.0 to 1.0)
      */
@@ -83,18 +95,17 @@ public class ScoringSubsystem {
         return turretServo.getPosition();
     }
 
-    /**
-     * Center the turret
-     */
-    public void centerTurret() {
-        setTurretPosition(TURRET_CENTER_POSITION);
-    }
 
     /* ========================================
      * HOOD CONTROL METHODS
      * ======================================== */
 
     /**
+     * Set the hood position
+     * @param position Position from 0.0 (min) to 1.0 (max)
+     */
+    public void setHoodPosition(double position) {
+        position = clamp(position, HOOD_MIN_POSITION, HOOD_MAX_POSITION);
      * Set the hood servo position
      * @param position Position from 0.0 (down) to 1.0 (up)
      */
@@ -139,6 +150,10 @@ public class ScoringSubsystem {
 
     /**
      * Set the flywheel motor power
+     * @param power Power from 0.0 (stopped) to 1.0 (full speed)
+     */
+    public void setFlywheelPower(double power) {
+        power = clamp(power, FLYWHEEL_MIN_POWER, FLYWHEEL_MAX_POWER);
      * @param power Power from -1.0 to 1.0 (typically only positive for shooting)
      */
     public void setFlywheelPower(double power) {
@@ -148,6 +163,23 @@ public class ScoringSubsystem {
     }
 
     /**
+     * Stop the flywheel
+     */
+    public void stopFlywheel() {
+        flywheelMotor.setPower(0);
+    }
+
+    /**
+     * Get the current flywheel power
+     * @return Current power (0.0 to 1.0)
+     */
+    public double getFlywheelPower() {
+        return flywheelMotor.getPower();
+    }
+
+    /**
+     * Get the current flywheel velocity in ticks per second
+     * @return Current velocity
      * Get the current flywheel power
      * @return Current power (-1.0 to 1.0)
      */
@@ -186,6 +218,26 @@ public class ScoringSubsystem {
     }
 
     /* ========================================
+     * HELPER METHODS
+     * ======================================== */
+
+    /**
+     * Clamp value between min and max
+     * @param value Value to clamp
+     * @param min Minimum value
+     * @param max Maximum value
+     * @return Clamped value
+     */
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /**
+     * Stop all scoring subsystem components
+     */
+    public void stop() {
+        stopFlywheel();
+        // Servos hold their position, no need to reset
      * COMBINED CONTROL METHODS
      * ======================================== */
 
