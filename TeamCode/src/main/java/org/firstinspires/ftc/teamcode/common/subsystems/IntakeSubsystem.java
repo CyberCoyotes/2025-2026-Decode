@@ -10,13 +10,26 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class IntakeSubsystem {
 
     // Hardware
-    private final Servo intakeServo;
+    private final Servo intakeServo; // Continuous
+//    private final Servo intakeServo2; // Continuous
+    private final Servo intakeSlideLeft; // Position
+    private final Servo intakeSlideRight; // Position
+
 
     // Hardware configuration name - hardcoded here!
     private static final String SERVO_NAME = "intakeServo";
+//    private static final String SERVO_NAME2 = "intakeServo2";
+    private static final String SERVO_NAME3 = "intakeSlideLeft";
+    private static final String SERVO_NAME4 = "intakeSlideRight";
+
 
     // Constants for continuous rotation
     private static final double STOP_POSITION = 0.5;
+
+    // Constants for position
+    private static final double IN_POSITION = 0.0;
+    private static final double OUT_POSITION = 1.0;
+
 
     /**
      * Constructor - only needs HardwareMap
@@ -24,6 +37,9 @@ public class IntakeSubsystem {
      */
     public IntakeSubsystem(HardwareMap hardwareMap) {
         intakeServo = hardwareMap.get(Servo.class, SERVO_NAME);
+//        intakeServo2 = hardwareMap.get(Servo.class, SERVO_NAME2);
+        intakeSlideLeft = hardwareMap.get(Servo.class, SERVO_NAME3);
+        intakeSlideRight = hardwareMap.get(Servo.class, SERVO_NAME4);
         stop(); // Initialize to stopped position
     }
 
@@ -100,4 +116,23 @@ public class IntakeSubsystem {
         double position = intakeServo.getPosition();
         return (position - STOP_POSITION) * 2.0;
     }
+
+    /**
+     * Set the position of the intake slide
+     * @param position Position from 0.0 (in) to 1.0 (out)
+     */
+    public void setSlidePosition(double position) { // FIXME
+
+    }
+
+    /**
+     * Get the current position of the intake slide
+     * @return Current position
+     */
+    public double getSlidePosition() { // FIXME
+        return intakeSlideLeft.getPosition();
+
+    }
+
+
 }
