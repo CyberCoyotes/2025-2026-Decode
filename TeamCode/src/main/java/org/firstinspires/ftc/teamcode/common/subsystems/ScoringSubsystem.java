@@ -14,9 +14,9 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class ScoringSubsystem {
 
     // Hardware
-    private final Servo turretServo;      // Position-based servo for turret rotation
-    private final Servo hoodServo;        // Position-based servo for hood adjustment
-    private final DcMotorEx flywheelMotor; // Motor for flywheel shooter
+    private final Servo turretServo;      // Position mode - turret rotation
+    private final Servo hoodServo;        // Position mode - hood adjustment
+    private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
 
     // Hardware configuration names - hardcoded here!
     private static final String TURRET_SERVO_NAME = "turretServo";
@@ -71,11 +71,12 @@ public class ScoringSubsystem {
      * ======================================== */
 
     /**
-     * Set the turret position
-     * @param position Position from 0.0 (min) to 1.0 (max)
+     * Set the turret servo position
+     * @param position Position from 0.0 to 1.0
      */
     public void setTurretPosition(double position) {
-        position = clamp(position, TURRET_MIN_POSITION, TURRET_MAX_POSITION);
+        // Clamp position to valid range
+        position = Math.max(TURRET_MIN_POSITION, Math.min(TURRET_MAX_POSITION, position));
         turretServo.setPosition(position);
     }
 
@@ -94,6 +95,7 @@ public class ScoringSubsystem {
         return turretServo.getPosition();
     }
 
+
     /* ========================================
      * HOOD CONTROL METHODS
      * ======================================== */
@@ -104,6 +106,12 @@ public class ScoringSubsystem {
      */
     public void setHoodPosition(double position) {
         position = clamp(position, HOOD_MIN_POSITION, HOOD_MAX_POSITION);
+     * Set the hood servo position
+     * @param position Position from 0.0 (down) to 1.0 (up)
+     */
+    public void setHoodPosition(double position) {
+        // Clamp position to valid range
+        position = Math.max(HOOD_DOWN_POSITION, Math.min(HOOD_UP_POSITION, position));
         hoodServo.setPosition(position);
     }
 
@@ -113,6 +121,27 @@ public class ScoringSubsystem {
      */
     public double getHoodPosition() {
         return hoodServo.getPosition();
+    }
+
+    /**
+     * Set hood to down position
+     */
+    public void hoodDown() {
+        setHoodPosition(HOOD_DOWN_POSITION);
+    }
+
+    /**
+     * Set hood to up position
+     */
+    public void hoodUp() {
+        setHoodPosition(HOOD_UP_POSITION);
+    }
+
+    /**
+     * Set hood to default position
+     */
+    public void hoodDefault() {
+        setHoodPosition(HOOD_DEFAULT_POSITION);
     }
 
     /* ========================================
@@ -125,6 +154,11 @@ public class ScoringSubsystem {
      */
     public void setFlywheelPower(double power) {
         power = clamp(power, FLYWHEEL_MIN_POWER, FLYWHEEL_MAX_POWER);
+     * @param power Power from -1.0 to 1.0 (typically only positive for shooting)
+     */
+    public void setFlywheelPower(double power) {
+        // Clamp power to valid range
+        power = Math.max(-1.0, Math.min(1.0, power));
         flywheelMotor.setPower(power);
     }
 
@@ -146,6 +180,38 @@ public class ScoringSubsystem {
     /**
      * Get the current flywheel velocity in ticks per second
      * @return Current velocity
+     * Get the current flywheel power
+     * @return Current power (-1.0 to 1.0)
+     */
+    public double getFlywheelPower() {
+        return flywheelMotor.getPower();
+    }
+
+    /**
+     * Run flywheel at full speed
+     */
+    public void runFlywheel() {
+        setFlywheelPower(1.0);
+    }
+
+    /**
+     * Run flywheel at specific power
+     * @param power Power from 0.0 to 1.0
+     */
+    public void runFlywheel(double power) {
+        setFlywheelPower(Math.abs(power));
+    }
+
+    /**
+     * Stop the flywheel
+     */
+    public void stopFlywheel() {
+        flywheelMotor.setPower(0.0);
+    }
+
+    /**
+     * Get the current flywheel velocity if using encoder
+     * @return Velocity in ticks per second
      */
     public double getFlywheelVelocity() {
         return flywheelMotor.getVelocity();
@@ -172,6 +238,24 @@ public class ScoringSubsystem {
     public void stop() {
         stopFlywheel();
         // Servos hold their position, no need to reset
+     * COMBINED CONTROL METHODS
+     * ======================================== */
+
+    /**
+     * Stop all scoring subsystem components
+     */
+    public void stopAll() {
+        stopFlywheel();
+        // Servos maintain their last position
+    }
+
+    /**
+     * Reset to default positions and stop motors
+     */
+    public void reset() {
+        centerTurret();
+        hoodDefault();
+        stopFlywheel();
     }
 
 } // end of class
