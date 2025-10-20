@@ -18,7 +18,7 @@ public class ScoringSubsystem {
     private final Servo hoodServo;        // Position mode - hood adjustment
     private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
 
-    // Hardware configuration names - hardcoded here!
+    // Hardware configuration names
     private static final String TURRET_SERVO_NAME = "turretServo";
     private static final String HOOD_SERVO_NAME = "hoodServo";
     private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
@@ -48,7 +48,7 @@ public class ScoringSubsystem {
 
         // Initialize flywheel motor
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
-        
+
         // Configure flywheel motor
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -75,8 +75,7 @@ public class ScoringSubsystem {
      * @param position Position from 0.0 to 1.0
      */
     public void setTurretPosition(double position) {
-        // Clamp position to valid range
-        position = Math.max(TURRET_MIN_POSITION, Math.min(TURRET_MAX_POSITION, position));
+        position = clamp(position, TURRET_MIN_POSITION, TURRET_MAX_POSITION);
         turretServo.setPosition(position);
     }
 
@@ -95,23 +94,16 @@ public class ScoringSubsystem {
         return turretServo.getPosition();
     }
 
-
     /* ========================================
      * HOOD CONTROL METHODS
      * ======================================== */
 
     /**
-     * Set the hood position
+     * Set the hood servo position
      * @param position Position from 0.0 (min) to 1.0 (max)
      */
     public void setHoodPosition(double position) {
         position = clamp(position, HOOD_MIN_POSITION, HOOD_MAX_POSITION);
-     * Set the hood servo position
-     * @param position Position from 0.0 (down) to 1.0 (up)
-     */
-    public void setHoodPosition(double position) {
-        // Clamp position to valid range
-        position = Math.max(HOOD_DOWN_POSITION, Math.min(HOOD_UP_POSITION, position));
         hoodServo.setPosition(position);
     }
 
@@ -121,20 +113,6 @@ public class ScoringSubsystem {
      */
     public double getHoodPosition() {
         return hoodServo.getPosition();
-    }
-
-    /**
-     * Set hood to down position
-     */
-    public void hoodDown() {
-        setHoodPosition(HOOD_DOWN_POSITION);
-    }
-
-    /**
-     * Set hood to up position
-     */
-    public void hoodUp() {
-        setHoodPosition(HOOD_UP_POSITION);
     }
 
     /**
@@ -154,19 +132,7 @@ public class ScoringSubsystem {
      */
     public void setFlywheelPower(double power) {
         power = clamp(power, FLYWHEEL_MIN_POWER, FLYWHEEL_MAX_POWER);
-     * @param power Power from -1.0 to 1.0 (typically only positive for shooting)
-     */
-    public void setFlywheelPower(double power) {
-        // Clamp power to valid range
-        power = Math.max(-1.0, Math.min(1.0, power));
         flywheelMotor.setPower(power);
-    }
-
-    /**
-     * Stop the flywheel
-     */
-    public void stopFlywheel() {
-        flywheelMotor.setPower(0);
     }
 
     /**
@@ -178,20 +144,10 @@ public class ScoringSubsystem {
     }
 
     /**
-     * Get the current flywheel velocity in ticks per second
-     * @return Current velocity
-     * Get the current flywheel power
-     * @return Current power (-1.0 to 1.0)
-     */
-    public double getFlywheelPower() {
-        return flywheelMotor.getPower();
-    }
-
-    /**
      * Run flywheel at full speed
      */
     public void runFlywheel() {
-        setFlywheelPower(1.0);
+        setFlywheelPower(FLYWHEEL_MAX_POWER);
     }
 
     /**
@@ -218,26 +174,6 @@ public class ScoringSubsystem {
     }
 
     /* ========================================
-     * HELPER METHODS
-     * ======================================== */
-
-    /**
-     * Clamp value between min and max
-     * @param value Value to clamp
-     * @param min Minimum value
-     * @param max Maximum value
-     * @return Clamped value
-     */
-    private double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    /**
-     * Stop all scoring subsystem components
-     */
-    public void stop() {
-        stopFlywheel();
-        // Servos hold their position, no need to reset
      * COMBINED CONTROL METHODS
      * ======================================== */
 
@@ -258,4 +194,19 @@ public class ScoringSubsystem {
         stopFlywheel();
     }
 
-} // end of class
+    /* ========================================
+     * HELPER METHODS
+     * ======================================== */
+
+    /**
+     * Clamp value between min and max
+     * @param value Value to clamp
+     * @param min Minimum value
+     * @param max Maximum value
+     * @return Clamped value
+     */
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+}
