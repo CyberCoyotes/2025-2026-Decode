@@ -10,15 +10,15 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class IntakeSubsystem {
 
     // Hardware
-    private final Servo intakeServo; // Continuous
-//    private final Servo intakeServo2; // Continuous
+    private final Servo intakeServoLeft; // Continuous
+//    private final Servo intakeServoRight; // Continuous
     private final Servo intakeSlideLeft; // Position
     private final Servo intakeSlideRight; // Position
 
 
     // Hardware configuration name - hardcoded here!
-    private static final String SERVO_NAME = "intakeServo";
-//    private static final String SERVO_NAME2 = "intakeServo2";
+    private static final String SERVO_NAME = "intakeServoLeft";
+//    private static final String SERVO_NAME2 = "intakeServoRight";
     private static final String SERVO_NAME3 = "intakeSlideLeft";
     private static final String SERVO_NAME4 = "intakeSlideRight";
 
@@ -36,8 +36,8 @@ public class IntakeSubsystem {
      * @param hardwareMap The hardware map from the OpMode
      */
     public IntakeSubsystem(HardwareMap hardwareMap) {
-        intakeServo = hardwareMap.get(Servo.class, SERVO_NAME);
-//        intakeServo2 = hardwareMap.get(Servo.class, SERVO_NAME2);
+        intakeServoLeft = hardwareMap.get(Servo.class, SERVO_NAME);
+//        intakeServoRight = hardwareMap.get(Servo.class, SERVO_NAME2);
         intakeSlideLeft = hardwareMap.get(Servo.class, SERVO_NAME3);
         intakeSlideRight = hardwareMap.get(Servo.class, SERVO_NAME4);
         stop(); // Initialize to stopped position
@@ -60,14 +60,14 @@ public class IntakeSubsystem {
 
         // Convert speed (-1.0 to 1.0) to servo position (0.0 to 1.0)
         double position = STOP_POSITION + (speed * 0.5);
-        intakeServo.setPosition(position);
+        intakeServoLeft.setPosition(position);
     }
 
     /**
      * Stop the intake
      */
     public void stop() {
-        intakeServo.setPosition(STOP_POSITION);
+        intakeServoLeft.setPosition(STOP_POSITION);
     }
 
     /**
@@ -105,7 +105,7 @@ public class IntakeSubsystem {
      * @return Current position
      */
     public double getPosition() {
-        return intakeServo.getPosition();
+        return intakeServoLeft.getPosition();
     }
 
     /**
@@ -113,7 +113,7 @@ public class IntakeSubsystem {
      * @return Current speed
      */
     public double getSpeed() {
-        double position = intakeServo.getPosition();
+        double position = intakeServoLeft.getPosition();
         return (position - STOP_POSITION) * 2.0;
     }
 
