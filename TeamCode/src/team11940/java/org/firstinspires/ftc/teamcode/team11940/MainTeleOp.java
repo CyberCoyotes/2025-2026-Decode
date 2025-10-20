@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.team11940;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 
@@ -14,7 +15,6 @@ public class MainTeleOp extends LinearOpMode {
     private IntakeSubsystem intake;
     private MecanumDriveSubsystem drive;
 //    private ShooterSubsystem shooter;
-//    private LimelightSubsystem limelight;
 
     /* ========================================
      * CONTROL STATE VARIABLES
@@ -23,6 +23,8 @@ public class MainTeleOp extends LinearOpMode {
     private boolean lastDpadDownState = false;
     private boolean lastDpadLeftState = false;
     private boolean lastDpadRightState = false;
+    private boolean lastOptionsState = false;      // For field-centric toggle
+    private boolean lastShareState = false;        // For heading reset
 
     /* ========================================
      * CONSTANTS - CUSTOMIZE THESE!
@@ -48,12 +50,12 @@ public class MainTeleOp extends LinearOpMode {
         intake = new IntakeSubsystem(hardwareMap);
         drive = new MecanumDriveSubsystem(hardwareMap);
 //        shooter = new ShooterSubsystem(hardwareMap);
-//        limelight = new LimelightSubsystem(hardwareMap);
 
         // Configure drive defaults
         drive.setSpeed(DEFAULT_SPEED);
         drive.setSensitivity(DEFAULT_SENSITIVITY);
         drive.setDeadzone(DEFAULT_DEADZONE);
+        drive.setFieldCentric(true);  // Start in field-centric mode
 
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
@@ -62,14 +64,23 @@ public class MainTeleOp extends LinearOpMode {
         telemetry.addLine("Right Stick X - Turn");
         telemetry.addLine("Right Trigger - Slow Mode");
         telemetry.addLine("Left Trigger - Super Slow Mode");
+        telemetry.addLine();
         telemetry.addLine("D-pad Up/Down - Speed Adjust");
         telemetry.addLine("D-pad Left/Right - Sensitivity");
         telemetry.addLine();
         telemetry.addLine("Right Bumper - Intake");
         telemetry.addLine("Left Bumper - Eject");
+        telemetry.addLine();
+        telemetry.addLine("Options - Toggle Field/Robot Mode");
+        telemetry.addLine("Share - Reset Heading (0°)");
+        telemetry.addLine();
+        telemetry.addData("Drive Mode", "FIELD-CENTRIC");
         telemetry.update();
 
         waitForStart();
+
+        // Reset heading at start - current direction is "forward"
+        drive.resetHeading();
 
         /* ========================================
          * MAIN CONTROL LOOP
@@ -77,15 +88,10 @@ public class MainTeleOp extends LinearOpMode {
         while (opModeIsActive()) {
 
             /* ========================================
-             * UPDATE SUBSYSTEMS
-             * ======================================== */
-//            limelight.update();
-
-            /* ========================================
              * DRIVER 1 - DRIVE CONTROLS
              * ======================================== */
-            double axial = -gamepad1.left_stick_y;    // Forward/backward
-            double lateral = gamepad1.left_stick_x;    // Strafe left/right
+            double axial = -gamepad1.left_stick_y;     // Forward/backward
+            double lateral = -gamepad1.left_stick_x;   // Strafe left/right (inverted)
             double yaw = gamepad1.right_stick_x;       // Turn left/right
 
             // Temporary speed modifiers (don't affect base speed setting)
@@ -102,7 +108,7 @@ public class MainTeleOp extends LinearOpMode {
             double currentSpeed = drive.getSpeed();
             drive.setSpeed(currentSpeed * tempSpeedMultiplier);
 
-            // Send drive command
+            // Send drive command (subsystem handles field-centric transformation)
             drive.drive(axial, lateral, yaw);
 
             // Restore original speed
@@ -134,6 +140,25 @@ public class MainTeleOp extends LinearOpMode {
                 drive.decreaseSensitivity();
             }
             lastDpadLeftState = gamepad1.dpad_left;
+
+            /* ========================================
+             * DRIVER 1 - FIELD-CENTRIC CONTROLS
+             * ======================================== */
+            // OPTIONS button (☰) - Toggle between field-centric and robot-centric
+            if (gamepad1.options && !lastOptionsState) {
+                boolean newMode = drive.toggleFieldCentric();
+                // Short rumble feedback to confirm toggle
+                gamepad1.rumble(200);
+            }
+            lastOptionsState = gamepad1.options;
+
+            // SHARE button (⧉) - Reset heading to 0° (redefine "forward")
+            if (gamepad1.share && !lastShareState) {
+                drive.resetHeading();
+                // Longer rumble to distinguish from mode toggle
+                gamepad1.rumble(500);
+            }
+            lastShareState = gamepad1.share;
 
             /* ========================================
              * DRIVER 1 - INTAKE CONTROLS
@@ -174,6 +199,8 @@ public class MainTeleOp extends LinearOpMode {
 
             // Drive telemetry
             telemetry.addLine("=== DRIVE ===");
+            telemetry.addData("Mode", drive.isFieldCentric() ? "FIELD-CENTRIC" : "ROBOT-CENTRIC");
+            telemetry.addData("Heading", "%.1f°", drive.getHeading());
             telemetry.addData("Speed", String.format("%.0f%%", drive.getSpeed() * 100));
             telemetry.addData("Sensitivity", String.format("%.1fx", drive.getSensitivity()));
             telemetry.addData("Deadzone", String.format("%.2f", drive.getDeadzone()));
@@ -196,11 +223,11 @@ public class MainTeleOp extends LinearOpMode {
 //            telemetry.addData("Motor 1", "%.2f", shooter.shooterMotor1.getPower());
 //            telemetry.addData("Motor 2", "%.2f", shooter.shooterMotor2.getPower());
 
-            // Limelight telemetry
-//            telemetry.addLine();
-//            telemetry.addLine("=== LIMELIGHT ===");
-//            telemetry.addData("Status", limelight.getStatusTelemetry());
-//            telemetry.addData("AprilTags", limelight.getAprilTagTelemetry());
+            // Control hints
+            telemetry.addLine();
+            telemetry.addLine("=== QUICK CONTROLS ===");
+            telemetry.addLine("Options: Toggle Drive Mode");
+            telemetry.addLine("Share: Reset Heading");
 
             telemetry.update();
 
@@ -212,7 +239,6 @@ public class MainTeleOp extends LinearOpMode {
         drive.stop();
         intake.stop();
 //        shooter.stopShooter();
-//        limelight.stop();
 
     } // End of runOpMode
 

@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.common.subsystems;
+package org.firstinspires.ftc.teamcode.practicebot.subsystems;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -9,11 +9,11 @@ import com.qualcomm.robotcore.hardware.IMU;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 /**
- * Mecanum Drive Subsystem for Teams 11940 & Teams 22091
+ *
  * Supports field-centric and robot-centric drive modes
  * Configurable speed, sensitivity, and deadzone
  */
-public class MecanumDriveSubsystem {
+public class SpeedyDriveSubsystem {
 
     /* ========================================
      * HARDWARE
@@ -45,8 +45,9 @@ public class MecanumDriveSubsystem {
     /* ========================================
      * CONSTRUCTOR
      * ======================================== */
-    public MecanumDriveSubsystem(HardwareMap hardwareMap) {
+    public SpeedyDriveSubsystem(HardwareMap hardwareMap) {
         // Initialize motors with hardware map names
+        // TODO: Verify these names match your robot configuration!
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
@@ -82,12 +83,11 @@ public class MecanumDriveSubsystem {
         // 2. Control Hub rotated 90° CW: LogoFacingDirection.UP, UsbFacingDirection.RIGHT
         // 3. Control Hub rotated 90° CCW: LogoFacingDirection.UP, UsbFacingDirection.LEFT
         // 4. Control Hub rotated 180°: LogoFacingDirection.UP, UsbFacingDirection.BACKWARD
-        // 5. Control Hub vertical, logo inward, USB up: LogoFacingDirection.FORWARD, UsbFacingDirection.UP
         //
-        // For vertically mounted Control Hub (logo facing inward toward robot, USB pointing up):
+        // For practice bot (Control Hub 90° clockwise from front):
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.FORWARD,  // Logo faces inward (robot forward)
-                RevHubOrientationOnRobot.UsbFacingDirection.UP         // USB ports face up
+                RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                RevHubOrientationOnRobot.UsbFacingDirection.RIGHT  // 90° clockwise = USB points right
         ));
         imu.initialize(parameters);
     }

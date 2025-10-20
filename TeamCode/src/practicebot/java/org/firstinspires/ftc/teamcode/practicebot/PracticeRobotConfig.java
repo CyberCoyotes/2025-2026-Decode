@@ -1,3 +1,5 @@
+package org.firstinspires.ftc.teamcode.practicebot;
+
 /**
  * // RobotConfig.java - Abstract base
 public abstract class RobotConfig {
