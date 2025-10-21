@@ -47,21 +47,23 @@ The ScoringSubsystem controls three components for shooting game elements:
 ## Usage in OpMode
 
 ### Initialization
+
 ```java
-import org.firstinspires.ftc.teamcode.common.subsystems.ScoringSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
 
 // In your OpMode
-private ScoringSubsystem scoringSubsystem;
+private ShooterSubsystem shooterSubsystem;
 
-@Override
-public void runOpMode() {
-    // Initialize the subsystem
-    scoringSubsystem = new ScoringSubsystem(hardwareMap);
-    
-    waitForStart();
-    
-    // Your code here
-}
+        @Override
+        public void runOpMode() {
+            // Initialize the subsystem
+            scoringSubsystem = new ShooterSubsystem(hardwareMap);
+
+            waitForStart();
+
+            // Your code here
+        }
 ```
 
 ### Basic Control Examples

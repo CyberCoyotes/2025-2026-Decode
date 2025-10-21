@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.hardware.Servo;
  * - Hood Adjustment with a goBilda position based servo
  * - Ball launcher-flywheel with a goBilda motor
  */
-public class ScoringSubsystem {
+public class ShooterSubsystem {
 
     // Hardware
     private final Servo turretServo;      // Position mode - turret rotation
@@ -41,7 +41,7 @@ public class ScoringSubsystem {
      * Constructor - only needs HardwareMap
      * @param hardwareMap The hardware map from the OpMode
      */
-    public ScoringSubsystem(HardwareMap hardwareMap) {
+    public ShooterSubsystem(HardwareMap hardwareMap) {
         // Initialize servos
         turretServo = hardwareMap.get(Servo.class, TURRET_SERVO_NAME);
         hoodServo = hardwareMap.get(Servo.class, HOOD_SERVO_NAME);
