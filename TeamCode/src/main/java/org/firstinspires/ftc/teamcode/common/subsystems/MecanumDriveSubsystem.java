@@ -12,8 +12,20 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
  * Mecanum Drive Subsystem for Teams 11940 & Teams 22091
  * Supports field-centric and robot-centric drive modes
  * Configurable speed, sensitivity, and deadzone
+ * Implements state machine for different drive modes
  */
 public class MecanumDriveSubsystem {
+
+    /* ========================================
+     * DRIVE STATE ENUM
+     * ======================================== */
+    public enum DriveState {
+        IDLE,              // Emergency stop - no movement
+        ROBOT_CENTRIC,     // Normal robot-relative driving
+        FIELD_CENTRIC,     // Field-relative driving using IMU
+        PRECISION,         // Slow, precise movements (50% speed)
+        TURBO              // Fast movements (100% speed)
+    }
 
     /* ========================================
      * HARDWARE
@@ -23,6 +35,11 @@ public class MecanumDriveSubsystem {
     private final DcMotorEx rightFront;
     private final DcMotorEx rightBack;
     private final IMU imu;
+
+    /* ========================================
+     * STATE MACHINE
+     * ======================================== */
+    private DriveState currentState = DriveState.ROBOT_CENTRIC;
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -99,12 +116,19 @@ public class MecanumDriveSubsystem {
     /**
      * Main drive method for mecanum wheels
      * Supports both field-centric and robot-centric modes
+     * Behavior changes based on current state
      *
      * @param axial Forward/backward motion (left stick Y)
      * @param lateral Left/right strafe motion (left stick X)
      * @param yaw Rotation motion (right stick X)
      */
     public void drive(double axial, double lateral, double yaw) {
+        // Handle IDLE state - stop all motors
+        if (currentState == DriveState.IDLE) {
+            stop();
+            return;
+        }
+
         // Apply deadzone first
         axial = applyDeadzone(axial);
         lateral = applyDeadzone(lateral);
@@ -115,8 +139,8 @@ public class MecanumDriveSubsystem {
         lateral = applySensitivity(lateral);
         yaw = applySensitivity(yaw);
 
-        // Apply field-centric transformation if enabled
-        if (fieldCentric) {
+        // Apply field-centric transformation if in FIELD_CENTRIC state
+        if (currentState == DriveState.FIELD_CENTRIC) {
             // Get the robot's current heading from the IMU
             double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
@@ -148,11 +172,12 @@ public class MecanumDriveSubsystem {
             rightBackPower /= maxPower;
         }
 
-        // Apply speed multiplier
-        leftFrontPower *= speedMultiplier;
-        leftBackPower *= speedMultiplier;
-        rightFrontPower *= speedMultiplier;
-        rightBackPower *= speedMultiplier;
+        // Apply state-based speed multiplier and base speed multiplier
+        double effectiveSpeed = speedMultiplier * getStateSpeedMultiplier();
+        leftFrontPower *= effectiveSpeed;
+        leftBackPower *= effectiveSpeed;
+        rightFrontPower *= effectiveSpeed;
+        rightBackPower *= effectiveSpeed;
 
         // Set motor powers
         leftFront.setPower(leftFrontPower);
@@ -187,17 +212,33 @@ public class MecanumDriveSubsystem {
     /**
      * Enable or disable field-centric drive
      * @param enabled true for field-centric, false for robot-centric
+     * @deprecated Use setState() instead for better state control
      */
+    @Deprecated
     public void setFieldCentric(boolean enabled) {
         this.fieldCentric = enabled;
+        // Also update state for compatibility
+        if (enabled) {
+            setState(DriveState.FIELD_CENTRIC);
+        } else {
+            setState(DriveState.ROBOT_CENTRIC);
+        }
     }
 
     /**
      * Toggle between field-centric and robot-centric modes
      * @return The new state (true = field-centric, false = robot-centric)
+     * @deprecated Use setState() instead for better state control
      */
+    @Deprecated
     public boolean toggleFieldCentric() {
         this.fieldCentric = !this.fieldCentric;
+        // Also update state for compatibility
+        if (fieldCentric) {
+            setState(DriveState.FIELD_CENTRIC);
+        } else {
+            setState(DriveState.ROBOT_CENTRIC);
+        }
         return this.fieldCentric;
     }
 
@@ -272,8 +313,12 @@ public class MecanumDriveSubsystem {
         return deadzone;
     }
 
+    /**
+     * Check if currently in field-centric mode
+     * @return true if in field-centric state
+     */
     public boolean isFieldCentric() {
-        return fieldCentric;
+        return currentState == DriveState.FIELD_CENTRIC;
     }
 
     /**
@@ -298,6 +343,67 @@ public class MecanumDriveSubsystem {
 
     public double getRightBackPower() {
         return rightBack.getPower();
+    }
+
+    /* ========================================
+     * STATE MACHINE METHODS
+     * ======================================== */
+
+    /**
+     * Set the current drive state
+     * @param newState The new state to transition to
+     */
+    public void setState(DriveState newState) {
+        this.currentState = newState;
+    }
+
+    /**
+     * Get the current drive state
+     * @return The current state
+     */
+    public DriveState getState() {
+        return currentState;
+    }
+
+    /**
+     * Get a string representation of the current state
+     * @return State name as string
+     */
+    public String getStateString() {
+        switch (currentState) {
+            case IDLE:
+                return "IDLE (Stopped)";
+            case ROBOT_CENTRIC:
+                return "Robot-Centric";
+            case FIELD_CENTRIC:
+                return "Field-Centric";
+            case PRECISION:
+                return "Precision Mode";
+            case TURBO:
+                return "Turbo Mode";
+            default:
+                return "Unknown";
+        }
+    }
+
+    /**
+     * Get the speed multiplier for the current state
+     * @return Speed multiplier (0.0 to 1.0)
+     */
+    public double getStateSpeedMultiplier() {
+        switch (currentState) {
+            case IDLE:
+                return 0.0;      // No movement
+            case ROBOT_CENTRIC:
+            case FIELD_CENTRIC:
+                return 1.0;      // Normal speed (uses base speed multiplier)
+            case PRECISION:
+                return 0.5;      // 50% speed for precise movements
+            case TURBO:
+                return 1.0;      // 100% speed (ignores base speed limit)
+            default:
+                return 1.0;
+        }
     }
 
     /* ========================================
@@ -355,14 +461,16 @@ public class MecanumDriveSubsystem {
      */
     public String getTelemetry() {
         return String.format(
-                "Speed: %.0f%% | Sensitivity: %.1fx | Deadzone: %.2f\n" +
-                        "Mode: %s | Heading: %.1f°\n" +
+                "State: %s | Speed Mult: %.0f%%\n" +
+                        "Base Speed: %.0f%% | Sensitivity: %.1fx | Deadzone: %.2f\n" +
+                        "Heading: %.1f°\n" +
                         "LF: %.2f | RF: %.2f\n" +
                         "LB: %.2f | RB: %.2f",
+                getStateString(),
+                getStateSpeedMultiplier() * 100,
                 speedMultiplier * 100,
                 sensitivityMultiplier,
                 deadzone,
-                fieldCentric ? "FIELD" : "ROBOT",
                 getHeading(),
                 leftFront.getPower(),
                 rightFront.getPower(),
