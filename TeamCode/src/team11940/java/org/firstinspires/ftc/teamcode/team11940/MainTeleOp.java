@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 
 @TeleOp(name = "MainTeleOp 11940", group = "TeleOp")
@@ -68,8 +69,9 @@ public class MainTeleOp extends LinearOpMode {
         telemetry.addLine("D-pad Up/Down - Speed Adjust");
         telemetry.addLine("D-pad Left/Right - Sensitivity");
         telemetry.addLine();
-        telemetry.addLine("Right Bumper - Intake");
-        telemetry.addLine("Left Bumper - Eject");
+        telemetry.addLine("Right Bumper - Intake Wheels");
+        telemetry.addLine("Left Bumper - Eject Wheels");
+        telemetry.addLine("Y Button (Hold) - Extend Slides");
         telemetry.addLine();
         telemetry.addLine("Options - Toggle Field/Robot Mode");
         telemetry.addLine("Share - Reset Heading (0°)");
@@ -163,12 +165,20 @@ public class MainTeleOp extends LinearOpMode {
             /* ========================================
              * DRIVER 1 - INTAKE CONTROLS
              * ======================================== */
+            // Intake wheel control (bumpers)
             if (gamepad1.right_bumper) {
                 intake.intakeArtifact();
             } else if (gamepad1.left_bumper) {
                 intake.ejectArtifact();
             } else {
                 intake.stop();
+            }
+
+            // Intake slide control (Y button - hold to extend, release to retract)
+            if (gamepad1.y) {
+                intake.setSlideState(SlideState.OUT);
+            } else {
+                intake.setSlideState(SlideState.IN);
             }
 
             /* ========================================
@@ -213,8 +223,10 @@ public class MainTeleOp extends LinearOpMode {
             // Intake telemetry
             telemetry.addLine();
             telemetry.addLine("=== INTAKE ===");
-            telemetry.addData("Speed", "%.2f", intake.getSpeed());
-            telemetry.addData("Position", "%.3f", intake.getPosition());
+            telemetry.addData("Wheel State", intake.getWheelStateString());
+            telemetry.addData("Wheel Speed", "%.2f", intake.getSpeed());
+            telemetry.addData("Slide State", intake.getSlideStateString());
+            telemetry.addData("Slide Position", "%.3f", intake.getSlidePosition());
 
             // Shooter telemetry
 //            telemetry.addLine();

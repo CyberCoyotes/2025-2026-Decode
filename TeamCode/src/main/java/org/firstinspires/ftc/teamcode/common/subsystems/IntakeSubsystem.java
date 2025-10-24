@@ -5,134 +5,282 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 /**
  * Intake subsystem for collecting and ejecting game artifacts
- * Uses a continuous rotation servo
+ * Uses continuous rotation servos for wheels and position servos for slides
+ * Implements state machine pattern for robust control
  */
 public class IntakeSubsystem {
 
+    /**
+     * State machine for intake wheel control
+     */
+    public enum WheelState {
+        IDLE,      // Wheels stopped
+        INTAKING,  // Wheels running to intake
+        EJECTING   // Wheels running to eject
+    }
+
+    /**
+     * State machine for intake slide position
+     */
+    public enum SlideState {
+        IN,   // Slides retracted
+        OUT   // Slides extended
+    }
+
     // Hardware
-    private final Servo intakeServoLeft; // Continuous
-//    private final Servo intakeServoRight; // Continuous
-    private final Servo intakeSlideLeft; // Position
-    private final Servo intakeSlideRight; // Position
+    private final Servo intakeWheelLeft;  // Continuous rotation
+    private final Servo intakeWheelRight; // Continuous rotation
+    private final Servo intakeSlideLeft;  // Position servo
+    private final Servo intakeSlideRight; // Position servo
 
+    // Hardware configuration names - hardcoded here!
+    private static final String WHEEL_LEFT_NAME = "intakeServoLeft";
+    private static final String WHEEL_RIGHT_NAME = "intakeServoRight";
+    private static final String SLIDE_LEFT_NAME = "intakeSlideLeft";
+    private static final String SLIDE_RIGHT_NAME = "intakeSlideRight";
 
-    // Hardware configuration name - hardcoded here!
-    private static final String SERVO_NAME = "intakeServoLeft";
-//    private static final String SERVO_NAME2 = "intakeServoRight";
-    private static final String SERVO_NAME3 = "intakeSlideLeft";
-    private static final String SERVO_NAME4 = "intakeSlideRight";
-
-
-    // Constants for continuous rotation
+    // Constants for continuous rotation servos (wheels)
     private static final double STOP_POSITION = 0.5;
+    private static final double INTAKE_SPEED = 1.0;   // Full speed intake
+    private static final double EJECT_SPEED = -1.0;   // Full speed eject
 
-    // Constants for position
-    private static final double IN_POSITION = 0.0;
-    private static final double OUT_POSITION = 1.0;
+    // Constants for position servos (slides)
+    private static final double SLIDE_IN_POSITION = 0.0;
+    private static final double SLIDE_OUT_POSITION = 1.0;
+
+    // State tracking
+    private WheelState wheelState = WheelState.IDLE;
+    private SlideState slideState = SlideState.IN;
 
 
     /**
-     * Constructor - only needs HardwareMap
+     * Constructor - initializes hardware and sets initial states
      * @param hardwareMap The hardware map from the OpMode
      */
     public IntakeSubsystem(HardwareMap hardwareMap) {
-        intakeServoLeft = hardwareMap.get(Servo.class, SERVO_NAME);
-//        intakeServoRight = hardwareMap.get(Servo.class, SERVO_NAME2);
-        intakeSlideLeft = hardwareMap.get(Servo.class, SERVO_NAME3);
-        intakeSlideRight = hardwareMap.get(Servo.class, SERVO_NAME4);
-        stop(); // Initialize to stopped position
+        // Initialize wheel servos (continuous rotation)
+        intakeWheelLeft = hardwareMap.get(Servo.class, WHEEL_LEFT_NAME);
+        intakeWheelRight = hardwareMap.get(Servo.class, WHEEL_RIGHT_NAME);
+
+        // Initialize slide servos (position)
+        intakeSlideLeft = hardwareMap.get(Servo.class, SLIDE_LEFT_NAME);
+        intakeSlideRight = hardwareMap.get(Servo.class, SLIDE_RIGHT_NAME);
+
+        // Reverse right side servos so they mirror left side
+        intakeWheelRight.setDirection(Servo.Direction.REVERSE);
+        intakeSlideRight.setDirection(Servo.Direction.REVERSE);
+
+        // Initialize to safe starting state
+        setWheelState(WheelState.IDLE);
+        setSlideState(SlideState.IN);
     }
 
     /**
      * Periodic method called once per scheduler run
      */
     public void periodic() {
-        // Add any periodic updates here if needed
+        // State machine updates happen here if needed
+        // Currently all state changes are direct from teleop
+    }
+
+    // ==================== WHEEL STATE MACHINE METHODS ====================
+
+    /**
+     * Set the wheel state and update hardware accordingly
+     * @param newState The desired wheel state
+     */
+    public void setWheelState(WheelState newState) {
+        wheelState = newState;
+        updateWheelHardware();
     }
 
     /**
-     * Set the speed of the intake servo
+     * Get the current wheel state
+     * @return Current wheel state
+     */
+    public WheelState getWheelState() {
+        return wheelState;
+    }
+
+    /**
+     * Get wheel state as a string for telemetry
+     * @return State name
+     */
+    public String getWheelStateString() {
+        return wheelState.name();
+    }
+
+    /**
+     * Update wheel servo positions based on current state
+     */
+    private void updateWheelHardware() {
+        double speed;
+        switch (wheelState) {
+            case INTAKING:
+                speed = INTAKE_SPEED;
+                break;
+            case EJECTING:
+                speed = EJECT_SPEED;
+                break;
+            case IDLE:
+            default:
+                speed = 0.0;
+                break;
+        }
+        setWheelSpeed(speed);
+    }
+
+    /**
+     * Set the speed of the intake wheel servos
      * @param speed Speed from -1.0 (eject) to 1.0 (intake), 0.0 is stop
      */
-    public void setSpeed(double speed) {
+    private void setWheelSpeed(double speed) {
         // Clamp speed to valid range
         speed = Math.max(-1.0, Math.min(1.0, speed));
 
         // Convert speed (-1.0 to 1.0) to servo position (0.0 to 1.0)
         double position = STOP_POSITION + (speed * 0.5);
-        intakeServoLeft.setPosition(position);
+
+        // Both servos get the same position command
+        // Right servo is reversed in hardware, so it will spin opposite direction
+        intakeWheelLeft.setPosition(position);
+        intakeWheelRight.setPosition(position);
+    }
+
+    // ==================== SLIDE STATE MACHINE METHODS ====================
+
+    /**
+     * Set the slide state and update hardware accordingly
+     * @param newState The desired slide state
+     */
+    public void setSlideState(SlideState newState) {
+        slideState = newState;
+        updateSlideHardware();
     }
 
     /**
-     * Stop the intake
+     * Get the current slide state
+     * @return Current slide state
+     */
+    public SlideState getSlideState() {
+        return slideState;
+    }
+
+    /**
+     * Get slide state as a string for telemetry
+     * @return State name
+     */
+    public String getSlideStateString() {
+        return slideState.name();
+    }
+
+    /**
+     * Update slide servo positions based on current state
+     */
+    private void updateSlideHardware() {
+        double position;
+        switch (slideState) {
+            case OUT:
+                position = SLIDE_OUT_POSITION;
+                break;
+            case IN:
+            default:
+                position = SLIDE_IN_POSITION;
+                break;
+        }
+        setSlidePosition(position);
+    }
+
+    /**
+     * Set the position of the intake slides
+     * @param position Position from 0.0 (in) to 1.0 (out)
+     */
+    private void setSlidePosition(double position) {
+        // Clamp position to valid range
+        position = Math.max(0.0, Math.min(1.0, position));
+
+        // Both servos get the same position command
+        // Right servo is reversed in hardware, so it will mirror left side
+        intakeSlideLeft.setPosition(position);
+        intakeSlideRight.setPosition(position);
+    }
+
+    // ==================== LEGACY COMPATIBILITY METHODS ====================
+    // These maintain backward compatibility with existing teleop code
+
+    /**
+     * Stop the intake wheels
      */
     public void stop() {
-        intakeServoLeft.setPosition(STOP_POSITION);
+        setWheelState(WheelState.IDLE);
     }
 
     /**
      * Run intake to collect artifacts at full speed
      */
     public void intakeArtifact() {
-        setSpeed(1.0);
+        setWheelState(WheelState.INTAKING);
     }
 
     /**
      * Run intake in reverse to eject artifacts at full speed
      */
     public void ejectArtifact() {
-        setSpeed(-1.0);
+        setWheelState(WheelState.EJECTING);
     }
 
     /**
-     * Run intake to collect at a specific speed
+     * Run intake to collect at a specific speed (legacy method)
      * @param speed Speed from 0.0 to 1.0
      */
     public void intakeArtifact(double speed) {
-        setSpeed(Math.abs(speed));
+        setWheelState(WheelState.INTAKING);
+        // Note: Custom speed not supported in state machine version
+        // Always uses INTAKE_SPEED constant
     }
 
     /**
-     * Run intake in reverse at a specific speed
+     * Run intake in reverse at a specific speed (legacy method)
      * @param speed Speed from 0.0 to 1.0
      */
     public void ejectArtifact(double speed) {
-        setSpeed(-Math.abs(speed));
+        setWheelState(WheelState.EJECTING);
+        // Note: Custom speed not supported in state machine version
+        // Always uses EJECT_SPEED constant
     }
 
+    // ==================== TELEMETRY HELPER METHODS ====================
+
     /**
-     * Get the current servo position (raw value 0.0-1.0)
+     * Get the current wheel servo position (raw value 0.0-1.0)
      * @return Current position
      */
-    public double getPosition() {
-        return intakeServoLeft.getPosition();
+    public double getWheelPosition() {
+        return intakeWheelLeft.getPosition();
     }
 
     /**
-     * Get the current commanded speed (-1.0 to 1.0)
+     * Get the current commanded wheel speed (-1.0 to 1.0)
      * @return Current speed
      */
     public double getSpeed() {
-        double position = intakeServoLeft.getPosition();
+        double position = intakeWheelLeft.getPosition();
         return (position - STOP_POSITION) * 2.0;
     }
 
     /**
-     * Set the position of the intake slide
-     * @param position Position from 0.0 (in) to 1.0 (out)
+     * Get the current position of the intake slides
+     * @return Current position (0.0 = in, 1.0 = out)
      */
-    public void setSlidePosition(double position) { // FIXME
-
+    public double getSlidePosition() {
+        return intakeSlideLeft.getPosition();
     }
 
     /**
-     * Get the current position of the intake slide
-     * @return Current position
+     * Legacy compatibility method
+     * @return Current wheel position
      */
-    public double getSlidePosition() { // FIXME
-        return intakeSlideLeft.getPosition();
-
+    public double getPosition() {
+        return getWheelPosition();
     }
-
-
 }

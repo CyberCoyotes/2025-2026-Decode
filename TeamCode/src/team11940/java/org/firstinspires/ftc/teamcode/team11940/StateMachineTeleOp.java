@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
 
 @TeleOp(name = "StateMachine TeleOp", group = "TeleOp")
 public class StateMachineTeleOp extends LinearOpMode {
@@ -59,14 +60,16 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
         telemetry.addLine("Controls:");
-        telemetry.addLine("  Left Stick   - Strafe");
-        telemetry.addLine("  Right Stick  - Rotate");
-        telemetry.addLine("  Right Bumper - Intake");
-        telemetry.addLine("  Left Bumper  - Eject");
-        telemetry.addLine("  X Button     - Toggle Field-Centric");
-        telemetry.addLine("  Y Button     - Toggle Precision Mode");
-        telemetry.addLine("  B Button     - Toggle Turbo Mode");
-        telemetry.addLine("  Options      - Reset Heading");
+        telemetry.addLine("  Left Stick      - Strafe");
+        telemetry.addLine("  Right Stick     - Rotate");
+        telemetry.addLine("  Right Bumper    - Intake Wheels");
+        telemetry.addLine("  Left Bumper     - Eject Wheels");
+        telemetry.addLine("  Right Trigger   - Extend Slides (Hold)");
+        telemetry.addLine("  X Button        - Toggle Field-Centric");
+        telemetry.addLine("  Y Button        - Toggle Precision Mode");
+        telemetry.addLine("  B Button        - Toggle Turbo Mode");
+        telemetry.addLine("  A Button        - Emergency Stop");
+        telemetry.addLine("  Options         - Reset Heading");
         telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
         telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
         telemetry.update();
@@ -196,17 +199,22 @@ public class StateMachineTeleOp extends LinearOpMode {
      * INTAKE CONTROL HANDLER
      * ======================================== */
     private void handleIntakeControls() {
-        // Right Bumper - Intake
+        // Intake wheel control (bumpers)
         if (gamepad1.right_bumper) {
             intake.intakeArtifact();
         }
-        // Left Bumper - Eject
         else if (gamepad1.left_bumper) {
             intake.ejectArtifact();
         }
-        // No bumpers pressed - Stop
         else {
             intake.stop();
+        }
+
+        // Intake slide control (right trigger - hold to extend, release to retract)
+        if (gamepad1.right_trigger > 0.5) {
+            intake.setSlideState(SlideState.OUT);
+        } else {
+            intake.setSlideState(SlideState.IN);
         }
     }
 
@@ -233,14 +241,10 @@ public class StateMachineTeleOp extends LinearOpMode {
 
         telemetry.addLine();
         telemetry.addLine("=== INTAKE SUBSYSTEM ===");
-        telemetry.addData("Speed", "%.2f", intake.getSpeed());
-        String intakeState = "STOPPED";
-        if (gamepad1.right_bumper) {
-            intakeState = "INTAKING";
-        } else if (gamepad1.left_bumper) {
-            intakeState = "EJECTING";
-        }
-        telemetry.addData("State", intakeState);
+        telemetry.addData("Wheel State", intake.getWheelStateString());
+        telemetry.addData("Wheel Speed", "%.2f", intake.getSpeed());
+        telemetry.addData("Slide State", intake.getSlideStateString());
+        telemetry.addData("Slide Position", "%.3f", intake.getSlidePosition());
 
         telemetry.addLine();
         telemetry.addLine("=== CONFIGURATION ===");
