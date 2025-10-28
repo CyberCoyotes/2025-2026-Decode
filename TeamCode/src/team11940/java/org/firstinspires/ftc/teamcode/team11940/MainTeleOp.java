@@ -171,7 +171,8 @@ public class MainTeleOp extends LinearOpMode {
              * DRIVER 1 - INTAKE CONTROLS
              * ======================================== */
             // Intake wheel control (bumpers)
-            // Slides automatically extend when intake is running and retract 300ms after stopping
+            // Slides automatically extend when intake is running and retract immediately when stopping
+            // Wheels continue running for 300ms after slides retract
             if (gamepad1.right_bumper) {
                 intake.intakeArtifact();
             } else if (gamepad1.left_bumper) {
