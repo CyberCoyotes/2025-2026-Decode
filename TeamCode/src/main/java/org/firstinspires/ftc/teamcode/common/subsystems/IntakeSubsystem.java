@@ -41,12 +41,12 @@ public class IntakeSubsystem {
 
     // Constants for continuous rotation servos (wheels)
     private static final double STOP_POSITION = 0.5;
-    private static final double INTAKE_SPEED = 1.0;   // Full speed intake
-    private static final double EJECT_SPEED = -1.0;   // Full speed eject
+    private static final double INTAKE_SPEED = -1.0;   // Full speed intake // TODO test sign change
+    private static final double EJECT_SPEED = 1.0;   // Full speed eject
 
     // Constants for position servos (slides)
     private static final double SLIDE_IN_POSITION = 0.0;
-    private static final double SLIDE_OUT_POSITION = 1.0;
+    private static final double SLIDE_OUT_POSITION = 0.75; // Started at 1.0
 
     // State tracking
     private WheelState wheelState = WheelState.IDLE;
