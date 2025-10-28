@@ -48,9 +48,16 @@ public class IntakeSubsystem {
     private static final double SLIDE_IN_POSITION = 0.0;
     private static final double SLIDE_OUT_POSITION = 0.75; // Started at 1.0
 
+    // Automatic slide control constants
+    private static final long SLIDE_RETRACT_DELAY_MS = 300; // Delay before retracting slides after intake stops
+
     // State tracking
     private WheelState wheelState = WheelState.IDLE;
     private SlideState slideState = SlideState.IN;
+
+    // Automatic slide control state
+    private boolean autoSlideControlEnabled = true;
+    private long lastIntakeActiveTime = 0; // Time when intake was last active (in milliseconds)
 
 
     /**
@@ -77,10 +84,29 @@ public class IntakeSubsystem {
 
     /**
      * Periodic method called once per scheduler run
+     * Handles automatic slide control based on intake wheel state
      */
     public void periodic() {
-        // State machine updates happen here if needed
-        // Currently all state changes are direct from teleop
+        if (!autoSlideControlEnabled) {
+            return; // Manual control mode, don't auto-control slides
+        }
+
+        // Automatic slide control logic
+        long currentTime = System.currentTimeMillis();
+
+        if (wheelState == WheelState.INTAKING || wheelState == WheelState.EJECTING) {
+            // Intake is active - extend slides immediately and update timestamp
+            if (slideState != SlideState.OUT) {
+                setSlideState(SlideState.OUT);
+            }
+            lastIntakeActiveTime = currentTime;
+        } else if (wheelState == WheelState.IDLE) {
+            // Intake is idle - retract slides after delay
+            long timeSinceActive = currentTime - lastIntakeActiveTime;
+            if (slideState == SlideState.OUT && timeSinceActive >= SLIDE_RETRACT_DELAY_MS) {
+                setSlideState(SlideState.IN);
+            }
+        }
     }
 
     // ==================== WHEEL STATE MACHINE METHODS ====================
@@ -247,6 +273,30 @@ public class IntakeSubsystem {
         setWheelState(WheelState.EJECTING);
         // Note: Custom speed not supported in state machine version
         // Always uses EJECT_SPEED constant
+    }
+
+    // ==================== AUTOMATIC SLIDE CONTROL METHODS ====================
+
+    /**
+     * Enable automatic slide control (slides extend/retract with intake)
+     */
+    public void enableAutoSlideControl() {
+        autoSlideControlEnabled = true;
+    }
+
+    /**
+     * Disable automatic slide control (manual slide control via setSlideState)
+     */
+    public void disableAutoSlideControl() {
+        autoSlideControlEnabled = false;
+    }
+
+    /**
+     * Check if automatic slide control is enabled
+     * @return true if auto control is enabled
+     */
+    public boolean isAutoSlideControlEnabled() {
+        return autoSlideControlEnabled;
     }
 
     // ==================== TELEMETRY HELPER METHODS ====================

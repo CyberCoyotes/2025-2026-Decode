@@ -71,7 +71,7 @@ public class MainTeleOp extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("Right Bumper - Intake Wheels");
         telemetry.addLine("Left Bumper - Eject Wheels");
-        telemetry.addLine("Y Button (Hold) - Extend Slides");
+        telemetry.addLine("(Slides auto-extend/retract)");
         telemetry.addLine();
         telemetry.addLine("Options - Toggle Field/Robot Mode");
         telemetry.addLine("Share - Reset Heading (0°)");
@@ -88,6 +88,11 @@ public class MainTeleOp extends LinearOpMode {
          * MAIN CONTROL LOOP
          * ======================================== */
         while (opModeIsActive()) {
+
+            /* ========================================
+             * SUBSYSTEM PERIODIC UPDATES
+             * ======================================== */
+            intake.periodic(); // Handle automatic slide control
 
             /* ========================================
              * DRIVER 1 - DRIVE CONTROLS
@@ -166,6 +171,7 @@ public class MainTeleOp extends LinearOpMode {
              * DRIVER 1 - INTAKE CONTROLS
              * ======================================== */
             // Intake wheel control (bumpers)
+            // Slides automatically extend when intake is running and retract 300ms after stopping
             if (gamepad1.right_bumper) {
                 intake.intakeArtifact();
             } else if (gamepad1.left_bumper) {
@@ -174,12 +180,14 @@ public class MainTeleOp extends LinearOpMode {
                 intake.stop();
             }
 
-            // Intake slide control (Y button - hold to extend, release to retract)
-            if (gamepad1.y) {
-                intake.setSlideState(SlideState.OUT);
-            } else {
-                intake.setSlideState(SlideState.IN);
-            }
+            // Manual slide override (Y button - disabled by default, slides are automatic)
+            // Uncomment below to enable manual slide control:
+            // if (gamepad1.y) {
+            //     intake.disableAutoSlideControl();
+            //     intake.setSlideState(SlideState.OUT);
+            // } else {
+            //     intake.setSlideState(SlideState.IN);
+            // }
 
             /* ========================================
              * DRIVER 1 - SHOOTER CONTROLS
@@ -227,6 +235,7 @@ public class MainTeleOp extends LinearOpMode {
             telemetry.addData("Wheel Speed", "%.2f", intake.getSpeed());
             telemetry.addData("Slide State", intake.getSlideStateString());
             telemetry.addData("Slide Position", "%.3f", intake.getSlidePosition());
+            telemetry.addData("Auto Slide Control", intake.isAutoSlideControlEnabled() ? "ENABLED" : "DISABLED");
 
             // Shooter telemetry
 //            telemetry.addLine();

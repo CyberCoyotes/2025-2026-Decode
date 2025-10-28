@@ -64,7 +64,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addLine("  Right Stick     - Rotate");
         telemetry.addLine("  Right Bumper    - Intake Wheels");
         telemetry.addLine("  Left Bumper     - Eject Wheels");
-        telemetry.addLine("  Right Trigger   - Extend Slides (Hold)");
+        telemetry.addLine("  (Slides auto-extend/retract)");
         telemetry.addLine("  X Button        - Toggle Field-Centric");
         telemetry.addLine("  Y Button        - Toggle Precision Mode");
         telemetry.addLine("  B Button        - Toggle Turbo Mode");
@@ -83,6 +83,9 @@ public class StateMachineTeleOp extends LinearOpMode {
          * MAIN LOOP
          * ======================================== */
         while (opModeIsActive()) {
+
+            // Update subsystems
+            intake.periodic(); // Handle automatic slide control
 
             // Handle state transitions
             handleStateTransitions();
@@ -200,6 +203,7 @@ public class StateMachineTeleOp extends LinearOpMode {
      * ======================================== */
     private void handleIntakeControls() {
         // Intake wheel control (bumpers)
+        // Slides automatically extend when intake is running and retract 300ms after stopping
         if (gamepad1.right_bumper) {
             intake.intakeArtifact();
         }
@@ -210,12 +214,14 @@ public class StateMachineTeleOp extends LinearOpMode {
             intake.stop();
         }
 
-        // Intake slide control (right trigger - hold to extend, release to retract)
-        if (gamepad1.right_trigger > 0.5) {
-            intake.setSlideState(SlideState.OUT);
-        } else {
-            intake.setSlideState(SlideState.IN);
-        }
+        // Manual slide override (right trigger - disabled by default, slides are automatic)
+        // Uncomment below to enable manual slide control:
+        // if (gamepad1.right_trigger > 0.5) {
+        //     intake.disableAutoSlideControl();
+        //     intake.setSlideState(SlideState.OUT);
+        // } else {
+        //     intake.setSlideState(SlideState.IN);
+        // }
     }
 
     /* ========================================
@@ -245,6 +251,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addData("Wheel Speed", "%.2f", intake.getSpeed());
         telemetry.addData("Slide State", intake.getSlideStateString());
         telemetry.addData("Slide Position", "%.3f", intake.getSlidePosition());
+        telemetry.addData("Auto Slide Control", intake.isAutoSlideControlEnabled() ? "ENABLED" : "DISABLED");
 
         telemetry.addLine();
         telemetry.addLine("=== CONFIGURATION ===");
