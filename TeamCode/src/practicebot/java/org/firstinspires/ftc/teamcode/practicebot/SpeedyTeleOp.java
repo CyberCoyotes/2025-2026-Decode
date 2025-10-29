@@ -19,7 +19,7 @@ public class SpeedyTeleOp extends LinearOpMode {
      * SUBSYSTEMS
      * ======================================== */
     private SpeedyDriveSubsystem drive;
-    private LimelightSubsystem limelightSub;
+//    private LimelightSubsystem limelightSub;
 
     /* ========================================
      * CONTROL STATE VARIABLES
@@ -38,7 +38,7 @@ public class SpeedyTeleOp extends LinearOpMode {
     private static final double SUPER_SLOW_MULTIPLIER = 0.35;
 
     // Drive configuration defaults
-    private static final double DEFAULT_SPEED = 0.85;
+    private static final double DEFAULT_SPEED = 0.50;
     private static final double DEFAULT_SENSITIVITY = 1.2;
     private static final double DEFAULT_DEADZONE = 0.1;
 
@@ -53,7 +53,7 @@ public class SpeedyTeleOp extends LinearOpMode {
 
         // Initialize subsystems
         drive = new SpeedyDriveSubsystem(hardwareMap);
-        limelightSub = new LimelightSubsystem(hardwareMap);
+//        limelightSub = new LimelightSubsystem(hardwareMap);
 
         // Configure drive defaults
         drive.setSpeed(DEFAULT_SPEED);
@@ -92,7 +92,7 @@ public class SpeedyTeleOp extends LinearOpMode {
             /* ========================================
              * UPDATE SUBSYSTEMS
              * ======================================== */
-            limelightSub.update();
+//            limelightSub.update();
 
             /* ========================================
              * DRIVER 1 - DRIVE CONTROLS
@@ -148,6 +148,20 @@ public class SpeedyTeleOp extends LinearOpMode {
             }
             lastDpadLeftState = gamepad1.dpad_left;
 
+            // A Button - Run left front motor while held
+            /*
+            if (gamepad1.a) {
+                drive.setLeftFrontPower(0.5);  // Run at 50% power
+                telemetry.addData("LF Motor", "RUNNING (50%)");
+            } else {
+                drive.setLeftFrontPower(0.0);  // Stop when released
+            }
+
+             */
+
+
+
+
             /* ========================================
              * DRIVER 1 - FIELD-CENTRIC CONTROLS
              * ======================================== */
@@ -188,8 +202,8 @@ public class SpeedyTeleOp extends LinearOpMode {
             // Limelight telemetry
             telemetry.addLine();
             telemetry.addLine("=== LIMELIGHT ===");
-            telemetry.addData("Status", limelightSub.getStatusTelemetry());
-            telemetry.addData("AprilTags", limelightSub.getAprilTagTelemetry());
+//            telemetry.addData("Status", limelightSub.getStatusTelemetry());
+//            telemetry.addData("AprilTags", limelightSub.getAprilTagTelemetry());
 
             // Control hints
             telemetry.addLine();
@@ -205,7 +219,8 @@ public class SpeedyTeleOp extends LinearOpMode {
          * CLEANUP
          * ======================================== */
         drive.stop();
-        limelightSub.stop();
+
+//        limelightSub.stop();
 
     } // end of runOpMode method
 
