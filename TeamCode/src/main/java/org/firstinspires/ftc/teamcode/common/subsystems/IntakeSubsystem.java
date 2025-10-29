@@ -49,7 +49,7 @@ public class IntakeSubsystem {
     private static final double SLIDE_OUT_POSITION = 0.75; // Started at 1.0
 
     // Automatic slide control constants
-    private static final long SLIDE_RETRACT_DELAY_MS = 300; // Delay before retracting slides after intake stops
+    private static final long WHEEL_STOP_DELAY_MS = 300; // Delay before stopping wheels after slides retract
 
     // State tracking
     private WheelState wheelState = WheelState.IDLE;
@@ -57,7 +57,8 @@ public class IntakeSubsystem {
 
     // Automatic slide control state
     private boolean autoSlideControlEnabled = true;
-    private long lastIntakeActiveTime = 0; // Time when intake was last active (in milliseconds)
+    private boolean delayedWheelStop = false; // True when slides retracted but wheels still running
+    private long slideRetractTime = 0; // Time when slides were retracted (in milliseconds)
 
 
     /**
@@ -94,17 +95,19 @@ public class IntakeSubsystem {
         // Automatic slide control logic
         long currentTime = System.currentTimeMillis();
 
-        if (wheelState == WheelState.INTAKING || wheelState == WheelState.EJECTING) {
-            // Intake is active - extend slides immediately and update timestamp
+        if (delayedWheelStop) {
+            // We're in delayed stop mode - wheels running after slides retracted
+            long timeSinceRetract = currentTime - slideRetractTime;
+            if (timeSinceRetract >= WHEEL_STOP_DELAY_MS) {
+                // Delay period is over, actually stop the wheels now
+                wheelState = WheelState.IDLE;
+                updateWheelHardware();
+                delayedWheelStop = false;
+            }
+        } else if (wheelState == WheelState.INTAKING || wheelState == WheelState.EJECTING) {
+            // Intake is active - extend slides immediately
             if (slideState != SlideState.OUT) {
                 setSlideState(SlideState.OUT);
-            }
-            lastIntakeActiveTime = currentTime;
-        } else if (wheelState == WheelState.IDLE) {
-            // Intake is idle - retract slides after delay
-            long timeSinceActive = currentTime - lastIntakeActiveTime;
-            if (slideState == SlideState.OUT && timeSinceActive >= SLIDE_RETRACT_DELAY_MS) {
-                setSlideState(SlideState.IN);
             }
         }
     }
@@ -236,15 +239,30 @@ public class IntakeSubsystem {
 
     /**
      * Stop the intake wheels
+     * If auto-control is enabled, slides retract immediately and wheels continue for 300ms
      */
     public void stop() {
-        setWheelState(WheelState.IDLE);
+        if (autoSlideControlEnabled && (wheelState == WheelState.INTAKING || wheelState == WheelState.EJECTING)) {
+            // Retract slides immediately
+            setSlideState(SlideState.IN);
+
+            // Enter delayed stop mode - wheels will keep running for 300ms
+            delayedWheelStop = true;
+            slideRetractTime = System.currentTimeMillis();
+
+            // Don't change wheel state yet - let periodic() handle it after delay
+        } else {
+            // Not in auto mode or already idle - just stop normally
+            setWheelState(WheelState.IDLE);
+            delayedWheelStop = false;
+        }
     }
 
     /**
      * Run intake to collect artifacts at full speed
      */
     public void intakeArtifact() {
+        delayedWheelStop = false; // Cancel any delayed stop
         setWheelState(WheelState.INTAKING);
     }
 
@@ -252,6 +270,7 @@ public class IntakeSubsystem {
      * Run intake in reverse to eject artifacts at full speed
      */
     public void ejectArtifact() {
+        delayedWheelStop = false; // Cancel any delayed stop
         setWheelState(WheelState.EJECTING);
     }
 
