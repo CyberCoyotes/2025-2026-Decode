@@ -33,6 +33,11 @@ public class SpeedyTeleOp extends LinearOpMode {
     private boolean lastOptionsState = false;      // For field-centric toggle
     private boolean lastShareState = false;        // For heading reset
 
+    // Shooter control state variables (gamepad 2)
+    private boolean lastShooterDpadUpState = false;
+    private boolean lastShooterDpadDownState = false;
+    private double shooterPower = 0.75;  // Default shooter power level
+
     /* ========================================
      * CONSTANTS - CUSTOMIZE THESE!
      * ======================================== */
@@ -43,6 +48,12 @@ public class SpeedyTeleOp extends LinearOpMode {
     private static final double DEFAULT_SPEED = 0.50;
     private static final double DEFAULT_SENSITIVITY = 1.2;
     private static final double DEFAULT_DEADZONE = 0.1;
+
+    // Shooter configuration
+    private static final double SHOOTER_POWER_INCREMENT = 0.05;  // 5% per button press
+    private static final double SHOOTER_MIN_POWER = 0.25;
+    private static final double SHOOTER_MAX_POWER = 1.0;
+    private static final double SHOOTER_TRIGGER_DEADZONE = 0.1;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -78,12 +89,13 @@ public class SpeedyTeleOp extends LinearOpMode {
         telemetry.addLine("Options - Toggle Field/Robot Mode");
         telemetry.addLine("Share - Reset Heading (0°)");
         telemetry.addLine();
-        telemetry.addLine("=== SHOOTER CONTROLS ===");
+        telemetry.addLine("=== SHOOTER CONTROLS (GP2) ===");
         telemetry.addLine("A - Hood Min Position");
         telemetry.addLine("B - Hood Max Position");
         telemetry.addLine("X - Hood Mid Position");
-        telemetry.addLine("Right Bumper - Motor Forward");
-        telemetry.addLine("Left Bumper - Motor Reverse");
+        telemetry.addLine("Right Trigger - Motor Forward");
+        telemetry.addLine("Left Trigger - Motor Reverse");
+        telemetry.addLine("D-pad Up/Down - Power Adjust");
         telemetry.addLine();
         telemetry.addData("Drive Mode", "FIELD-CENTRIC");
         telemetry.update();
@@ -195,7 +207,22 @@ public class SpeedyTeleOp extends LinearOpMode {
             lastShareState = gamepad1.share;
 
             /* ========================================
-             * SHOOTER CONTROLS - HOOD SERVO
+             * SHOOTER CONTROLS - POWER ADJUSTMENT (GAMEPAD 2)
+             * ======================================== */
+            // D-pad UP increases shooter power
+            if (gamepad2.dpad_up && !lastShooterDpadUpState) {
+                shooterPower = Math.min(shooterPower + SHOOTER_POWER_INCREMENT, SHOOTER_MAX_POWER);
+            }
+            lastShooterDpadUpState = gamepad2.dpad_up;
+
+            // D-pad DOWN decreases shooter power
+            if (gamepad2.dpad_down && !lastShooterDpadDownState) {
+                shooterPower = Math.max(shooterPower - SHOOTER_POWER_INCREMENT, SHOOTER_MIN_POWER);
+            }
+            lastShooterDpadDownState = gamepad2.dpad_down;
+
+            /* ========================================
+             * SHOOTER CONTROLS - HOOD SERVO (GAMEPAD 2)
              * ======================================== */
             // A Button - Hood to MIN position
             if (gamepad2.a) {
@@ -213,15 +240,24 @@ public class SpeedyTeleOp extends LinearOpMode {
             }
 
             /* ========================================
-             * SHOOTER CONTROLS - LEFT FRONT MOTOR
+             * SHOOTER CONTROLS - FLYWHEEL MOTOR (GAMEPAD 2)
              * ======================================== */
+            // Right trigger = forward, left trigger = reverse (opposite directions)
+            double rightTrigger = gamepad2.right_trigger;
+            double leftTrigger = gamepad2.left_trigger;
 
-            if (gamepad2.right_trigger > 0.2) {
-                shooter.runFlywheel(0.75);
-            } else if (gamepad2.left_trigger > 0.2) {
-                shooter.runFlywheelReverse(0.75);  // Run at 50% power reverse
+            if (rightTrigger > SHOOTER_TRIGGER_DEADZONE && leftTrigger > SHOOTER_TRIGGER_DEADZONE) {
+                // Both triggers pressed - stop motor for safety
+                shooter.stopFlywheel();
+            } else if (rightTrigger > SHOOTER_TRIGGER_DEADZONE) {
+                // Right trigger - forward direction
+                shooter.runFlywheel(shooterPower * rightTrigger);
+            } else if (leftTrigger > SHOOTER_TRIGGER_DEADZONE) {
+                // Left trigger - reverse direction (opposite of right)
+                shooter.runFlywheelReverse(shooterPower * leftTrigger);
             } else {
-                shooter.stopFlywheel();  // Stop when neither bumper is pressed
+                // Neither trigger pressed - stop
+                shooter.stopFlywheel();
             }
 
             /* ========================================
@@ -245,6 +281,7 @@ public class SpeedyTeleOp extends LinearOpMode {
             // Shooter telemetry
             telemetry.addLine();
             telemetry.addLine("=== SHOOTER ===");
+            telemetry.addData("Power Level", String.format("%.0f%%", shooterPower * 100));
             telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
             telemetry.addData("Flywheel Motor", "%.2f", shooter.getFlywheelPower());
 
@@ -257,11 +294,12 @@ public class SpeedyTeleOp extends LinearOpMode {
             // Control hints
             telemetry.addLine();
             telemetry.addLine("=== QUICK CONTROLS ===");
-            telemetry.addLine("Options: Toggle Drive Mode");
-            telemetry.addLine("Share: Reset Heading");
+            telemetry.addLine("GP2: Options: Toggle Drive Mode");
+            telemetry.addLine("GP2: Share: Reset Heading");
             telemetry.addLine();
-            telemetry.addLine("A/B/X: Hood Min/Max/Mid");
-            telemetry.addLine("RB/LB: Motor Fwd/Rev");
+            telemetry.addLine("GP2: A/B/X: Hood Min/Max/Mid");
+            telemetry.addLine("GP2: RT/LT: Motor Fwd/Rev");
+            telemetry.addLine("GP2: D-pad Up/Down: Power +/-");
 
             telemetry.update();
 
