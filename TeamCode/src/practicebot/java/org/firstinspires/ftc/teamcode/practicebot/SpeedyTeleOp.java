@@ -53,7 +53,6 @@ public class SpeedyTeleOp extends LinearOpMode {
     private static final double SHOOTER_POWER_INCREMENT = 0.05;  // 5% per button press
     private static final double SHOOTER_MIN_POWER = 0.25;
     private static final double SHOOTER_MAX_POWER = 1.0;
-    private static final double SHOOTER_TRIGGER_DEADZONE = 0.1;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -93,8 +92,8 @@ public class SpeedyTeleOp extends LinearOpMode {
         telemetry.addLine("A - Hood Min Position");
         telemetry.addLine("B - Hood Max Position");
         telemetry.addLine("X - Hood Mid Position");
-        telemetry.addLine("Right Trigger - Motor Forward");
-        telemetry.addLine("Left Trigger - Motor Reverse");
+        telemetry.addLine("Right Bumper - Motor Forward");
+        telemetry.addLine("Left Bumper - Motor Reverse");
         telemetry.addLine("D-pad Up/Down - Power Adjust");
         telemetry.addLine();
         telemetry.addData("Drive Mode", "FIELD-CENTRIC");
@@ -242,21 +241,18 @@ public class SpeedyTeleOp extends LinearOpMode {
             /* ========================================
              * SHOOTER CONTROLS - FLYWHEEL MOTOR (GAMEPAD 2)
              * ======================================== */
-            // Right trigger = forward, left trigger = reverse (opposite directions)
-            double rightTrigger = gamepad2.right_trigger;
-            double leftTrigger = gamepad2.left_trigger;
-
-            if (rightTrigger > SHOOTER_TRIGGER_DEADZONE && leftTrigger > SHOOTER_TRIGGER_DEADZONE) {
-                // Both triggers pressed - stop motor for safety
+            // Right bumper = forward, left bumper = reverse at adjustable power level
+            if (gamepad2.right_bumper && gamepad2.left_bumper) {
+                // Both bumpers pressed - stop motor for safety
                 shooter.stopFlywheel();
-            } else if (rightTrigger > SHOOTER_TRIGGER_DEADZONE) {
-                // Right trigger - forward direction
-                shooter.runFlywheel(shooterPower * rightTrigger);
-            } else if (leftTrigger > SHOOTER_TRIGGER_DEADZONE) {
-                // Left trigger - reverse direction (opposite of right)
-                shooter.runFlywheelReverse(shooterPower * leftTrigger);
+            } else if (gamepad2.right_bumper) {
+                // Right bumper - forward direction at current power level
+                shooter.runFlywheelForward(shooterPower);
+            } else if (gamepad2.left_bumper) {
+                // Left bumper - reverse direction at current power level
+                shooter.runFlywheelReverse(shooterPower);
             } else {
-                // Neither trigger pressed - stop
+                // Neither bumper pressed - stop
                 shooter.stopFlywheel();
             }
 
@@ -298,7 +294,7 @@ public class SpeedyTeleOp extends LinearOpMode {
             telemetry.addLine("GP2: Share: Reset Heading");
             telemetry.addLine();
             telemetry.addLine("GP2: A/B/X: Hood Min/Max/Mid");
-            telemetry.addLine("GP2: RT/LT: Motor Fwd/Rev");
+            telemetry.addLine("GP2: RB/LB: Motor Fwd/Rev");
             telemetry.addLine("GP2: D-pad Up/Down: Power +/-");
 
             telemetry.update();
