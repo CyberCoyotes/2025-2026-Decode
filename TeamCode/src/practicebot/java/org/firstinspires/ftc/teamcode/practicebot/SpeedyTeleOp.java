@@ -8,6 +8,7 @@ import org.firstinspires.ftc.teamcode.practicebot.subsystems.SpeedyDriveSubsyste
 
 /* Robot Specific */
 import org.firstinspires.ftc.teamcode.practicebot.subsystems.LimelightSubsystem;
+import org.firstinspires.ftc.teamcode.practicebot.subsystems.ShooterSubsystem;
 
 // @Disabled
 
@@ -19,6 +20,7 @@ public class SpeedyTeleOp extends LinearOpMode {
      * SUBSYSTEMS
      * ======================================== */
     private SpeedyDriveSubsystem drive;
+    private ShooterSubsystem shooter;
 //    private LimelightSubsystem limelightSub;
 
     /* ========================================
@@ -53,6 +55,7 @@ public class SpeedyTeleOp extends LinearOpMode {
 
         // Initialize subsystems
         drive = new SpeedyDriveSubsystem(hardwareMap);
+        shooter = new ShooterSubsystem(hardwareMap);
 //        limelightSub = new LimelightSubsystem(hardwareMap);
 
         // Configure drive defaults
@@ -63,7 +66,7 @@ public class SpeedyTeleOp extends LinearOpMode {
 
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
-        telemetry.addLine("=== CONTROLS ===");
+        telemetry.addLine("=== DRIVE CONTROLS ===");
         telemetry.addLine("Left Stick - Drive/Strafe");
         telemetry.addLine("Right Stick X - Turn");
         telemetry.addLine("Right Trigger - Slow Mode");
@@ -74,6 +77,13 @@ public class SpeedyTeleOp extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("Options - Toggle Field/Robot Mode");
         telemetry.addLine("Share - Reset Heading (0°)");
+        telemetry.addLine();
+        telemetry.addLine("=== SHOOTER CONTROLS ===");
+        telemetry.addLine("A - Hood Min Position");
+        telemetry.addLine("B - Hood Max Position");
+        telemetry.addLine("X - Hood Mid Position");
+        telemetry.addLine("Right Bumper - Motor Forward");
+        telemetry.addLine("Left Bumper - Motor Reverse");
         telemetry.addLine();
         telemetry.addData("Drive Mode", "FIELD-CENTRIC");
         telemetry.update();
@@ -182,6 +192,37 @@ public class SpeedyTeleOp extends LinearOpMode {
             lastShareState = gamepad1.share;
 
             /* ========================================
+             * SHOOTER CONTROLS - HOOD SERVO
+             * ======================================== */
+            // A Button - Hood to MIN position
+            if (gamepad1.a) {
+                shooter.setHoodPosition(0.0);  // Min position
+            }
+
+            // B Button - Hood to MAX position
+            if (gamepad1.b) {
+                shooter.setHoodPosition(1.0);  // Max position
+            }
+
+            // X Button - Hood to MIDDLE position
+            if (gamepad1.x) {
+                shooter.setHoodPosition(0.5);  // Middle position
+            }
+
+            /* ========================================
+             * SHOOTER CONTROLS - LEFT FRONT MOTOR
+             * ======================================== */
+            // Right Bumper - Run leftFront forward
+            // Left Bumper - Run leftFront reverse
+            if (gamepad1.right_bumper) {
+                shooter.runLeftFrontForward(0.5);  // Run at 50% power forward
+            } else if (gamepad1.left_bumper) {
+                shooter.runLeftFrontReverse(0.5);  // Run at 50% power reverse
+            } else {
+                shooter.stopLeftFront();  // Stop when neither bumper is pressed
+            }
+
+            /* ========================================
              * TELEMETRY
              * ======================================== */
             telemetry.clearAll();
@@ -199,6 +240,12 @@ public class SpeedyTeleOp extends LinearOpMode {
             telemetry.addData("Left Back", "%.2f", drive.getLeftBackPower());
             telemetry.addData("Right Back", "%.2f", drive.getRightBackPower());
 
+            // Shooter telemetry
+            telemetry.addLine();
+            telemetry.addLine("=== SHOOTER ===");
+            telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
+            telemetry.addData("LeftFront Motor", "%.2f", shooter.getLeftFrontPower());
+
             // Limelight telemetry
             telemetry.addLine();
             telemetry.addLine("=== LIMELIGHT ===");
@@ -210,6 +257,9 @@ public class SpeedyTeleOp extends LinearOpMode {
             telemetry.addLine("=== QUICK CONTROLS ===");
             telemetry.addLine("Options: Toggle Drive Mode");
             telemetry.addLine("Share: Reset Heading");
+            telemetry.addLine();
+            telemetry.addLine("A/B/X: Hood Min/Max/Mid");
+            telemetry.addLine("RB/LB: Motor Fwd/Rev");
 
             telemetry.update();
 
@@ -219,6 +269,7 @@ public class SpeedyTeleOp extends LinearOpMode {
          * CLEANUP
          * ======================================== */
         drive.stop();
+        shooter.stopAll();
 
 //        limelightSub.stop();
 
