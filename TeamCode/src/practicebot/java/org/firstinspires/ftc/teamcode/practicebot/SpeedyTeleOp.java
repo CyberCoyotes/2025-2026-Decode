@@ -179,7 +179,7 @@ public class SpeedyTeleOp extends LinearOpMode {
              * DRIVER 1 - FIELD-CENTRIC CONTROLS
              * ======================================== */
             // OPTIONS button (☰) - Toggle between field-centric and robot-centric
-            if (gamepad1.options && !lastOptionsState) {
+            if (gamepad2.options && !lastOptionsState) {
                 boolean newMode = drive.toggleFieldCentric();
                 // Optional: Add a rumble or sound effect here to confirm toggle
                 gamepad1.rumble(200);  // Short rumble feedback
@@ -187,10 +187,10 @@ public class SpeedyTeleOp extends LinearOpMode {
             lastOptionsState = gamepad1.options;
 
             // SHARE button (⧉) - Reset heading to 0° (redefine "forward")
-            if (gamepad1.share && !lastShareState) {
+            if (gamepad2.share && !lastShareState) {
                 drive.resetHeading();
                 // Optional: Add feedback
-                gamepad1.rumble(500);  // Longer rumble to distinguish from mode toggle
+                gamepad2.rumble(500);  // Longer rumble to distinguish from mode toggle
             }
             lastShareState = gamepad1.share;
 
@@ -198,28 +198,27 @@ public class SpeedyTeleOp extends LinearOpMode {
              * SHOOTER CONTROLS - HOOD SERVO
              * ======================================== */
             // A Button - Hood to MIN position
-            if (gamepad1.a) {
+            if (gamepad2.a) {
                 shooter.setHoodPosition(0.0);  // Min position
             }
 
             // B Button - Hood to MAX position
-            if (gamepad1.b) {
+            if (gamepad2.b) {
                 shooter.setHoodPosition(1.0);  // Max position
             }
 
             // X Button - Hood to MIDDLE position
-            if (gamepad1.x) {
+            if (gamepad2.x) {
                 shooter.setHoodPosition(0.5);  // Middle position
             }
 
             /* ========================================
              * SHOOTER CONTROLS - LEFT FRONT MOTOR
              * ======================================== */
-            // Right Bumper - Run leftFront forward
-            // Left Bumper - Run leftFront reverse
-            if (gamepad1.right_bumper) {
-                shooter.runFlywheel(0.75);  // Run at 50% power forward
-            } else if (gamepad1.left_bumper) {
+
+            if (gamepad2.right_trigger > 0.2) {
+                shooter.runFlywheel(0.75);
+            } else if (gamepad2.left_trigger > 0.2) {
                 shooter.runFlywheelReverse(0.75);  // Run at 50% power reverse
             } else {
                 shooter.stopFlywheel();  // Stop when neither bumper is pressed
