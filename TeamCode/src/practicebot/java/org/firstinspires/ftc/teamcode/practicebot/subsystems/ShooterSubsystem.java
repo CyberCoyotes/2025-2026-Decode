@@ -22,7 +22,6 @@ public class ShooterSubsystem {
     private static final String TURRET_SERVO_NAME = "turretServo";
     private static final String HOOD_SERVO_NAME = "hoodServo";
     private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
-    private static final String LEFT_FRONT_MOTOR_NAME = "leftFront";
 
     // Constants for turret servo positions
     private static final double TURRET_MIN_POSITION = 0.0;
@@ -36,7 +35,7 @@ public class ShooterSubsystem {
 
     // Constants for flywheel motor
     private static final double FLYWHEEL_MIN_POWER = 0.0;
-    private static final double FLYWHEEL_MAX_POWER = 1.0;
+    private static final double FLYWHEEL_MAX_POWER = -1.0; // TODO Test
 
     /**
      * Constructor - only needs HardwareMap
@@ -157,12 +156,12 @@ public class ShooterSubsystem {
      * @param power Power from 0.0 to 1.0
      */
     public void runFlywheel(double power) {
-        setFlywheelPower(-Math.abs(power)); // Negative sign to match correct direction
+        setFlywheelPower(Math.abs(power));
 
     }
 
     public void runFlywheelReverse(double power) {
-        flywheelMotor.setPower(Math.abs(power)); // Positive sign to match correct direction
+        flywheelMotor.setPower(-Math.abs(power));
     }
 
     /**
