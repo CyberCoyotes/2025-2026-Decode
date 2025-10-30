@@ -277,9 +277,12 @@ public class SpeedyTeleOp extends LinearOpMode {
             // Shooter telemetry
             telemetry.addLine();
             telemetry.addLine("=== SHOOTER ===");
-            telemetry.addData("Power Level", String.format("%.0f%%", shooterPower * 100));
+            telemetry.addData("Power Setting", String.format("%.0f%% (%.2f)", shooterPower * 100, shooterPower));
+            telemetry.addData("Motor Power", String.format("%.2f", shooter.getFlywheelPower()));
+            telemetry.addData("RB/LB State", String.format("R:%s L:%s",
+                gamepad2.right_bumper ? "ON" : "off",
+                gamepad2.left_bumper ? "ON" : "off"));
             telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
-            telemetry.addData("Flywheel Motor", "%.2f", shooter.getFlywheelPower());
 
             // Limelight telemetry
             telemetry.addLine();

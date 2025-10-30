@@ -48,8 +48,8 @@ public class ShooterSubsystem {
         // Initialize motors
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
 
-        // Configure flywheel motor
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // Configure flywheel motor for direct power control
+        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
 
