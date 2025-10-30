@@ -18,11 +18,16 @@ public class SpeedyDriveSubsystem {
     /* ========================================
      * HARDWARE
      * ======================================== */
+
+    /* TODO: Removed for hood only testing
     private final DcMotorEx leftFront;
     private final DcMotorEx leftBack;
     private final DcMotorEx rightFront;
     private final DcMotorEx rightBack;
+    */
+
     private final IMU imu;
+
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -45,8 +50,13 @@ public class SpeedyDriveSubsystem {
     /* ========================================
      * CONSTRUCTOR
      * ======================================== */
+
+
     public SpeedyDriveSubsystem(HardwareMap hardwareMap) {
         // Initialize motors with hardware map names
+
+        /* TODO: Removed for hood only testing
+
         // TODO: Verify these names match your robot configuration!
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
@@ -71,6 +81,7 @@ public class SpeedyDriveSubsystem {
         leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+*/
 
         // Initialize IMU
         imu = hardwareMap.get(IMU.class, "imu");
@@ -155,20 +166,26 @@ public class SpeedyDriveSubsystem {
         rightBackPower *= speedMultiplier;
 
         // Set motor powers
+        /* TODO
         leftFront.setPower(leftFrontPower);
         leftBack.setPower(leftBackPower);
         rightFront.setPower(rightFrontPower);
         rightBack.setPower(rightBackPower);
+
+         */
     }
 
     /**
      * Stop all drive motors
      */
     public void stop() {
+        /* TODO
         leftFront.setPower(0);
         leftBack.setPower(0);
         rightFront.setPower(0);
         rightBack.setPower(0);
+
+         */
     }
 
     /**
@@ -284,6 +301,7 @@ public class SpeedyDriveSubsystem {
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
     }
 
+    /* TODO: Removed for hood only testing
     public double getLeftFrontPower() {
         return leftFront.getPower();
     }
@@ -299,6 +317,8 @@ public class SpeedyDriveSubsystem {
     public double getRightBackPower() {
         return rightBack.getPower();
     }
+
+     */
 
     /* ========================================
      * HELPER METHODS
@@ -363,11 +383,13 @@ public class SpeedyDriveSubsystem {
                 sensitivityMultiplier,
                 deadzone,
                 fieldCentric ? "FIELD" : "ROBOT",
-                getHeading(),
+                getHeading()
+                /*,
                 leftFront.getPower(),
                 rightFront.getPower(),
                 leftBack.getPower(),
                 rightBack.getPower()
+                */
         );
     }
 }

@@ -17,7 +17,6 @@ public class ShooterSubsystem {
     private final Servo turretServo;      // Position mode - turret rotation
     private final Servo hoodServo;        // Position mode - hood adjustment
     private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
-    private final DcMotorEx leftFront;     // goBilda motor - left front motor
 
     // Hardware configuration names
     private static final String TURRET_SERVO_NAME = "turretServo";
@@ -31,8 +30,8 @@ public class ShooterSubsystem {
     private static final double TURRET_CENTER_POSITION = 0.5;
 
     // Constants for hood servo positions
-    private static final double HOOD_MIN_POSITION = 0.0;
-    private static final double HOOD_MAX_POSITION = 1.0;
+    private static final double HOOD_MIN_POSITION = 0.1; // TODO Adjust as needed
+    private static final double HOOD_MAX_POSITION = 0.9; // TODO Adjust as needed
     private static final double HOOD_DEFAULT_POSITION = 0.5;
 
     // Constants for flywheel motor
@@ -50,21 +49,16 @@ public class ShooterSubsystem {
 
         // Initialize motors
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
-        leftFront = hardwareMap.get(DcMotorEx.class, LEFT_FRONT_MOTOR_NAME);
 
         // Configure flywheel motor
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        // Configure leftFront motor
-        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Initialize to default positions
         turretServo.setPosition(TURRET_CENTER_POSITION);
         hoodServo.setPosition(HOOD_DEFAULT_POSITION);
         flywheelMotor.setPower(0);
-        leftFront.setPower(0);
     }
 
     /**
@@ -163,7 +157,12 @@ public class ShooterSubsystem {
      * @param power Power from 0.0 to 1.0
      */
     public void runFlywheel(double power) {
-        setFlywheelPower(Math.abs(power));
+        setFlywheelPower(-Math.abs(power)); // Negative sign to match correct direction
+
+    }
+
+    public void runFlywheelReverse(double power) {
+        flywheelMotor.setPower(Math.abs(power)); // Positive sign to match correct direction
     }
 
     /**
@@ -181,48 +180,7 @@ public class ShooterSubsystem {
         return flywheelMotor.getVelocity();
     }
 
-    /* ========================================
-     * LEFT FRONT MOTOR CONTROL METHODS
-     * ======================================== */
 
-    /**
-     * Set the leftFront motor power
-     * @param power Power from -1.0 (reverse) to 1.0 (forward)
-     */
-    public void setLeftFrontPower(double power) {
-        leftFront.setPower(power);
-    }
-
-    /**
-     * Run leftFront motor forward
-     * @param power Power from 0.0 to 1.0
-     */
-    public void runLeftFrontForward(double power) {
-        leftFront.setPower(Math.abs(power));
-    }
-
-    /**
-     * Run leftFront motor in reverse
-     * @param power Power from 0.0 to 1.0
-     */
-    public void runLeftFrontReverse(double power) {
-        leftFront.setPower(-Math.abs(power));
-    }
-
-    /**
-     * Stop the leftFront motor
-     */
-    public void stopLeftFront() {
-        leftFront.setPower(0.0);
-    }
-
-    /**
-     * Get the current leftFront motor power
-     * @return Current power (-1.0 to 1.0)
-     */
-    public double getLeftFrontPower() {
-        return leftFront.getPower();
-    }
 
     /* ========================================
      * COMBINED CONTROL METHODS
@@ -233,7 +191,6 @@ public class ShooterSubsystem {
      */
     public void stopAll() {
         stopFlywheel();
-        stopLeftFront();
         // Servos maintain their last position
     }
 
@@ -244,7 +201,6 @@ public class ShooterSubsystem {
         centerTurret();
         hoodDefault();
         stopFlywheel();
-        stopLeftFront();
     }
 
     /* ========================================

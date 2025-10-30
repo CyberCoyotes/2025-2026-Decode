@@ -107,6 +107,8 @@ public class SpeedyTeleOp extends LinearOpMode {
             /* ========================================
              * DRIVER 1 - DRIVE CONTROLS
              * ======================================== */
+
+            /* TODO Removed for hood testing
             double axial = -gamepad1.left_stick_y;    // Forward/backward
             double lateral = -gamepad1.left_stick_x;    // Strafe left/right //TODO Test this fix
             double yaw = gamepad1.right_stick_x;       // Turn left/right
@@ -121,15 +123,16 @@ public class SpeedyTeleOp extends LinearOpMode {
                 tempSpeedMultiplier = SUPER_SLOW_MULTIPLIER;
             }
 
+
             // Apply temporary speed multiplier
             double currentSpeed = drive.getSpeed();
             drive.setSpeed(currentSpeed * tempSpeedMultiplier);
 
             // Send drive command (subsystem handles field-centric transformation)
             drive.drive(axial, lateral, yaw);
-
+*/
             // Restore original speed
-            drive.setSpeed(currentSpeed);
+//            drive.setSpeed(currentSpeed);
 
             /* ========================================
              * DRIVER 1 - DRIVE CONFIGURATION CONTROLS
@@ -215,11 +218,11 @@ public class SpeedyTeleOp extends LinearOpMode {
             // Right Bumper - Run leftFront forward
             // Left Bumper - Run leftFront reverse
             if (gamepad1.right_bumper) {
-                shooter.runLeftFrontForward(0.5);  // Run at 50% power forward
+                shooter.runFlywheel(0.75);  // Run at 50% power forward
             } else if (gamepad1.left_bumper) {
-                shooter.runLeftFrontReverse(0.5);  // Run at 50% power reverse
+                shooter.runFlywheelReverse(0.75);  // Run at 50% power reverse
             } else {
-                shooter.stopLeftFront();  // Stop when neither bumper is pressed
+                shooter.stopFlywheel();  // Stop when neither bumper is pressed
             }
 
             /* ========================================
@@ -235,16 +238,16 @@ public class SpeedyTeleOp extends LinearOpMode {
             telemetry.addData("Sensitivity", String.format("%.1fx", drive.getSensitivity()));
             telemetry.addData("Deadzone", String.format("%.2f", drive.getDeadzone()));
             telemetry.addLine();
-            telemetry.addData("Left Front", "%.2f", drive.getLeftFrontPower());
-            telemetry.addData("Right Front", "%.2f", drive.getRightFrontPower());
-            telemetry.addData("Left Back", "%.2f", drive.getLeftBackPower());
-            telemetry.addData("Right Back", "%.2f", drive.getRightBackPower());
+//            telemetry.addData("Left Front", "%.2f", drive.getLeftFrontPower());
+//            telemetry.addData("Right Front", "%.2f", drive.getRightFrontPower());
+//            telemetry.addData("Left Back", "%.2f", drive.getLeftBackPower());
+//            telemetry.addData("Right Back", "%.2f", drive.getRightBackPower());
 
             // Shooter telemetry
             telemetry.addLine();
             telemetry.addLine("=== SHOOTER ===");
             telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
-            telemetry.addData("LeftFront Motor", "%.2f", shooter.getLeftFrontPower());
+            telemetry.addData("Flywheel Motor", "%.2f", shooter.getFlywheelPower());
 
             // Limelight telemetry
             telemetry.addLine();

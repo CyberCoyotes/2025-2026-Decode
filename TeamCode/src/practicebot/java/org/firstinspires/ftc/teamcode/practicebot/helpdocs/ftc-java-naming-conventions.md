@@ -198,8 +198,6 @@ package org.firstinspires.ftc.teamcode.practicebot;  // Package: lowercase
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-import org.firstinspires.ftc.teamcode.practicebot.subsystems.DriveSubsystem;
-
 /**
  * JavaDoc comment for class documentation
  */
