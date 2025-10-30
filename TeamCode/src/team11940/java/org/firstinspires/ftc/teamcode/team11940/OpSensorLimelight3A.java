@@ -67,7 +67,7 @@ import java.util.List;
      *   below the name of the Limelight on the top level configuration screen.
      */
     @TeleOp(name = "Limelight3A", group = "ALPHA")
-//    @Disabled
+    @Disabled
     public class OpSensorLimelight3A extends LinearOpMode {
 
         private Limelight3A limelight;

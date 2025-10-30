@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 
 @TeleOp(name = "Test: Intake Servo", group = "test")
+@Disabled
+
 public class OpTestContinuousServo extends LinearOpMode {
 
     private IntakeSubsystem intake;  // More FRC-like variable name

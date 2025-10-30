@@ -16,6 +16,8 @@ import java.util.List;
  * Pipeline 0 should be configured for AprilTag detection with 36h11 family
  */
 @TeleOp(name = "Limelight AprilTag", group = "ALPHA")
+@Disabled
+
 public class OpTestLimelight extends LinearOpMode {
 
     private LimelightSubsystem limelightSub;

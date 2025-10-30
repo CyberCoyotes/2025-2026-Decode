@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.practicebot;
 
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -16,6 +17,8 @@ import java.util.List;
  * Pipeline 0 should be configured for AprilTag detection with 36h11 family
  */
 @TeleOp(name = "Limelight AprilTag-1", group = "ALPHA")
+@Disabled
+
 public class OpTestLimelight extends LinearOpMode {
 
     private LimelightSubsystem limelightSub;

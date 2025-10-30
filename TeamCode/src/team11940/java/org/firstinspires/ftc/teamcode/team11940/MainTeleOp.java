@@ -8,6 +8,8 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideSta
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 
 @TeleOp(name = "MainTeleOp 11940", group = "TeleOp")
+@Disabled
+
 public class MainTeleOp extends LinearOpMode {
 
     /* ========================================
