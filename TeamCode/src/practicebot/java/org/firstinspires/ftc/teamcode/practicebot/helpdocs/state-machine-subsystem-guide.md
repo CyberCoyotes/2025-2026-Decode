@@ -22,7 +22,7 @@ A state machine means your robot can only do **ONE main thing at a time**, and i
 **Pattern**: Use NOUNS - these are the *things*
 
 - `IntakeSubsystem`
-- `IndexerSubsystem`
+- `IndexSubsystem`
 - `ShooterSubsystem`
 - `DrivetrainSubsystem`
 
@@ -37,7 +37,7 @@ A state machine means your robot can only do **ONE main thing at a time**, and i
 - `AIMING`
 - `SHOOTING`
 
-**Remember**: "The IndexerSubsystem is active during the INDEXING state"
+**Remember**: "The IndexSubsystem is active during the INDEXING state"
 
 ---
 
@@ -130,7 +130,7 @@ switch(currentState) {
 
 ### Our Robot Example:
 - **IntakeSubsystem** - intake wheels + intake slides
-- **IndexerSubsystem** - indexer mechanism
+- **IndexSubsystem** - indexer mechanism
 - **ShooterSubsystem** - shooter motor + turret + hood
 
 **Why separate?** Each handles a different phase of scoring, making debugging easier!
@@ -143,7 +143,7 @@ switch(currentState) {
 With clear subsystems and states, you can quickly identify issues:
 
 - Game piece won't intake? → Check `IntakeSubsystem` during `INTAKING`
-- Game piece stuck? → Check `IndexerSubsystem` during `INDEXING`
+- Game piece stuck? → Check `IndexSubsystem` during `INDEXING`
 - Shooter not firing? → Check `ShooterSubsystem` during `SHOOTING`
 
 ### State Machine Benefits:

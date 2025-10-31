@@ -6,6 +6,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
+import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
 
 @TeleOp(name = "StateMachine TeleOp", group = "TeleOp")
 public class StateMachineTeleOp extends LinearOpMode {
@@ -15,6 +16,7 @@ public class StateMachineTeleOp extends LinearOpMode {
      * ======================================== */
     private MecanumDriveSubsystem drive;
     private IntakeSubsystem intake;
+    private IndexSubsystem index;
 
     /* ========================================
      * BUTTON STATE TRACKING
@@ -53,6 +55,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         // Initialize subsystems
         drive = new MecanumDriveSubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
+        index = new IndexSubsystem(hardwareMap);
 
         drive.setSensitivity(DEFAULT_SENSITIVITY);
         drive.setDeadzone(DEFAULT_DEADZONE);
@@ -65,8 +68,8 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addLine("  Right Bumper    - Intake Wheels");
         telemetry.addLine("  Left Bumper     - Eject Wheels");
         telemetry.addLine("  (Slides auto-extend/retract)");
+        telemetry.addLine("  Y Button        - Run Index Motor Forward");
         telemetry.addLine("  X Button        - Toggle Field-Centric");
-        telemetry.addLine("  Y Button        - Toggle Precision Mode");
         telemetry.addLine("  B Button        - Toggle Turbo Mode");
         telemetry.addLine("  A Button        - Emergency Stop");
         telemetry.addLine("  Options         - Reset Heading");
@@ -86,6 +89,7 @@ public class StateMachineTeleOp extends LinearOpMode {
 
             // Update subsystems
             intake.periodic(); // Handle automatic slide control
+            index.periodic();  // Handle index motor updates
 
             // Handle state transitions
             handleStateTransitions();
@@ -95,6 +99,9 @@ public class StateMachineTeleOp extends LinearOpMode {
 
             // Handle intake controls
             handleIntakeControls();
+
+            // Handle index controls
+            handleIndexControls();
 
             // Get joystick inputs
             double x = gamepad1.left_stick_x;
@@ -127,16 +134,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         }
         lastXState = gamepad1.x;
 
-        // Y Button - Toggle PRECISION mode
-        if (gamepad1.y && !lastYState) {
-            if (currentState == DriveState.PRECISION) {
-                // Return to previous mode (robot-centric for simplicity)
-                drive.setState(DriveState.ROBOT_CENTRIC);
-            } else {
-                drive.setState(DriveState.PRECISION);
-            }
-        }
-        lastYState = gamepad1.y;
+        // Y Button - Now used for index motor control (see handleIndexControls())
 
         // B Button - Toggle TURBO mode
         if (gamepad1.b && !lastBState) {
@@ -226,6 +224,18 @@ public class StateMachineTeleOp extends LinearOpMode {
     }
 
     /* ========================================
+     * INDEX CONTROL HANDLER
+     * ======================================== */
+    private void handleIndexControls() {
+        // Y Button - Run index motor forward
+        if (gamepad1.y) {
+            index.runForward();
+        } else {
+            index.stop();
+        }
+    }
+
+    /* ========================================
      * HELPER METHODS
      * ======================================== */
     private double getCurrentSensitivity() {
@@ -253,6 +263,12 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addData("Slide State", intake.getSlideStateString());
         telemetry.addData("Slide Position", "%.3f", intake.getSlidePosition());
         telemetry.addData("Auto Slide Control", intake.isAutoSlideControlEnabled() ? "ENABLED" : "DISABLED");
+
+        telemetry.addLine();
+        telemetry.addLine("=== INDEX SUBSYSTEM ===");
+        telemetry.addData("Index State", index.getStateString());
+        telemetry.addData("Motor Power", "%.2f", index.getMotorPower());
+        telemetry.addData("Motor Position", index.getMotorPosition());
 
         telemetry.addLine();
         telemetry.addLine("=== CONFIGURATION ===");
