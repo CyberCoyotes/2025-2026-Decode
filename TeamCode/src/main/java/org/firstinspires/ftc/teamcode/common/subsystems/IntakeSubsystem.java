@@ -243,6 +243,11 @@ public class IntakeSubsystem {
      * If auto-control is enabled, slides retract immediately and wheels continue for 300ms
      */
     public void stop() {
+        // If we're already in delayed stop mode, don't reset the timer
+        if (delayedWheelStop) {
+            return; // Let periodic() complete the delayed stop
+        }
+
         if (autoSlideControlEnabled && (wheelState == WheelState.INTAKING || wheelState == WheelState.EJECTING)) {
             // Retract slides immediately
             setSlideState(SlideState.IN);
