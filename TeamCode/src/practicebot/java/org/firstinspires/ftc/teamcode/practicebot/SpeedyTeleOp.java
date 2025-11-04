@@ -37,6 +37,8 @@ public class SpeedyTeleOp extends LinearOpMode {
     private boolean lastShooterDpadUpState = false;
     private boolean lastShooterDpadDownState = false;
     private double shooterPower = 0.75;  // Default shooter power level
+    private boolean lastXState = false;  // For hood position decrement
+    private boolean lastYState = false;  // For hood position increment
 
     /* ========================================
      * CONSTANTS - CUSTOMIZE THESE!
@@ -53,6 +55,7 @@ public class SpeedyTeleOp extends LinearOpMode {
     private static final double SHOOTER_POWER_INCREMENT = 0.05;  // 5% per button press
     private static final double SHOOTER_MIN_POWER = 0.25;
     private static final double SHOOTER_MAX_POWER = 1.0;
+    private static final double HOOD_INCREMENT = 0.05;  // Hood position increment per button press
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -89,9 +92,9 @@ public class SpeedyTeleOp extends LinearOpMode {
         telemetry.addLine("Share - Reset Heading (0°)");
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER CONTROLS (GP2) ===");
-        telemetry.addLine("A - Hood Min Position");
-        telemetry.addLine("B - Hood Max Position");
-        telemetry.addLine("X - Hood Mid Position");
+        telemetry.addLine("X - Hood Position DOWN");
+        telemetry.addLine("Y - Hood Position UP");
+        telemetry.addLine("A/B - Hood Min/Max (quick reset)");
         telemetry.addLine("Right Bumper - Motor Forward");
         telemetry.addLine("Left Bumper - Motor Reverse");
         telemetry.addLine("D-pad Up/Down - Power Adjust");
@@ -223,19 +226,28 @@ public class SpeedyTeleOp extends LinearOpMode {
             /* ========================================
              * SHOOTER CONTROLS - HOOD SERVO (GAMEPAD 2)
              * ======================================== */
-            // A Button - Hood to MIN position
+            // X Button - Decrement hood position DOWN
+            if (gamepad2.x && !lastXState) {
+                double currentPosition = shooter.getHoodPosition();
+                shooter.setHoodPosition(currentPosition - HOOD_INCREMENT);
+            }
+            lastXState = gamepad2.x;
+
+            // Y Button - Increment hood position UP
+            if (gamepad2.y && !lastYState) {
+                double currentPosition = shooter.getHoodPosition();
+                shooter.setHoodPosition(currentPosition + HOOD_INCREMENT);
+            }
+            lastYState = gamepad2.y;
+
+            // A Button - Hood to MIN position (for quick reset)
             if (gamepad2.a) {
                 shooter.setHoodPosition(0.0);  // Min position
             }
 
-            // B Button - Hood to MAX position
+            // B Button - Hood to MAX position (for quick reset)
             if (gamepad2.b) {
                 shooter.setHoodPosition(1.0);  // Max position
-            }
-
-            // X Button - Hood to MIDDLE position
-            if (gamepad2.x) {
-                shooter.setHoodPosition(0.5);  // Middle position
             }
 
             /* ========================================
@@ -296,7 +308,8 @@ public class SpeedyTeleOp extends LinearOpMode {
             telemetry.addLine("GP2: Options: Toggle Drive Mode");
             telemetry.addLine("GP2: Share: Reset Heading");
             telemetry.addLine();
-            telemetry.addLine("GP2: A/B/X: Hood Min/Max/Mid");
+            telemetry.addLine("GP2: X/Y: Hood Down/Up");
+            telemetry.addLine("GP2: A/B: Hood Min/Max");
             telemetry.addLine("GP2: RB/LB: Motor Fwd/Rev");
             telemetry.addLine("GP2: D-pad Up/Down: Power +/-");
 
