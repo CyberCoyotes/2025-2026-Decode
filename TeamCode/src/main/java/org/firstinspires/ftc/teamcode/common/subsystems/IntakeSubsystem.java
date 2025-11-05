@@ -34,10 +34,10 @@ public class IntakeSubsystem {
     private final Servo intakeSlideRight; // Position servo
 
     // Hardware configuration names - hardcoded here!
-    private static final String WHEEL_LEFT_NAME = "intakeServoLeft";
-    private static final String WHEEL_RIGHT_NAME = "intakeServoRight";
-    private static final String SLIDE_LEFT_NAME = "intakeSlideLeft";
-    private static final String SLIDE_RIGHT_NAME = "intakeSlideRight";
+    private static final String WHEEL_LEFT_NAME = "leftIntake";
+    private static final String WHEEL_RIGHT_NAME = "rightIntake";
+    private static final String SLIDE_LEFT_NAME = "leftSlide";
+    private static final String SLIDE_RIGHT_NAME = "rightSlide";
 
     // Constants for continuous rotation servos (wheels)
     private static final double STOP_POSITION = 0.5;
@@ -46,8 +46,12 @@ public class IntakeSubsystem {
 
     // Constants for position servos (slides)
     private static final double SLIDE_IN_POSITION = 0.0;
-    private static final double SLIDE_OUT_POSITION = 0.75;  // TODO: Test the actual position
+    private static final double SLIDE_OUT_POSITION = 1.00;  // TODO: Test the actual position
                                                             // Started at 1.0
+    // 0.75 is short
+    // 0.85 good
+    // 0.90 better still
+    // 0.95 still works
 
     // Automatic slide control constants
     private static final long WHEEL_STOP_DELAY_MS = 300; // Delay before stopping wheels after slides retract
