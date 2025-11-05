@@ -1,17 +1,16 @@
-package org.firstinspires.ftc.teamcode.team11940;
+package org.firstinspires.ftc.teamcode.common.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
-import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 
 @TeleOp(name = "MainTeleOp 11940", group = "TeleOp")
 @Disabled
 
-public class MainTeleOp extends LinearOpMode {
+public class BasicTeleOp extends LinearOpMode {
 
     /* ========================================
      * SUBSYSTEMS
