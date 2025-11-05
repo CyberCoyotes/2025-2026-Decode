@@ -102,14 +102,16 @@ public class MecanumDriveSubsystem {
         // This configuration is CRITICAL for field-centric driving to work correctly!
         //
         // To verify orientation is correct, test that:
+        // - Forward on stick moves robot FORWARD
+        // - Backward on stick moves robot BACKWARD
+        // - Left on stick strafes LEFT
+        // - Right on stick strafes RIGHT
         // - Yaw increases when robot rotates COUNTER-CLOCKWISE (when viewed from above)
-        // - Pitch increases when robot tips UP at the FRONT
-        // - Roll increases when robot tips UP on the LEFT side
         //
-        // For vertically mounted Control Hub on left side (logo facing right/inward, USB up):
+        // For vertically mounted Control Hub on left side (USB up):
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,  // Logo faces inward toward center (right)
-                RevHubOrientationOnRobot.UsbFacingDirection.UP       // USB ports face up
+                RevHubOrientationOnRobot.LogoFacingDirection.FORWARD,  // Logo faces toward front of robot
+                RevHubOrientationOnRobot.UsbFacingDirection.UP         // USB ports face up
         ));
         imu.initialize(parameters);
     }
