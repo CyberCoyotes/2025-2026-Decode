@@ -190,7 +190,7 @@ public class ExampleAuto extends OpMode {
         opmodeTimer.resetTimer();
 
 
-        follower = org.firstinspires.ftc.teamcode.pedroPathing.Constants.createFollower(hardwareMap);
+        follower = org.firstinspires.ftc.teamcode.pedroPathing.ConstantsQuick.createFollower(hardwareMap);
         buildPaths();
         follower.setStartingPose(startPose);
 
