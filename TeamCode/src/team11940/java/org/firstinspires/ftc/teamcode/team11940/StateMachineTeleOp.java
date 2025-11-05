@@ -79,8 +79,9 @@ public class StateMachineTeleOp extends LinearOpMode {
 
         waitForStart();
 
-        // Start in robot-centric mode
-        drive.setState(DriveState.ROBOT_CENTRIC);
+        // Start in field-centric mode for competition
+        drive.setState(DriveState.FIELD_CENTRIC);
+        drive.resetHeading();  // Reset heading at start
 
         /* ========================================
          * MAIN LOOP
@@ -104,13 +105,14 @@ public class StateMachineTeleOp extends LinearOpMode {
             handleIndexControls();
 
             // Get joystick inputs
-            double x = gamepad1.left_stick_x;
-            double y = -gamepad1.left_stick_y;  // Reversed for forward
-            double rx = gamepad1.right_stick_x;
+            // drive.drive() expects: (axial, lateral, yaw)
+            double axial = -gamepad1.left_stick_y;     // Forward/backward (reversed for forward)
+            double lateral = gamepad1.left_stick_x;     // Strafe left/right
+            double yaw = gamepad1.right_stick_x;        // Rotate left/right
 
             // Drive based on current state
             if (drive.getState() != DriveState.IDLE) {
-                drive.drive(x, y, rx);
+                drive.drive(axial, lateral, yaw);  // Correct order: axial, lateral, yaw
             }
 
             // Update telemetry
