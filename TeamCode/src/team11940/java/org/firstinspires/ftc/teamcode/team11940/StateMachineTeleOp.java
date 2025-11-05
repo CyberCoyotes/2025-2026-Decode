@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
 
-@TeleOp(name = "StateMachine TeleOp", group = "TeleOp")
+@TeleOp(name = "TeleOp (State Machine)", group = "TeleOp")
 public class StateMachineTeleOp extends LinearOpMode {
 
     /* ========================================
