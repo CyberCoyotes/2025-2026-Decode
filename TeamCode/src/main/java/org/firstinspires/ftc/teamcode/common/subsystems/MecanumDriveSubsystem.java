@@ -39,7 +39,7 @@ public class MecanumDriveSubsystem {
     /* ========================================
      * STATE MACHINE
      * ======================================== */
-    private DriveState currentState = DriveState.ROBOT_CENTRIC;
+    private DriveState currentState = DriveState.FIELD_CENTRIC;  // Default to field-centric for competition
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -92,19 +92,24 @@ public class MecanumDriveSubsystem {
         imu = hardwareMap.get(IMU.class, "imu");
 
         // Configure IMU orientation based on Control Hub mounting
-        // ADJUST THESE VALUES FOR YOUR SPECIFIC MOUNTING!
+        // COMPETITION BOT MOUNTING CONFIGURATION:
+        // - Control Hub is mounted VERTICALLY on the LEFT side of the robot
+        // - Located approximately 7 inches toward the back
+        // - Located approximately 7 inches to the left
+        // - Logo/stickers face INWARD (toward the center/right side of robot)
+        // - USB ports face UP
         //
-        // Common configurations:
-        // 1. Control Hub flat, USB forward: LogoFacingDirection.UP, UsbFacingDirection.FORWARD
-        // 2. Control Hub rotated 90° CW: LogoFacingDirection.UP, UsbFacingDirection.RIGHT
-        // 3. Control Hub rotated 90° CCW: LogoFacingDirection.UP, UsbFacingDirection.LEFT
-        // 4. Control Hub rotated 180°: LogoFacingDirection.UP, UsbFacingDirection.BACKWARD
-        // 5. Control Hub vertical, logo inward, USB up: LogoFacingDirection.FORWARD, UsbFacingDirection.UP
+        // This configuration is CRITICAL for field-centric driving to work correctly!
         //
-        // For vertically mounted Control Hub (logo facing inward toward robot, USB pointing up):
+        // To verify orientation is correct, test that:
+        // - Forward on stick moves robot FORWARD (in field-centric mode)
+        // - Yaw increases when robot rotates COUNTER-CLOCKWISE (✓ verified working)
+        // - Pitch increases when robot front tips UP
+        //
+        // For vertically mounted Control Hub on left side with logo facing right/inward:
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.FORWARD,  // Logo faces inward (robot forward)
-                RevHubOrientationOnRobot.UsbFacingDirection.UP         // USB ports face up
+                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,  // Logo faces inward (right/center)
+                RevHubOrientationOnRobot.UsbFacingDirection.UP       // USB ports face up
         ));
         imu.initialize(parameters);
     }
