@@ -61,14 +61,14 @@ public class PinpointOdometrySubsystem {
     private static final GoBildaPinpointDriver.GoBildaOdometryPods ENCODER_RESOLUTION =
             GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
 
-    // Encoder directions for UPSIDE-DOWN mounting
-    // X pod: FORWARD direction - X should increase when robot moves forward
-    // Y pod: REVERSED direction - Y should increase when robot moves left
-    // Note: These directions are configured for upside-down module mounting
+    // Encoder directions for UPSIDE-DOWN mounting with module FACING FORWARD
+    // After correcting module orientation (was backward, now forward):
+    // X pod: REVERSED - X should increase when robot moves forward
+    // Y pod: FORWARD - Y should increase when robot moves left
     private static final GoBildaPinpointDriver.EncoderDirection X_ENCODER_DIRECTION =
-            GoBildaPinpointDriver.EncoderDirection.FORWARD;  // X increases when moving forward
+            GoBildaPinpointDriver.EncoderDirection.REVERSED;  // X increases when moving forward
     private static final GoBildaPinpointDriver.EncoderDirection Y_ENCODER_DIRECTION =
-            GoBildaPinpointDriver.EncoderDirection.REVERSED;  // Y increases when moving left
+            GoBildaPinpointDriver.EncoderDirection.FORWARD;  // Y increases when moving left
 
     /* ========================================
      * CACHED VALUES
