@@ -62,13 +62,17 @@ public class PinpointOdometrySubsystem {
             GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
 
     // Encoder directions for UPSIDE-DOWN mounting with module FACING FORWARD
-    // After correcting module orientation (was backward, now forward):
-    // X pod: REVERSED - X should increase when robot moves forward
+    // X pod: FORWARD - X should increase when robot moves forward
     // Y pod: FORWARD - Y should increase when robot moves left
     private static final GoBildaPinpointDriver.EncoderDirection X_ENCODER_DIRECTION =
-            GoBildaPinpointDriver.EncoderDirection.REVERSED;  // X increases when moving forward
+            GoBildaPinpointDriver.EncoderDirection.FORWARD;  // X increases when moving forward
     private static final GoBildaPinpointDriver.EncoderDirection Y_ENCODER_DIRECTION =
             GoBildaPinpointDriver.EncoderDirection.FORWARD;  // Y increases when moving left
+
+    // Heading inversion for upside-down IMU mounting
+    // When Pinpoint is upside down, the IMU's yaw axis may be inverted
+    // Set to true to negate heading values (makes clockwise positive)
+    private static final boolean INVERT_HEADING = true;
 
     /* ========================================
      * CACHED VALUES
@@ -124,7 +128,20 @@ public class PinpointOdometrySubsystem {
         odo.update();
 
         // Cache the current position
-        currentPosition = odo.getPosition();
+        Pose2D rawPosition = odo.getPosition();
+
+        // Apply heading inversion if needed for upside-down mounting
+        if (INVERT_HEADING) {
+            currentPosition = new Pose2D(
+                    rawPosition.getUnit(),
+                    rawPosition.getX(rawPosition.getUnit()),
+                    rawPosition.getY(rawPosition.getUnit()),
+                    rawPosition.getAngleUnit(),
+                    -rawPosition.getHeading(rawPosition.getAngleUnit())
+            );
+        } else {
+            currentPosition = rawPosition;
+        }
 
         // Calculate loop frequency
         long currentTime = System.nanoTime();
@@ -139,7 +156,20 @@ public class PinpointOdometrySubsystem {
      */
     public void updateHeadingOnly() {
         odo.update(GoBildaPinpointDriver.ReadData.ONLY_UPDATE_HEADING);
-        currentPosition = odo.getPosition();
+        Pose2D rawPosition = odo.getPosition();
+
+        // Apply heading inversion if needed for upside-down mounting
+        if (INVERT_HEADING) {
+            currentPosition = new Pose2D(
+                    rawPosition.getUnit(),
+                    rawPosition.getX(rawPosition.getUnit()),
+                    rawPosition.getY(rawPosition.getUnit()),
+                    rawPosition.getAngleUnit(),
+                    -rawPosition.getHeading(rawPosition.getAngleUnit())
+            );
+        } else {
+            currentPosition = rawPosition;
+        }
 
         // Update timing
         long currentTime = System.nanoTime();
@@ -243,7 +273,8 @@ public class PinpointOdometrySubsystem {
      * @return Heading velocity in units/second
      */
     public double getHeadingVelocity(UnnormalizedAngleUnit unit) {
-        return odo.getHeadingVelocity(unit);
+        double rawVelocity = odo.getHeadingVelocity(unit);
+        return INVERT_HEADING ? -rawVelocity : rawVelocity;
     }
 
     /* ========================================
