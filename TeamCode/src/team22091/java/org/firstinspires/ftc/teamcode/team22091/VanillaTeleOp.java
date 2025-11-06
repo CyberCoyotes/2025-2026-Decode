@@ -7,8 +7,10 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
-@TeleOp(name = "MainTeleOp 22091", group = "TeleOp")
-public class MainTeleOp extends LinearOpMode {
+@TeleOp(name = "Vanilla TeleOp", group = "TeleOp")
+@Disabled
+
+public class VanillaTeleOp extends LinearOpMode {
 
     /* ========================================
      * SUBSYSTEMS
