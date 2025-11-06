@@ -133,11 +133,11 @@ public class PinpointOdometrySubsystem {
         // Apply heading inversion if needed for upside-down mounting
         if (INVERT_HEADING) {
             currentPosition = new Pose2D(
-                    rawPosition.getUnit(),
-                    rawPosition.getX(rawPosition.getUnit()),
-                    rawPosition.getY(rawPosition.getUnit()),
-                    rawPosition.getAngleUnit(),
-                    -rawPosition.getHeading(rawPosition.getAngleUnit())
+                    DistanceUnit.MM,
+                    rawPosition.getX(DistanceUnit.MM),
+                    rawPosition.getY(DistanceUnit.MM),
+                    AngleUnit.DEGREES,
+                    -rawPosition.getHeading(AngleUnit.DEGREES)
             );
         } else {
             currentPosition = rawPosition;
@@ -161,11 +161,11 @@ public class PinpointOdometrySubsystem {
         // Apply heading inversion if needed for upside-down mounting
         if (INVERT_HEADING) {
             currentPosition = new Pose2D(
-                    rawPosition.getUnit(),
-                    rawPosition.getX(rawPosition.getUnit()),
-                    rawPosition.getY(rawPosition.getUnit()),
-                    rawPosition.getAngleUnit(),
-                    -rawPosition.getHeading(rawPosition.getAngleUnit())
+                    DistanceUnit.MM,
+                    rawPosition.getX(DistanceUnit.MM),
+                    rawPosition.getY(DistanceUnit.MM),
+                    AngleUnit.DEGREES,
+                    -rawPosition.getHeading(AngleUnit.DEGREES)
             );
         } else {
             currentPosition = rawPosition;
