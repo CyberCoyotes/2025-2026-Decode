@@ -21,12 +21,12 @@ import java.util.Locale;
  * - Module is mounted UPSIDE DOWN underneath the chassis
  * - Located approximately CENTER of robot front-to-back
  * - Located approximately 3.75 inches RIGHT of center (left-to-right)
- * - Two goBILDA 4-bar odometry pods
+ * - Two goBILDA spring-loaded swing-arm odometry pods
  *
  * COORDINATE SYSTEM:
  * - X axis: Forward/backward (forward is positive)
  * - Y axis: Left/right (left is positive)
- * - Heading: Counter-clockwise is positive (standard mathematical convention)
+ * - Heading: Clockwise is positive (inverted due to upside-down IMU mounting)
  *
  * WIRING:
  * - Connect to I2C port on Control Hub or Expansion Hub
@@ -57,9 +57,9 @@ public class PinpointOdometrySubsystem {
     private static final double X_OFFSET_MM = -95.25;  // 3.75 inches right of center
     private static final double Y_OFFSET_MM = 0.0;     // Centered front-to-back (configurable)
 
-    // Encoder resolution (goBILDA 4-bar pod standard)
+    // Encoder resolution (goBILDA spring-loaded swing-arm pods)
     private static final GoBildaPinpointDriver.GoBildaOdometryPods ENCODER_RESOLUTION =
-            GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
+            GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD;
 
     // Encoder directions for UPSIDE-DOWN mounting with module FACING FORWARD
     // X pod: FORWARD - X should increase when robot moves forward
