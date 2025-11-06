@@ -37,6 +37,11 @@ public class MecanumDriveSubsystem {
     private final IMU imu;
 
     /* ========================================
+     * ODOMETRY (OPTIONAL)
+     * ======================================== */
+    private PinpointOdometrySubsystem odometry = null;  // Optional Pinpoint odometry
+
+    /* ========================================
      * STATE MACHINE
      * ======================================== */
     private DriveState currentState = DriveState.FIELD_CENTRIC;  // Default to field-centric for competition
@@ -146,8 +151,8 @@ public class MecanumDriveSubsystem {
 
         // Apply field-centric transformation if in FIELD_CENTRIC state
         if (currentState == DriveState.FIELD_CENTRIC) {
-            // Get the robot's current heading from the IMU
-            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+            // Get the robot's current heading (from Pinpoint or IMU)
+            double botHeading = getHeadingRadians();
 
             // Rotate the movement direction to be relative to the field
             // This uses a 2D rotation matrix to transform joystick inputs
@@ -205,9 +210,14 @@ public class MecanumDriveSubsystem {
      * Reset the IMU yaw to zero
      * This defines the current heading as "forward" for field-centric mode
      * Call this at the start of TeleOp or when repositioning the robot
+     *
+     * If Pinpoint odometry is enabled, this will reset both IMU and Pinpoint
      */
     public void resetHeading() {
         imu.resetYaw();
+        if (odometry != null) {
+            odometry.resetPosAndIMU();
+        }
     }
 
     /* ========================================
@@ -327,11 +337,27 @@ public class MecanumDriveSubsystem {
     }
 
     /**
-     * Get the current robot heading from the IMU
+     * Get the current robot heading
+     * Uses Pinpoint odometry if available, otherwise falls back to IMU
      * @return Heading in degrees (-180 to +180)
      */
     public double getHeading() {
+        if (odometry != null) {
+            return odometry.getHeadingDegrees();
+        }
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+    }
+
+    /**
+     * Get the current robot heading in radians
+     * Uses Pinpoint odometry if available, otherwise falls back to IMU
+     * @return Heading in radians
+     */
+    public double getHeadingRadians() {
+        if (odometry != null) {
+            return odometry.getHeadingRadians();
+        }
+        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
 
     public double getLeftFrontPower() {
@@ -348,6 +374,31 @@ public class MecanumDriveSubsystem {
 
     public double getRightBackPower() {
         return rightBack.getPower();
+    }
+
+    /**
+     * Get the Pinpoint odometry subsystem (if configured)
+     * @return Pinpoint odometry subsystem or null if not configured
+     */
+    public PinpointOdometrySubsystem getOdometry() {
+        return odometry;
+    }
+
+    /**
+     * Set the Pinpoint odometry subsystem for heading and position tracking
+     * When set, the drive subsystem will use Pinpoint heading instead of IMU for field-centric drive
+     * @param odometry The Pinpoint odometry subsystem
+     */
+    public void setOdometry(PinpointOdometrySubsystem odometry) {
+        this.odometry = odometry;
+    }
+
+    /**
+     * Check if Pinpoint odometry is enabled
+     * @return true if Pinpoint is configured, false if using IMU only
+     */
+    public boolean isUsingPinpoint() {
+        return odometry != null;
     }
 
     /* ========================================
@@ -465,10 +516,11 @@ public class MecanumDriveSubsystem {
      * @return Telemetry string with all relevant info
      */
     public String getTelemetry() {
+        String headingSource = isUsingPinpoint() ? "Pinpoint" : "IMU";
         return String.format(
                 "State: %s | Speed Mult: %.0f%%\n" +
                         "Base Speed: %.0f%% | Sensitivity: %.1fx | Deadzone: %.2f\n" +
-                        "Heading: %.1f°\n" +
+                        "Heading: %.1f° (%s)\n" +
                         "LF: %.2f | RF: %.2f\n" +
                         "LB: %.2f | RB: %.2f",
                 getStateString(),
@@ -477,6 +529,7 @@ public class MecanumDriveSubsystem {
                 sensitivityMultiplier,
                 deadzone,
                 getHeading(),
+                headingSource,
                 leftFront.getPower(),
                 rightFront.getPower(),
                 leftBack.getPower(),

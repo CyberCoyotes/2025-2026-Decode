@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
 @TeleOp(name = "MainTeleOp 22091", group = "TeleOp")
 public class MainTeleOp extends LinearOpMode {
@@ -14,6 +15,7 @@ public class MainTeleOp extends LinearOpMode {
      * ======================================== */
 //    private IntakeSubsystem intake;
     private MecanumDriveSubsystem drive;
+    private PinpointOdometrySubsystem odometry;
 //    private ShooterSubsystem shooter;
 
     /* ========================================
@@ -49,7 +51,11 @@ public class MainTeleOp extends LinearOpMode {
         // Initialize all subsystems
 //        intake = new IntakeSubsystem(hardwareMap);
         drive = new MecanumDriveSubsystem(hardwareMap);
+        odometry = new PinpointOdometrySubsystem(hardwareMap);
 //        shooter = new ShooterSubsystem(hardwareMap);
+
+        // Connect odometry to drive subsystem for heading information
+        drive.setOdometry(odometry);
 
         // Configure drive defaults
         drive.setSpeed(DEFAULT_SPEED);
@@ -86,6 +92,9 @@ public class MainTeleOp extends LinearOpMode {
          * MAIN CONTROL LOOP
          * ======================================== */
         while (opModeIsActive()) {
+
+            // Update odometry
+            odometry.update();
 
             /* ========================================
              * DRIVER 1 - DRIVE CONTROLS
@@ -197,10 +206,19 @@ public class MainTeleOp extends LinearOpMode {
              * ======================================== */
             telemetry.clearAll();
 
+            // Pinpoint Odometry telemetry
+            telemetry.addLine("=== PINPOINT ODOMETRY ===");
+            telemetry.addData("Position X", "%.2f in", odometry.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
+            telemetry.addData("Position Y", "%.2f in", odometry.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
+            telemetry.addData("Heading", "%.1f°", odometry.getHeadingDegrees());
+            telemetry.addData("Status", odometry.getDeviceStatus());
+            telemetry.addData("Frequency", "%.0f Hz", odometry.getPinpointFrequency());
+
             // Drive telemetry
+            telemetry.addLine();
             telemetry.addLine("=== DRIVE ===");
             telemetry.addData("Mode", drive.isFieldCentric() ? "FIELD-CENTRIC" : "ROBOT-CENTRIC");
-            telemetry.addData("Heading", "%.1f°", drive.getHeading());
+            telemetry.addData("Using Pinpoint", drive.isUsingPinpoint() ? "YES" : "NO");
             telemetry.addData("Speed", String.format("%.0f%%", drive.getSpeed() * 100));
             telemetry.addData("Sensitivity", String.format("%.1fx", drive.getSensitivity()));
             telemetry.addData("Deadzone", String.format("%.2f", drive.getDeadzone()));

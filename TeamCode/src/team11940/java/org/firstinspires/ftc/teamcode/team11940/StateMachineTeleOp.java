@@ -7,6 +7,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.Dr
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
 @TeleOp(name = "TeleOp (State Machine)", group = "TeleOp")
 public class StateMachineTeleOp extends LinearOpMode {
@@ -15,6 +16,7 @@ public class StateMachineTeleOp extends LinearOpMode {
      * SUBSYSTEMS
      * ======================================== */
     private MecanumDriveSubsystem drive;
+    private PinpointOdometrySubsystem odometry;
     private IntakeSubsystem intake;
     private IndexSubsystem index;
 
@@ -54,8 +56,12 @@ public class StateMachineTeleOp extends LinearOpMode {
 
         // Initialize subsystems
         drive = new MecanumDriveSubsystem(hardwareMap);
+        odometry = new PinpointOdometrySubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         index = new IndexSubsystem(hardwareMap);
+
+        // Connect odometry to drive subsystem for heading information
+        drive.setOdometry(odometry);
 
         drive.setSensitivity(DEFAULT_SENSITIVITY);
         drive.setDeadzone(DEFAULT_DEADZONE);
@@ -89,6 +95,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         while (opModeIsActive()) {
 
             // Update subsystems
+            odometry.update();  // Update odometry position and heading
             intake.periodic(); // Handle automatic slide control
             index.periodic();  // Handle index motor updates
 
@@ -248,15 +255,20 @@ public class StateMachineTeleOp extends LinearOpMode {
      * TELEMETRY
      * ======================================== */
     private void updateTelemetry() {
+        telemetry.addLine("=== PINPOINT ODOMETRY ===");
+        telemetry.addData("Position X", "%.2f in", odometry.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
+        telemetry.addData("Position Y", "%.2f in", odometry.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
+        telemetry.addData("Heading", "%.1f°", odometry.getHeadingDegrees());
+        telemetry.addData("Status", odometry.getDeviceStatus());
+        telemetry.addData("Frequency", "%.0f Hz", odometry.getPinpointFrequency());
+
+        telemetry.addLine();
         telemetry.addLine("=== DRIVE STATE MACHINE ===");
         telemetry.addData("Current State", drive.getStateString());
         telemetry.addData("State Speed", "%.2f", drive.getStateSpeedMultiplier());
         telemetry.addData("Base Speed", "%.2f", baseSpeed);
         telemetry.addData("Effective Speed", "%.2f", drive.getStateSpeedMultiplier() * baseSpeed);
-
-        if (drive.getState() == DriveState.FIELD_CENTRIC) {
-            telemetry.addData("Heading", "%.1f°", drive.getHeading());
-        }
+        telemetry.addData("Using Pinpoint", drive.isUsingPinpoint() ? "YES" : "NO");
 
         telemetry.addLine();
         telemetry.addLine("=== INTAKE SUBSYSTEM ===");
