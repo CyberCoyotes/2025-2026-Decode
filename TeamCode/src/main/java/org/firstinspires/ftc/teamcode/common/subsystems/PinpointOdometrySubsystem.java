@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 import java.util.Locale;
 
@@ -237,10 +238,10 @@ public class PinpointOdometrySubsystem {
     /**
      * Get heading velocity (rotation speed)
      *
-     * @param unit Angle unit for velocity
+     * @param unit Angle unit for velocity (DEGREES or RADIANS)
      * @return Heading velocity in units/second
      */
-    public double getHeadingVelocity(AngleUnit unit) {
+    public double getHeadingVelocity(UnnormalizedAngleUnit unit) {
         return odo.getHeadingVelocity(unit);
     }
 
@@ -334,10 +335,10 @@ public class PinpointOdometrySubsystem {
     /**
      * Get the firmware version of the Pinpoint device
      *
-     * @return Version string
+     * @return Version number as string
      */
     public String getDeviceVersion() {
-        return odo.getDeviceVersion();
+        return String.valueOf(odo.getDeviceVersion());
     }
 
     /**
@@ -377,7 +378,7 @@ public class PinpointOdometrySubsystem {
      * @param angleUnit Unit for heading velocity
      * @return Formatted velocity string
      */
-    public String getVelocityTelemetry(DistanceUnit distanceUnit, AngleUnit angleUnit) {
+    public String getVelocityTelemetry(DistanceUnit distanceUnit, UnnormalizedAngleUnit angleUnit) {
         return String.format(Locale.US, "{XVel: %.2f, YVel: %.2f, HVel: %.2f}",
                 odo.getVelX(distanceUnit),
                 odo.getVelY(distanceUnit),
@@ -401,7 +402,7 @@ public class PinpointOdometrySubsystem {
                 currentPosition.getHeading(AngleUnit.DEGREES),
                 odo.getVelX(DistanceUnit.INCH),
                 odo.getVelY(DistanceUnit.INCH),
-                odo.getHeadingVelocity(AngleUnit.DEGREES),
+                odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES),
                 odo.getDeviceStatus(),
                 odo.getFrequency());
     }
@@ -431,11 +432,11 @@ public class PinpointOdometrySubsystem {
                 currentPosition.getHeading(AngleUnit.DEGREES),
                 odo.getVelX(DistanceUnit.INCH),
                 odo.getVelY(DistanceUnit.INCH),
-                odo.getHeadingVelocity(AngleUnit.DEGREES),
+                odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES),
                 X_OFFSET_MM, Y_OFFSET_MM,
                 X_ENCODER_DIRECTION, Y_ENCODER_DIRECTION,
                 odo.getDeviceStatus(),
-                odo.getDeviceVersion(),
+                getDeviceVersion(),
                 odo.getFrequency(),
                 frequency,
                 odo.getYawScalar());
