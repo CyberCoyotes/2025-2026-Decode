@@ -274,13 +274,13 @@ public class StateMachineTeleOp extends LinearOpMode {
      * SHOOTER CONTROL HANDLER (GAMEPAD 2)
      * ======================================== */
     private void handleShooterControls() {
-        // D-pad UP increases shooter power
+        // D-pad UP increases shooter power (percentage-based adjustment)
         if (gamepad2.dpad_up && !lastGP2_DpadUpState) {
             shooterPower = Math.min(shooterPower + SHOOTER_POWER_INCREMENT, SHOOTER_MAX_POWER);
         }
         lastGP2_DpadUpState = gamepad2.dpad_up;
 
-        // D-pad DOWN decreases shooter power
+        // D-pad DOWN decreases shooter power (percentage-based adjustment)
         if (gamepad2.dpad_down && !lastGP2_DpadDownState) {
             shooterPower = Math.max(shooterPower - SHOOTER_POWER_INCREMENT, SHOOTER_MIN_POWER);
         }
@@ -300,7 +300,8 @@ public class StateMachineTeleOp extends LinearOpMode {
         }
         lastGP2_YState = gamepad2.y;
 
-        // Right Bumper - Run flywheel motor forward at current power level
+        // Right Bumper - Run flywheel motor forward at current power percentage
+        // (internally converted to velocity-based control)
         if (gamepad2.right_bumper) {
             shooter.runFlywheelForward(shooterPower);
         } else {
@@ -351,7 +352,13 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
         telemetry.addData("Power Setting", String.format("%.0f%% (%.2f)", shooterPower * 100, shooterPower));
-        telemetry.addData("Flywheel Power", "%.2f", shooter.getFlywheelPower());
+        telemetry.addData("Target Velocity", String.format("%.0f tps (%.0f RPM)",
+            shooterPower * shooter.getFlywheelMaxVelocity(),
+            (shooterPower * shooter.getFlywheelMaxVelocity() / 28.0) * 60.0));
+        telemetry.addData("Current Velocity", String.format("%.0f tps (%.0f RPM)",
+            shooter.getFlywheelVelocity(),
+            (shooter.getFlywheelVelocity() / 28.0) * 60.0));
+        telemetry.addData("Velocity %", String.format("%.1f%%", shooter.getFlywheelVelocityPercentage() * 100));
         telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
         telemetry.addData("Turret Position", "%.2f", shooter.getTurretPosition());
 

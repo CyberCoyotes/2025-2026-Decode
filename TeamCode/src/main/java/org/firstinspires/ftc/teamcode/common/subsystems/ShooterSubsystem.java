@@ -33,7 +33,10 @@ public class ShooterSubsystem {
     private static final double HOOD_MAX_POSITION = 0.9; // TODO Adjust as needed
     private static final double HOOD_DEFAULT_POSITION = 0.5;
 
-    // Constants for flywheel motor
+    // Constants for flywheel motor (5203 Series Yellow Jacket 6000 RPM 1:1 Ratio)
+    // Motor specs: 6000 RPM free speed, 28 CPR (counts per revolution)
+    // Max velocity: 6000 RPM / 60 sec = 100 RPS * 28 CPR = 2800 ticks/second
+    private static final double FLYWHEEL_MAX_VELOCITY = 2800.0; // ticks per second at 100% power
     private static final double FLYWHEEL_MAX_POWER = 1.0;
 
     /**
@@ -48,8 +51,10 @@ public class ShooterSubsystem {
         // Initialize motors
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
 
-        // Configure flywheel motor for direct power control
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        // Configure flywheel motor for velocity control with encoder
+        flywheelMotor.setDirection(DcMotor.Direction.REVERSE); // Reverse motor direction
+        flywheelMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
 
@@ -144,36 +149,72 @@ public class ShooterSubsystem {
     }
 
     /**
-     * Run flywheel forward at specified power
-     * @param power Power from 0.0 to 1.0
+     * Run flywheel forward at specified power (percentage-based)
+     * @param powerPercentage Power percentage from 0.0 to 1.0 (0% to 100%)
      */
-    public void runFlywheelForward(double power) {
-        double clampedPower = clamp(Math.abs(power), 0.0, FLYWHEEL_MAX_POWER);
-        flywheelMotor.setPower(clampedPower);
+    public void runFlywheelForward(double powerPercentage) {
+        double clampedPercentage = clamp(Math.abs(powerPercentage), 0.0, FLYWHEEL_MAX_POWER);
+        double targetVelocity = clampedPercentage * FLYWHEEL_MAX_VELOCITY;
+        flywheelMotor.setVelocity(targetVelocity);
     }
 
     /**
-     * Run flywheel in reverse at specified power
-     * @param power Power from 0.0 to 1.0
+     * Run flywheel in reverse at specified power (percentage-based)
+     * @param powerPercentage Power percentage from 0.0 to 1.0 (0% to 100%)
      */
-    public void runFlywheelReverse(double power) {
-        double clampedPower = clamp(Math.abs(power), 0.0, FLYWHEEL_MAX_POWER);
-        flywheelMotor.setPower(-clampedPower);
+    public void runFlywheelReverse(double powerPercentage) {
+        double clampedPercentage = clamp(Math.abs(powerPercentage), 0.0, FLYWHEEL_MAX_POWER);
+        double targetVelocity = clampedPercentage * FLYWHEEL_MAX_VELOCITY;
+        flywheelMotor.setVelocity(-targetVelocity);
+    }
+
+    /**
+     * Set flywheel to specific velocity in ticks per second
+     * @param velocity Target velocity in ticks per second
+     */
+    public void setFlywheelVelocity(double velocity) {
+        flywheelMotor.setVelocity(velocity);
     }
 
     /**
      * Stop the flywheel
      */
     public void stopFlywheel() {
-        flywheelMotor.setPower(0.0);
+        flywheelMotor.setVelocity(0.0);
     }
 
     /**
-     * Get the current flywheel velocity if using encoder
-     * @return Velocity in ticks per second
+     * Get the current flywheel velocity
+     * @return Current velocity in ticks per second
      */
     public double getFlywheelVelocity() {
         return flywheelMotor.getVelocity();
+    }
+
+    /**
+     * Get the target flywheel velocity
+     * @return Target velocity in ticks per second
+     */
+    public double getFlywheelTargetVelocity() {
+        // Note: DcMotorEx doesn't have a direct getTargetVelocity method,
+        // so we calculate it from the current power setting
+        return getFlywheelPower() * FLYWHEEL_MAX_VELOCITY;
+    }
+
+    /**
+     * Get the maximum flywheel velocity
+     * @return Max velocity in ticks per second
+     */
+    public double getFlywheelMaxVelocity() {
+        return FLYWHEEL_MAX_VELOCITY;
+    }
+
+    /**
+     * Get current flywheel velocity as a percentage of max
+     * @return Velocity percentage from 0.0 to 1.0
+     */
+    public double getFlywheelVelocityPercentage() {
+        return getFlywheelVelocity() / FLYWHEEL_MAX_VELOCITY;
     }
 
 
