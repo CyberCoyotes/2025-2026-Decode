@@ -39,8 +39,11 @@ public class IndexSubsystem {
         // Initialize motor
         indexMotor = hardwareMap.get(DcMotor.class, INDEX_MOTOR_NAME);
 
-        // Set motor to brake when power is zero for better control
+        // Configure motor for indexing
         indexMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        indexMotor.setDirection(DcMotor.Direction.REVERSE); // Reverse motor direction
+//        indexMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        indexMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Initialize to safe starting state
         setState(IndexState.IDLE);
