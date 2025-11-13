@@ -7,6 +7,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.Dr
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
 @TeleOp(name = "TeleOp (State Machine)", group = "TeleOp")
@@ -19,6 +20,7 @@ public class StateMachineTeleOp extends LinearOpMode {
     private PinpointOdometrySubsystem odometry;
     private IntakeSubsystem intake;
     private IndexSubsystem index;
+    private ShooterSubsystem shooter;
 
     /* ========================================
      * BUTTON STATE TRACKING
@@ -32,6 +34,12 @@ public class StateMachineTeleOp extends LinearOpMode {
     private boolean lastDpadLeftState = false;  // Decrease sensitivity
     private boolean lastDpadRightState = false; // Increase sensitivity
 
+    // Gamepad 2 - Shooter controls
+    private boolean lastGP2_XState = false;         // Hood servo down
+    private boolean lastGP2_YState = false;         // Hood servo up
+    private boolean lastGP2_DpadUpState = false;    // Increase shooter power
+    private boolean lastGP2_DpadDownState = false;  // Decrease shooter power
+
     /* ========================================
      * CONSTANTS
      * ======================================== */
@@ -40,10 +48,17 @@ public class StateMachineTeleOp extends LinearOpMode {
     private static final double SPEED_STEP = 0.05;
     private static final double SENSITIVITY_STEP = 0.1;
 
+    // Shooter constants
+    private static final double SHOOTER_POWER_INCREMENT = 0.05;  // 5% per button press
+    private static final double SHOOTER_MIN_POWER = 0.0;
+    private static final double SHOOTER_MAX_POWER = 1.0;
+    private static final double HOOD_INCREMENT = 0.05;  // Hood position increment per button press
+
     /* ========================================
      * CONFIGURATION VARIABLES
      * ======================================== */
     private double baseSpeed = 0.85;           // Current base speed multiplier
+    private double shooterPower = 0.50;        // Current shooter power level (starts at 50%)
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -59,6 +74,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         odometry = new PinpointOdometrySubsystem(hardwareMap);
         intake = new IntakeSubsystem(hardwareMap);
         index = new IndexSubsystem(hardwareMap);
+        shooter = new ShooterSubsystem(hardwareMap);
 
         // Connect odometry to drive subsystem for heading information
         drive.setOdometry(odometry);
@@ -68,19 +84,25 @@ public class StateMachineTeleOp extends LinearOpMode {
 
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
-        telemetry.addLine("Controls:");
+        telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
         telemetry.addLine("  Left Stick      - Strafe");
         telemetry.addLine("  Right Stick     - Rotate");
         telemetry.addLine("  Right Bumper    - Intake Wheels");
         telemetry.addLine("  Left Bumper     - Eject Wheels");
         telemetry.addLine("  (Slides auto-extend/retract)");
-        telemetry.addLine("  Y Button        - Run Index Motor Forward");
         telemetry.addLine("  X Button        - Toggle Field-Centric");
         telemetry.addLine("  B Button        - Toggle Turbo Mode");
         telemetry.addLine("  A Button        - Emergency Stop");
         telemetry.addLine("  Options         - Reset Heading");
         telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
         telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
+        telemetry.addLine();
+        telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
+        telemetry.addLine("  Left Bumper     - Run Index Motor");
+        telemetry.addLine("  Right Bumper    - Run Flywheel Motor");
+        telemetry.addLine("  X Button        - Hood Servo Down");
+        telemetry.addLine("  Y Button        - Hood Servo Up");
+        telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter Power");
         telemetry.update();
 
         waitForStart();
@@ -98,6 +120,7 @@ public class StateMachineTeleOp extends LinearOpMode {
             odometry.update();  // Update odometry position and heading
             intake.periodic(); // Handle automatic slide control
             index.periodic();  // Handle index motor updates
+            shooter.periodic(); // Handle shooter subsystem updates
 
             // Handle state transitions
             handleStateTransitions();
@@ -110,6 +133,9 @@ public class StateMachineTeleOp extends LinearOpMode {
 
             // Handle index controls
             handleIndexControls();
+
+            // Handle shooter controls (gamepad 2)
+            handleShooterControls();
 
             // Get joystick inputs
             // drive.drive() expects: (axial, lateral, yaw)
@@ -236,11 +262,49 @@ public class StateMachineTeleOp extends LinearOpMode {
      * INDEX CONTROL HANDLER
      * ======================================== */
     private void handleIndexControls() {
-        // Y Button - Run index motor forward
-        if (gamepad1.y) {
+        // Gamepad 2 Left Bumper - Run index motor forward
+        if (gamepad2.left_bumper) {
             index.runForward();
         } else {
             index.stop();
+        }
+    }
+
+    /* ========================================
+     * SHOOTER CONTROL HANDLER (GAMEPAD 2)
+     * ======================================== */
+    private void handleShooterControls() {
+        // D-pad UP increases shooter power
+        if (gamepad2.dpad_up && !lastGP2_DpadUpState) {
+            shooterPower = Math.min(shooterPower + SHOOTER_POWER_INCREMENT, SHOOTER_MAX_POWER);
+        }
+        lastGP2_DpadUpState = gamepad2.dpad_up;
+
+        // D-pad DOWN decreases shooter power
+        if (gamepad2.dpad_down && !lastGP2_DpadDownState) {
+            shooterPower = Math.max(shooterPower - SHOOTER_POWER_INCREMENT, SHOOTER_MIN_POWER);
+        }
+        lastGP2_DpadDownState = gamepad2.dpad_down;
+
+        // X Button - Decrement hood position DOWN
+        if (gamepad2.x && !lastGP2_XState) {
+            double currentPosition = shooter.getHoodPosition();
+            shooter.setHoodPosition(currentPosition - HOOD_INCREMENT);
+        }
+        lastGP2_XState = gamepad2.x;
+
+        // Y Button - Increment hood position UP
+        if (gamepad2.y && !lastGP2_YState) {
+            double currentPosition = shooter.getHoodPosition();
+            shooter.setHoodPosition(currentPosition + HOOD_INCREMENT);
+        }
+        lastGP2_YState = gamepad2.y;
+
+        // Right Bumper - Run flywheel motor forward at current power level
+        if (gamepad2.right_bumper) {
+            shooter.runFlywheelForward(shooterPower);
+        } else {
+            shooter.stopFlywheel();
         }
     }
 
@@ -283,6 +347,13 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addData("Index State", index.getStateString());
         telemetry.addData("Motor Power", "%.2f", index.getMotorPower());
         telemetry.addData("Motor Position", index.getMotorPosition());
+
+        telemetry.addLine();
+        telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
+        telemetry.addData("Power Setting", String.format("%.0f%% (%.2f)", shooterPower * 100, shooterPower));
+        telemetry.addData("Flywheel Power", "%.2f", shooter.getFlywheelPower());
+        telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
+        telemetry.addData("Turret Position", "%.2f", shooter.getTurretPosition());
 
         telemetry.addLine();
         telemetry.addLine("=== CONFIGURATION ===");
