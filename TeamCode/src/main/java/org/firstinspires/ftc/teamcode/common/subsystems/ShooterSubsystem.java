@@ -13,10 +13,42 @@ import com.qualcomm.robotcore.hardware.Servo;
  */
 public class ShooterSubsystem {
 
+    /**
+     * Flywheel shooting range states with associated RPM values
+     */
+    public enum FlywheelState {
+        LONG_RANGE(3200),    // Long range shot - 3200 RPM
+        MEDIUM_RANGE(3000),  // Medium range shot - 3000 RPM
+        SHORT_RANGE(2600);   // Short range shot - 2600 RPM
+
+        private final int rpm;
+
+        FlywheelState(int rpm) {
+            this.rpm = rpm;
+        }
+
+        public int getRPM() {
+            return rpm;
+        }
+
+        /**
+         * Convert RPM to velocity in ticks per second
+         * Formula: RPM / 60 * CPR (counts per revolution)
+         * @return velocity in ticks per second
+         */
+        public double getVelocity() {
+            return (rpm / 60.0) * 28.0; // 28 CPR for Yellow Jacket motor
+        }
+    }
+
     // Hardware
     private final Servo turretServo;      // Position mode - turret rotation
     private final Servo hoodServo;        // Position mode - hood adjustment
     private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
+
+    // State tracking
+    private FlywheelState currentState = FlywheelState.MEDIUM_RANGE; // Default to medium range
+    private double targetVelocity = 0.0;
 
     // Hardware configuration names
     private static final String TURRET_SERVO_NAME = "turretServo";
@@ -180,6 +212,7 @@ public class ShooterSubsystem {
      * Stop the flywheel
      */
     public void stopFlywheel() {
+        targetVelocity = 0.0;
         flywheelMotor.setVelocity(0.0);
     }
 
@@ -215,6 +248,54 @@ public class ShooterSubsystem {
      */
     public double getFlywheelVelocityPercentage() {
         return getFlywheelVelocity() / FLYWHEEL_MAX_VELOCITY;
+    }
+
+    /**
+     * Set the flywheel state (range preset)
+     * @param state The desired flywheel state
+     */
+    public void setFlywheelState(FlywheelState state) {
+        currentState = state;
+        targetVelocity = state.getVelocity();
+        flywheelMotor.setVelocity(targetVelocity);
+    }
+
+    /**
+     * Get the current flywheel state
+     * @return Current flywheel state
+     */
+    public FlywheelState getFlywheelState() {
+        return currentState;
+    }
+
+    /**
+     * Check if flywheel has reached its target velocity
+     * Uses a tolerance of 5% to account for real-world variance
+     * @return true if flywheel is at target velocity
+     */
+    public boolean isAtTargetVelocity() {
+        if (targetVelocity == 0.0) {
+            return Math.abs(getFlywheelVelocity()) < 50.0; // Consider stopped if < 50 tps
+        }
+        double tolerance = targetVelocity * 0.05; // 5% tolerance
+        double currentVelocity = getFlywheelVelocity();
+        return Math.abs(currentVelocity - targetVelocity) <= tolerance;
+    }
+
+    /**
+     * Get the current target velocity
+     * @return Target velocity in ticks per second
+     */
+    public double getTargetVelocity() {
+        return targetVelocity;
+    }
+
+    /**
+     * Get the target RPM based on current state
+     * @return Target RPM
+     */
+    public int getTargetRPM() {
+        return currentState.getRPM();
     }
 
 
