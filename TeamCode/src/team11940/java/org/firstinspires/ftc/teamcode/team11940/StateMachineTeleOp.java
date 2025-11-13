@@ -304,6 +304,7 @@ public class StateMachineTeleOp extends LinearOpMode {
 
             // Cycle: SHORT -> MEDIUM -> LONG -> SHORT
             switch (currentState) {
+                
                 case SHORT_RANGE:
                     newState = ShooterSubsystem.FlywheelState.MEDIUM_RANGE;
                     break;
