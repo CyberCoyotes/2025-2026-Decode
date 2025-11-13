@@ -37,8 +37,14 @@ public class StateMachineTeleOp extends LinearOpMode {
     // Gamepad 2 - Shooter controls
     private boolean lastGP2_XState = false;         // Hood servo down
     private boolean lastGP2_YState = false;         // Hood servo up
+    private boolean lastGP2_AState = false;         // Toggle flywheel testing
+    private boolean lastGP2_BState = false;         // Cycle range states
     private boolean lastGP2_DpadUpState = false;    // Increase shooter power
     private boolean lastGP2_DpadDownState = false;  // Decrease shooter power
+
+    // Flywheel and index sequential control state
+    private boolean flywheelRunning = false;         // Track if flywheel is running
+    private boolean flywheelTestMode = false;        // Track if flywheel is in test mode
 
     /* ========================================
      * CONSTANTS
@@ -98,8 +104,10 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
         telemetry.addLine();
         telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
-        telemetry.addLine("  Left Bumper     - Run Index Motor");
-        telemetry.addLine("  Right Bumper    - Run Flywheel Motor");
+        telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
+        telemetry.addLine("  Right Bumper    - Sequential Shoot (Flywheel→Index)");
+        telemetry.addLine("  A Button        - Toggle Flywheel Test Mode");
+        telemetry.addLine("  B Button        - Cycle Range States (S→M→L)");
         telemetry.addLine("  X Button        - Hood Servo Down");
         telemetry.addLine("  Y Button        - Hood Servo Up");
         telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter Power");
@@ -262,10 +270,12 @@ public class StateMachineTeleOp extends LinearOpMode {
      * INDEX CONTROL HANDLER
      * ======================================== */
     private void handleIndexControls() {
-        // Gamepad 2 Left Bumper - Run index motor forward
+        // Gamepad 2 Left Bumper - Run index motor forward (manual override)
+        // Note: Right bumper now handles sequential flywheel + index control
         if (gamepad2.left_bumper) {
             index.runForward();
-        } else {
+        } else if (!gamepad2.right_bumper) {
+            // Only stop if right bumper is not controlling it
             index.stop();
         }
     }
@@ -274,6 +284,49 @@ public class StateMachineTeleOp extends LinearOpMode {
      * SHOOTER CONTROL HANDLER (GAMEPAD 2)
      * ======================================== */
     private void handleShooterControls() {
+        // A Button - Toggle flywheel on/off for testing (independent of right bumper)
+        if (gamepad2.a && !lastGP2_AState) {
+            flywheelTestMode = !flywheelTestMode;
+            if (flywheelTestMode) {
+                // Turn on flywheel at current state velocity
+                shooter.setFlywheelState(shooter.getFlywheelState());
+            } else {
+                // Turn off flywheel
+                shooter.stopFlywheel();
+            }
+        }
+        lastGP2_AState = gamepad2.a;
+
+        // B Button - Cycle through flywheel range states
+        if (gamepad2.b && !lastGP2_BState) {
+            ShooterSubsystem.FlywheelState currentState = shooter.getFlywheelState();
+            ShooterSubsystem.FlywheelState newState;
+
+            // Cycle: SHORT -> MEDIUM -> LONG -> SHORT
+            switch (currentState) {
+                
+                case SHORT_RANGE:
+                    newState = ShooterSubsystem.FlywheelState.MEDIUM_RANGE;
+                    break;
+                case MEDIUM_RANGE:
+                    newState = ShooterSubsystem.FlywheelState.LONG_RANGE;
+                    break;
+                case LONG_RANGE:
+                default:
+                    newState = ShooterSubsystem.FlywheelState.SHORT_RANGE;
+                    break;
+            }
+
+            // Update to new state
+            shooter.setFlywheelState(newState);
+
+            // If test mode is active, apply the new velocity immediately
+            if (flywheelTestMode) {
+                shooter.setFlywheelState(newState);
+            }
+        }
+        lastGP2_BState = gamepad2.b;
+
         // D-pad UP increases shooter power (percentage-based adjustment)
         if (gamepad2.dpad_up && !lastGP2_DpadUpState) {
             shooterPower = Math.min(shooterPower + SHOOTER_POWER_INCREMENT, SHOOTER_MAX_POWER);
@@ -300,12 +353,30 @@ public class StateMachineTeleOp extends LinearOpMode {
         }
         lastGP2_YState = gamepad2.y;
 
-        // Right Bumper - Run flywheel motor forward at current power percentage
-        // (internally converted to velocity-based control)
-        if (gamepad2.right_bumper) {
-            shooter.runFlywheelForward(shooterPower);
-        } else {
-            shooter.stopFlywheel();
+        // Right Bumper - Sequential flywheel and index control
+        // Only active if NOT in test mode
+        // 1. Start flywheel at current state velocity
+        // 2. Wait for flywheel to reach target velocity
+        // 3. Then start index motor
+        // 4. Both run until button is released
+        if (gamepad2.right_bumper && !flywheelTestMode) {
+            // Start or continue running flywheel at current state
+            if (!flywheelRunning) {
+                shooter.setFlywheelState(shooter.getFlywheelState());
+                flywheelRunning = true;
+            }
+
+            // Once flywheel reaches target velocity, start index motor
+            if (shooter.isAtTargetVelocity()) {
+                index.runForward();
+            }
+        } else if (!flywheelTestMode) {
+            // Button released - stop both motors (only if not in test mode)
+            if (flywheelRunning) {
+                shooter.stopFlywheel();
+                index.stop();
+                flywheelRunning = false;
+            }
         }
     }
 
@@ -351,16 +422,19 @@ public class StateMachineTeleOp extends LinearOpMode {
 
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
-        telemetry.addData("Power Setting", String.format("%.0f%% (%.2f)", shooterPower * 100, shooterPower));
-        telemetry.addData("Target Velocity", String.format("%.0f tps (%.0f RPM)",
-            shooterPower * shooter.getFlywheelMaxVelocity(),
-            (shooterPower * shooter.getFlywheelMaxVelocity() / 28.0) * 60.0));
+        telemetry.addData("Test Mode", flywheelTestMode ? "ACTIVE" : "OFF");
+        telemetry.addData("Flywheel State", shooter.getFlywheelState().name());
+        telemetry.addData("Target RPM", shooter.getTargetRPM());
+        telemetry.addData("Target Velocity", String.format("%.0f tps", shooter.getTargetVelocity()));
         telemetry.addData("Current Velocity", String.format("%.0f tps (%.0f RPM)",
             shooter.getFlywheelVelocity(),
             (shooter.getFlywheelVelocity() / 28.0) * 60.0));
+        telemetry.addData("At Target", shooter.isAtTargetVelocity() ? "✓ YES" : "✗ NO");
         telemetry.addData("Velocity %", String.format("%.1f%%", shooter.getFlywheelVelocityPercentage() * 100));
+        telemetry.addData("Power Setting", String.format("%.0f%% (%.2f)", shooterPower * 100, shooterPower));
         telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
         telemetry.addData("Turret Position", "%.2f", shooter.getTurretPosition());
+        telemetry.addData("Sequential Mode", flywheelRunning ? "RUNNING" : "IDLE");
 
         telemetry.addLine();
         telemetry.addLine("=== CONFIGURATION ===");
