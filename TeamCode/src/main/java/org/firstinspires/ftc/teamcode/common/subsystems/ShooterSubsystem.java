@@ -18,8 +18,8 @@ public class ShooterSubsystem {
      */
     public enum FlywheelState {
         LONG_RANGE(3200),    // Long range shot - 3200 RPM
-        MEDIUM_RANGE(3000),  // Medium range shot - 3000 RPM
-        SHORT_RANGE(2600);   // Short range shot - 2600 RPM
+        MEDIUM_RANGE(1800),  // Medium range shot - 3000 RPM
+        SHORT_RANGE(1500);   // Short range shot - 2600 RPM
 
         private final int rpm;
 
