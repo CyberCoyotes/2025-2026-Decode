@@ -39,8 +39,8 @@ public class StateMachineTeleOp extends LinearOpMode {
     private boolean lastGP2_YState = false;         // Hood servo up
     private boolean lastGP2_AState = false;         // Toggle flywheel testing
     private boolean lastGP2_BState = false;         // Cycle range states
-    private boolean lastGP2_DpadUpState = false;    // Increase shooter power
-    private boolean lastGP2_DpadDownState = false;  // Decrease shooter power
+    private boolean lastGP2_DpadUpState = false;    // Increase shooter RPM
+    private boolean lastGP2_DpadDownState = false;  // Decrease shooter RPM
 
     // Flywheel and index sequential control state
     private boolean flywheelRunning = false;         // Track if flywheel is running
@@ -110,7 +110,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addLine("  B Button        - Cycle Range States (S→M→L)");
         telemetry.addLine("  X Button        - Hood Servo Down");
         telemetry.addLine("  Y Button        - Hood Servo Up");
-        telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter Power");
+        telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter RPM (±100)");
         telemetry.update();
 
         waitForStart();
@@ -327,15 +327,15 @@ public class StateMachineTeleOp extends LinearOpMode {
         }
         lastGP2_BState = gamepad2.b;
 
-        // D-pad UP increases shooter power (percentage-based adjustment)
+        // D-pad UP increases shooter velocity by 100 RPM
         if (gamepad2.dpad_up && !lastGP2_DpadUpState) {
-            shooterPower = Math.min(shooterPower + SHOOTER_POWER_INCREMENT, SHOOTER_MAX_POWER);
+            shooter.incrementFlywheelRPM(100);
         }
         lastGP2_DpadUpState = gamepad2.dpad_up;
 
-        // D-pad DOWN decreases shooter power (percentage-based adjustment)
+        // D-pad DOWN decreases shooter velocity by 100 RPM
         if (gamepad2.dpad_down && !lastGP2_DpadDownState) {
-            shooterPower = Math.max(shooterPower - SHOOTER_POWER_INCREMENT, SHOOTER_MIN_POWER);
+            shooter.decrementFlywheelRPM(100);
         }
         lastGP2_DpadDownState = gamepad2.dpad_down;
 

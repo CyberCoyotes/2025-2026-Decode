@@ -49,6 +49,7 @@ public class ShooterSubsystem {
     // State tracking
     private FlywheelState currentState = FlywheelState.MEDIUM_RANGE; // Default to medium range
     private double targetVelocity = 0.0;
+    private int targetRPM = 0; // Track current target RPM for manual adjustments
 
     // Hardware configuration names
     private static final String TURRET_SERVO_NAME = "turretServo";
@@ -212,6 +213,7 @@ public class ShooterSubsystem {
      * Stop the flywheel
      */
     public void stopFlywheel() {
+        targetRPM = 0;
         targetVelocity = 0.0;
         flywheelMotor.setVelocity(0.0);
     }
@@ -256,6 +258,7 @@ public class ShooterSubsystem {
      */
     public void setFlywheelState(FlywheelState state) {
         currentState = state;
+        targetRPM = state.getRPM();
         targetVelocity = state.getVelocity();
         flywheelMotor.setVelocity(targetVelocity);
     }
@@ -295,7 +298,34 @@ public class ShooterSubsystem {
      * @return Target RPM
      */
     public int getTargetRPM() {
-        return currentState.getRPM();
+        return targetRPM;
+    }
+
+    /**
+     * Set flywheel to specific RPM
+     * @param rpm Target RPM (will be clamped to valid range)
+     */
+    public void setFlywheelRPM(int rpm) {
+        // Clamp RPM to reasonable range (0 to 6000 max motor speed)
+        targetRPM = Math.max(0, Math.min(6000, rpm));
+        targetVelocity = (targetRPM / 60.0) * 28.0; // Convert RPM to ticks per second
+        flywheelMotor.setVelocity(targetVelocity);
+    }
+
+    /**
+     * Increment flywheel RPM by specified amount
+     * @param increment Amount to increase RPM
+     */
+    public void incrementFlywheelRPM(int increment) {
+        setFlywheelRPM(targetRPM + increment);
+    }
+
+    /**
+     * Decrement flywheel RPM by specified amount
+     * @param decrement Amount to decrease RPM
+     */
+    public void decrementFlywheelRPM(int decrement) {
+        setFlywheelRPM(targetRPM - decrement);
     }
 
 
