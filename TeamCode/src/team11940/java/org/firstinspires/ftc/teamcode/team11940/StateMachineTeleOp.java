@@ -90,6 +90,7 @@ public class StateMachineTeleOp extends LinearOpMode {
 
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
+        /* TODO Take out for Shooter Testing only!
         telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
         telemetry.addLine("  Left Stick      - Strafe");
         telemetry.addLine("  Right Stick     - Rotate");
@@ -103,13 +104,15 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
         telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
         telemetry.addLine();
+         */
+
         telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
         telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
         telemetry.addLine("  Right Bumper    - Sequential Shoot (Flywheel→Index)");
         telemetry.addLine("  A Button        - Toggle Flywheel Test Mode");
         telemetry.addLine("  B Button        - Cycle Range States (S→M→L)");
-        telemetry.addLine("  X Button        - Hood Servo Down");
-        telemetry.addLine("  Y Button        - Hood Servo Up");
+        telemetry.addLine("  D-Pad Left       - Hood Servo Down");
+        telemetry.addLine("  D-Pad Right        - Hood Servo Up");
         telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter RPM (±100)");
         telemetry.update();
 
@@ -340,18 +343,18 @@ public class StateMachineTeleOp extends LinearOpMode {
         lastGP2_DpadDownState = gamepad2.dpad_down;
 
         // X Button - Decrement hood position DOWN
-        if (gamepad2.x && !lastGP2_XState) {
+        if (gamepad2.dpad_left && !lastGP2_XState) {
             double currentPosition = shooter.getHoodPosition();
             shooter.setHoodPosition(currentPosition - HOOD_INCREMENT);
         }
-        lastGP2_XState = gamepad2.x;
+        lastGP2_XState = gamepad2.dpad_left;
 
         // Y Button - Increment hood position UP
-        if (gamepad2.y && !lastGP2_YState) {
+        if (gamepad2.dpad_right && !lastGP2_YState) {
             double currentPosition = shooter.getHoodPosition();
             shooter.setHoodPosition(currentPosition + HOOD_INCREMENT);
         }
-        lastGP2_YState = gamepad2.y;
+        lastGP2_YState = gamepad2.dpad_right;
 
         // Right Bumper - Sequential flywheel and index control
         // Only active if NOT in test mode
