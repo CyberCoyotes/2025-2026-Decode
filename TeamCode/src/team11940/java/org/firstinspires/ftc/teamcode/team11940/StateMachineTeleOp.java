@@ -425,9 +425,7 @@ public class StateMachineTeleOp extends LinearOpMode {
         telemetry.addData("Test Mode", flywheelTestMode ? "ACTIVE" : "OFF");
         telemetry.addData("Flywheel State", shooter.getFlywheelState().name());
         telemetry.addData("Target RPM", shooter.getTargetRPM());
-        telemetry.addData("Target Velocity", String.format("%.0f tps", shooter.getTargetVelocity()));
-        telemetry.addData("Current Velocity", String.format("%.0f tps (%.0f RPM)",
-            shooter.getFlywheelVelocity(),
+        telemetry.addData("Current RPM", String.format("%.0f",
             (shooter.getFlywheelVelocity() / 28.0) * 60.0));
         telemetry.addData("At Target", shooter.isAtTargetVelocity() ? "✓ YES" : "✗ NO");
         telemetry.addData("Velocity %", String.format("%.1f%%", shooter.getFlywheelVelocityPercentage() * 100));
