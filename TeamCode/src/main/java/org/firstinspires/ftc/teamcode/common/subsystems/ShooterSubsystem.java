@@ -17,9 +17,9 @@ public class ShooterSubsystem {
      * Flywheel shooting range states with associated RPM values
      */
     public enum FlywheelState {
-        LONG_RANGE(3200),    // Long range shot - 3200 RPM
-        MEDIUM_RANGE(1800),  // Medium range shot - 3000 RPM
-        SHORT_RANGE(1500);   // Short range shot - 2600 RPM
+        LONG_RANGE(3200),    // Long range shot
+        MEDIUM_RANGE(1800),  // Medium range shot
+        SHORT_RANGE(1500);   // Short range shot
 
         private final int rpm;
 
@@ -62,9 +62,10 @@ public class ShooterSubsystem {
     private static final double TURRET_CENTER_POSITION = 0.5;
 
     // Constants for hood servo positions
-    private static final double HOOD_MIN_POSITION = 0.1; // TODO Adjust as needed
-    private static final double HOOD_MAX_POSITION = 0.9; // TODO Adjust as needed
-    private static final double HOOD_DEFAULT_POSITION = 0.5;
+    private static final double HOOD_MIN_POSITION = 0.0; //
+    private static final double HOOD_MAX_POSITION = 0.60; //
+    // Default position is ZERO and the hood should be resting on the hard stop as low as possible.
+    private static final double HOOD_DEFAULT_POSITION = 0.0;
 
     // Constants for flywheel motor (5203 Series Yellow Jacket 6000 RPM 1:1 Ratio)
     // Motor specs: 6000 RPM free speed, 28 CPR (counts per revolution)
