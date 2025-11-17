@@ -7,7 +7,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 /**
  * Components of the Scoring Subsystem:
- * - Turret rotation with a goBilda position based servo
  * - Hood Adjustment with a goBilda position based servo
  * - Ball launcher-flywheel with a goBilda motor
  */
@@ -42,24 +41,17 @@ public class ShooterSubsystem {
     }
 
     // Hardware
-    private final Servo turretServo;      // Position mode - turret rotation
     private final Servo hoodServo;        // Position mode - hood adjustment
     private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
 
     // State tracking
-    private FlywheelState currentState = FlywheelState.MEDIUM_RANGE; // Default to medium range
+    private FlywheelState currentState = FlywheelState.SHORT_RANGE; // Default to short range
     private double targetVelocity = 0.0;
     private int targetRPM = 0; // Track current target RPM for manual adjustments
 
     // Hardware configuration names
-    private static final String TURRET_SERVO_NAME = "turretServo";
     private static final String HOOD_SERVO_NAME = "hoodServo";
     private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
-
-    // Constants for turret servo positions
-    private static final double TURRET_MIN_POSITION = 0.0;
-    private static final double TURRET_MAX_POSITION = 1.0;
-    private static final double TURRET_CENTER_POSITION = 0.5;
 
     // Constants for hood servo positions
     private static final double HOOD_MIN_POSITION = 0.0; //
@@ -79,7 +71,6 @@ public class ShooterSubsystem {
      */
     public ShooterSubsystem(HardwareMap hardwareMap) {
         // Initialize servos
-        turretServo = hardwareMap.get(Servo.class, TURRET_SERVO_NAME);
         hoodServo = hardwareMap.get(Servo.class, HOOD_SERVO_NAME);
 
         // Initialize motors
@@ -91,9 +82,7 @@ public class ShooterSubsystem {
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-
         // Initialize to default positions
-        turretServo.setPosition(TURRET_CENTER_POSITION);
         hoodServo.setPosition(HOOD_DEFAULT_POSITION);
         flywheelMotor.setPower(0);
     }
@@ -103,34 +92,6 @@ public class ShooterSubsystem {
      */
     public void periodic() {
         // Add any periodic updates here if needed
-    }
-
-    /* ========================================
-     * TURRET CONTROL METHODS
-     * ======================================== */
-
-    /**
-     * Set the turret servo position
-     * @param position Position from 0.0 to 1.0
-     */
-    public void setTurretPosition(double position) {
-        position = clamp(position, TURRET_MIN_POSITION, TURRET_MAX_POSITION);
-        turretServo.setPosition(position);
-    }
-
-    /**
-     * Center the turret
-     */
-    public void centerTurret() {
-        turretServo.setPosition(TURRET_CENTER_POSITION);
-    }
-
-    /**
-     * Get the current turret position
-     * @return Current position (0.0 to 1.0)
-     */
-    public double getTurretPosition() {
-        return turretServo.getPosition();
     }
 
     /* ========================================
@@ -347,7 +308,6 @@ public class ShooterSubsystem {
      * Reset to default positions and stop motors
      */
     public void reset() {
-        centerTurret();
         hoodDefault();
         stopFlywheel();
     }
