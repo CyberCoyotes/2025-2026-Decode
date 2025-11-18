@@ -71,6 +71,13 @@ public class ShooterSubsystem {
     private static final double FLYWHEEL_MAX_VELOCITY = 2800.0; // ticks per second at 100% power
     private static final double FLYWHEEL_MAX_POWER = 1.0;
 
+    // PIDF coefficients for velocity control
+    // These values may need tuning based on your specific motor and battery voltage
+    private static final double FLYWHEEL_P = 10.0;  // Proportional gain
+    private static final double FLYWHEEL_I = 0.5;   // Integral gain
+    private static final double FLYWHEEL_D = 0.0;   // Derivative gain
+    private static final double FLYWHEEL_F = 12.0;  // Feedforward gain (approximately 1/max velocity * 32767)
+
     /**
      * Constructor - only needs HardwareMap
      * @param hardwareMap The hardware map from the OpMode
@@ -88,9 +95,13 @@ public class ShooterSubsystem {
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
+        // Configure PID coefficients for velocity control
+        // Without these, the motor won't properly reach different target velocities
+        flywheelMotor.setVelocityPIDFCoefficients(FLYWHEEL_P, FLYWHEEL_I, FLYWHEEL_D, FLYWHEEL_F);
+
         // Initialize to default positions
         hoodServo.setPosition(HOOD_DEFAULT_POSITION);
-        flywheelMotor.setPower(0);
+        flywheelMotor.setVelocity(0);  // Use setVelocity instead of setPower for consistency
     }
 
     /**
