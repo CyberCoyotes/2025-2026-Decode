@@ -71,12 +71,12 @@ public class ShooterSubsystem {
     private static final double FLYWHEEL_MAX_VELOCITY = 2800.0; // ticks per second at 100% power
     private static final double FLYWHEEL_MAX_POWER = 1.0;
 
-    // PIDF coefficients for velocity control
-    // Tuned for flywheel with significant inertia and potential voltage drop
-    private static final double FLYWHEEL_P = 15.0;  // Proportional gain - increased for stronger correction
-    private static final double FLYWHEEL_I = 1.0;   // Integral gain - increased to eliminate steady-state error
+    // PIDF coefficients for velocity control - Aggressively tuned for high-speed flywheel
+    // These values provide much stronger power delivery to reach high RPM targets
+    private static final double FLYWHEEL_P = 25.0;  // Proportional gain - aggressive correction
+    private static final double FLYWHEEL_I = 2.0;   // Integral gain - eliminate steady-state error
     private static final double FLYWHEEL_D = 0.0;   // Derivative gain - not needed for flywheel
-    private static final double FLYWHEEL_F = 16.5;  // Feedforward gain - increased to account for mechanical losses
+    private static final double FLYWHEEL_F = 22.0;  // Feedforward gain - significantly increased for high velocities
 
     /**
      * Constructor - only needs HardwareMap
