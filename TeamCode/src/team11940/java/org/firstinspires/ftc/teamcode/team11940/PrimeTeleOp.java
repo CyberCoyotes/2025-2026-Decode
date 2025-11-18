@@ -111,12 +111,12 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
         telemetry.addLine("  Right Bumper    - Shoot at Preset (Flywheel→Index)");
         telemetry.addLine("  A Button        - Toggle Flywheel On/Off");
-        telemetry.addLine("  X Button        - SHORT_RANGE Preset (Power+Hood)");
-        telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset (Power+Hood)");
-        telemetry.addLine("  B Button        - LONG_RANGE Preset (Power+Hood)");
+        telemetry.addLine("  X Button        - SHORT_RANGE Preset (RPM+Hood)");
+        telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset (RPM+Hood)");
+        telemetry.addLine("  B Button        - LONG_RANGE Preset (RPM+Hood)");
         telemetry.addLine("  D-Pad Left      - Hood Servo Down (Manual)");
         telemetry.addLine("  D-Pad Right     - Hood Servo Up (Manual)");
-        telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter Power (±5%)");
+        telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter RPM (±100)");
         telemetry.update();
 
         waitForStart();
@@ -333,15 +333,15 @@ public class PrimeTeleOp extends LinearOpMode {
         }
         lastGP2_BState = gamepad2.b;
 
-        // D-pad UP increases shooter power by 5%
+        // D-pad UP increases shooter RPM by 100
         if (gamepad2.dpad_up && !lastGP2_DpadUpState) {
-            shooter.incrementFlywheelPower();
+            shooter.incrementFlywheelRPM();
         }
         lastGP2_DpadUpState = gamepad2.dpad_up;
 
-        // D-pad DOWN decreases shooter power by 5%
+        // D-pad DOWN decreases shooter RPM by 100
         if (gamepad2.dpad_down && !lastGP2_DpadDownState) {
-            shooter.decrementFlywheelPower();
+            shooter.decrementFlywheelRPM();
         }
         lastGP2_DpadDownState = gamepad2.dpad_down;
 
@@ -430,13 +430,12 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
         telemetry.addData("Test Mode", flywheelTestMode ? "ACTIVE" : "OFF");
         telemetry.addData("Preset", shooter.getFlywheelState().name());
-        telemetry.addData("Preset Power", String.format("%.0f%%", shooter.getFlywheelState().getPower() * 100));
-        telemetry.addData("Preset Target RPM", shooter.getFlywheelState().getTargetRPM());
-        telemetry.addData("Preset Hood", String.format("%.2f", shooter.getFlywheelState().getHoodPosition()));
-        telemetry.addData("Current Power", String.format("%.0f%%", shooter.getFlywheelPower() * 100));
+        telemetry.addData("Target RPM", shooter.getTargetRPM());
         telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
         telemetry.addData("At Target", shooter.isAtTargetRPM() ? "✓ YES" : "✗ NO");
-        telemetry.addData("Current Hood Pos", String.format("%.2f", shooter.getHoodPosition()));
+        telemetry.addData("Motor Power", String.format("%.0f%%", shooter.getFlywheelPower() * 100));
+        telemetry.addData("Preset Hood", String.format("%.2f", shooter.getFlywheelState().getHoodPosition()));
+        telemetry.addData("Current Hood", String.format("%.2f", shooter.getHoodPosition()));
         telemetry.addData("Sequential Mode", flywheelRunning ? "RUNNING" : "IDLE");
 
         telemetry.addLine();
