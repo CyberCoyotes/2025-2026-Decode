@@ -5,13 +5,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
-import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
 @TeleOp(name = "Team 11940 TeleOp", group = "TeleOp")
-public class TeleOp extends LinearOpMode {
+public class PrimeTeleOp extends LinearOpMode {
 
     /* ========================================
      * SUBSYSTEMS
