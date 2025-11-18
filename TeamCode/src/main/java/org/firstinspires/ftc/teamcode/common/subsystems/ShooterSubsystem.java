@@ -13,21 +13,27 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class ShooterSubsystem {
 
     /**
-     * Flywheel shooting range states with associated RPM values
+     * Comprehensive shooting presets with flywheel RPM and hood position
      */
     public enum FlywheelState {
-        LONG_RANGE(3200),    // Long range shot
-        MEDIUM_RANGE(2400),  // Medium range shot
-        SHORT_RANGE(2200);   // Short range shot
+        LONG_RANGE(3200, 0.60),    // Long range shot: high RPM, high hood angle
+        MEDIUM_RANGE(2400, 0.25),  // Medium range shot: medium RPM, medium hood angle
+        SHORT_RANGE(2200, 0.15);   // Short range shot: low RPM, low hood angle
 
         private final int rpm;
+        private final double hoodPosition;
 
-        FlywheelState(int rpm) {
+        FlywheelState(int rpm, double hoodPosition) {
             this.rpm = rpm;
+            this.hoodPosition = hoodPosition;
         }
 
         public int getRPM() {
             return rpm;
+        }
+
+        public double getHoodPosition() {
+            return hoodPosition;
         }
 
         /**
@@ -215,7 +221,7 @@ public class ShooterSubsystem {
     }
 
     /**
-     * Set the flywheel state (range preset)
+     * Set the flywheel state (range preset) - sets both flywheel velocity and hood position
      * @param state The desired flywheel state
      */
     public void setFlywheelState(FlywheelState state) {
@@ -223,6 +229,8 @@ public class ShooterSubsystem {
         targetRPM = state.getRPM();
         targetVelocity = state.getVelocity();
         flywheelMotor.setVelocity(targetVelocity);
+        // Also set the hood position for this preset
+        setHoodPosition(state.getHoodPosition());
     }
 
     /**

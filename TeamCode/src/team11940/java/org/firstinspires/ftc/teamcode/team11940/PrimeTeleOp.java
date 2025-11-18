@@ -111,11 +111,11 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
         telemetry.addLine("  Right Bumper    - Shoot at Preset (Flywheel→Index)");
         telemetry.addLine("  A Button        - Toggle Flywheel On/Off");
-        telemetry.addLine("  X Button        - SHORT_RANGE Preset");
-        telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset");
-        telemetry.addLine("  B Button        - LONG_RANGE Preset");
-        telemetry.addLine("  D-Pad Left      - Hood Servo Down");
-        telemetry.addLine("  D-Pad Right     - Hood Servo Up");
+        telemetry.addLine("  X Button        - SHORT_RANGE Preset (RPM+Hood)");
+        telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset (RPM+Hood)");
+        telemetry.addLine("  B Button        - LONG_RANGE Preset (RPM+Hood)");
+        telemetry.addLine("  D-Pad Left      - Hood Servo Down (Manual)");
+        telemetry.addLine("  D-Pad Right     - Hood Servo Up (Manual)");
         telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter RPM (±100)");
         telemetry.update();
 
@@ -303,7 +303,7 @@ public class PrimeTeleOp extends LinearOpMode {
         }
         lastGP2_AState = gamepad2.a;
 
-        // X Button - Set SHORT_RANGE preset
+        // X Button - Set SHORT_RANGE preset (sets both flywheel RPM and hood position)
         if (gamepad2.x && !lastGP2_XState) {
             shooter.setFlywheelState(ShooterSubsystem.FlywheelState.SHORT_RANGE);
             // If test mode is active, apply the velocity immediately
@@ -313,7 +313,7 @@ public class PrimeTeleOp extends LinearOpMode {
         }
         lastGP2_XState = gamepad2.x;
 
-        // Y Button - Set MEDIUM_RANGE preset
+        // Y Button - Set MEDIUM_RANGE preset (sets both flywheel RPM and hood position)
         if (gamepad2.y && !lastGP2_YState) {
             shooter.setFlywheelState(ShooterSubsystem.FlywheelState.MEDIUM_RANGE);
             // If test mode is active, apply the velocity immediately
@@ -323,7 +323,7 @@ public class PrimeTeleOp extends LinearOpMode {
         }
         lastGP2_YState = gamepad2.y;
 
-        // B Button - Set LONG_RANGE preset
+        // B Button - Set LONG_RANGE preset (sets both flywheel RPM and hood position)
         if (gamepad2.b && !lastGP2_BState) {
             shooter.setFlywheelState(ShooterSubsystem.FlywheelState.LONG_RANGE);
             // If test mode is active, apply the velocity immediately
@@ -429,14 +429,16 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
         telemetry.addData("Test Mode", flywheelTestMode ? "ACTIVE" : "OFF");
-        telemetry.addData("Flywheel State", shooter.getFlywheelState().name());
+        telemetry.addData("Preset", shooter.getFlywheelState().name());
+        telemetry.addData("Preset RPM", shooter.getFlywheelState().getRPM());
+        telemetry.addData("Preset Hood", String.format("%.2f", shooter.getFlywheelState().getHoodPosition()));
         telemetry.addData("Target RPM", shooter.getTargetRPM());
         telemetry.addData("Current RPM", String.format("%.0f",
             (shooter.getFlywheelVelocity() / 28.0) * 60.0));
         telemetry.addData("At Target", shooter.isAtTargetVelocity() ? "✓ YES" : "✗ NO");
         telemetry.addData("Velocity %", String.format("%.1f%%", shooter.getFlywheelVelocityPercentage() * 100));
         telemetry.addData("Power Setting", String.format("%.0f%% (%.2f)", shooterPower * 100, shooterPower));
-        telemetry.addData("Hood Position", "%.2f", shooter.getHoodPosition());
+        telemetry.addData("Current Hood Pos", String.format("%.2f", shooter.getHoodPosition()));
         telemetry.addData("Sequential Mode", flywheelRunning ? "RUNNING" : "IDLE");
 
         telemetry.addLine();
