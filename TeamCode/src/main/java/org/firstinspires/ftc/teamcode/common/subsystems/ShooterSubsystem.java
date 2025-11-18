@@ -17,9 +17,9 @@ public class ShooterSubsystem {
      * Using velocity-based control for consistent speed under varying loads
      */
     public enum FlywheelState {
-        LONG_RANGE(2100, 0.60),    // Long range: 2100 RPM (max achievable), high hood
-        MEDIUM_RANGE(1240, 0.25),  // Medium range: 1240 RPM, medium hood
-        SHORT_RANGE(900, 0.15);    // Short range: 900 RPM, low hood
+        LONG_RANGE(2800, 0.60),    // Long range: 2800 RPM target, high hood
+        MEDIUM_RANGE(2500, 0.25),  // Medium range: 2500 RPM target, medium hood
+        SHORT_RANGE(2200, 0.15);   // Short range: 2200 RPM target, low hood
 
         private final int targetRPM;     // Target RPM
         private final double hoodPosition;
@@ -68,11 +68,11 @@ public class ShooterSubsystem {
     private static final double FLYWHEEL_CPR = 28.0; // Counts per revolution for RPM calculation
 
     // Simple PIDF coefficients for velocity control
-    // Tuned based on observed motor performance (2100 RPM max at 95% power)
-    private static final double FLYWHEEL_P = 5.0;   // Proportional gain - moderate
-    private static final double FLYWHEEL_I = 0.1;   // Integral gain - low to avoid windup
+    // Aggressively tuned to reach higher RPM targets (2200+)
+    private static final double FLYWHEEL_P = 10.0;  // Proportional gain - increased
+    private static final double FLYWHEEL_I = 0.5;   // Integral gain - increased
     private static final double FLYWHEEL_D = 0.0;   // Derivative - not needed
-    private static final double FLYWHEEL_F = 32.0;  // Feedforward - main driver
+    private static final double FLYWHEEL_F = 50.0;  // Feedforward - significantly increased
 
     /**
      * Constructor - only needs HardwareMap
