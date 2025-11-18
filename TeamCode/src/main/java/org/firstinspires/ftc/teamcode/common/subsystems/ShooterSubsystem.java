@@ -77,10 +77,11 @@ public class ShooterSubsystem {
         // Initialize motors
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
 
-        // Configure flywheel motor for power control with encoder feedback for telemetry
+        // Configure flywheel motor for direct power control
+        // We reset encoder for velocity reading, but use RUN_WITHOUT_ENCODER for direct power
         flywheelMotor.setDirection(DcMotor.Direction.REVERSE); // Reverse motor direction
         flywheelMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use encoder for speed reading
+        flywheelMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER); // Direct power control, no PID
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT); // Coast when stopped
 
         // Initialize to default positions
