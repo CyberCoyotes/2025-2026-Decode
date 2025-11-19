@@ -1,6 +1,7 @@
 repositories {
     mavenCentral()
     google() // Needed for androidx
+    maven { url 'https://jitpack.io' } // For Pedro Pathing
 }
 
 dependencies {
@@ -13,5 +14,8 @@ dependencies {
     implementation 'org.firstinspires.ftc:FtcCommon:11.0.0'
     implementation 'org.firstinspires.ftc:Vision:11.0.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
+
+    // Pedro Pathing library
+    implementation 'com.github.pedropathing:pedropathing:v1.0.2'
 }
 
