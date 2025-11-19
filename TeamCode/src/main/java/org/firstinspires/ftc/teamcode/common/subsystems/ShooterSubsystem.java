@@ -7,59 +7,55 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 /**
  * Components of the Scoring Subsystem:
- * - Turret rotation with a goBilda position based servo
  * - Hood Adjustment with a goBilda position based servo
  * - Ball launcher-flywheel with a goBilda motor
  */
 public class ShooterSubsystem {
 
     /**
-     * Flywheel shooting range states with associated RPM values
+     * Comprehensive shooting presets with flywheel target RPM and hood position
+     * Using velocity-based control for consistent speed under varying loads
      */
     public enum FlywheelState {
-        LONG_RANGE(3200),    // Long range shot
-        MEDIUM_RANGE(1800),  // Medium range shot
-        SHORT_RANGE(1500);   // Short range shot
+        LONG_RANGE(2800, 0.60),    // Long range: 2800 RPM target, high hood
+        MEDIUM_RANGE(2500, 0.25),  // Medium range: 2500 RPM target, medium hood
+        SHORT_RANGE(2200, 0.15);   // Short range: 2200 RPM target, low hood
 
-        private final int rpm;
+        private final int targetRPM;     // Target RPM
+        private final double hoodPosition;
 
-        FlywheelState(int rpm) {
-            this.rpm = rpm;
+        FlywheelState(int targetRPM, double hoodPosition) {
+            this.targetRPM = targetRPM;
+            this.hoodPosition = hoodPosition;
         }
 
-        public int getRPM() {
-            return rpm;
+        public int getTargetRPM() {
+            return targetRPM;
+        }
+
+        public double getHoodPosition() {
+            return hoodPosition;
         }
 
         /**
          * Convert RPM to velocity in ticks per second
-         * Formula: RPM / 60 * CPR (counts per revolution)
-         * @return velocity in ticks per second
          */
         public double getVelocity() {
-            return (rpm / 60.0) * 28.0; // 28 CPR for Yellow Jacket motor
+            return (targetRPM / 60.0) * 28.0; // 28 CPR for Yellow Jacket motor
         }
     }
 
     // Hardware
-    private final Servo turretServo;      // Position mode - turret rotation
     private final Servo hoodServo;        // Position mode - hood adjustment
     private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
 
     // State tracking
-    private FlywheelState currentState = FlywheelState.MEDIUM_RANGE; // Default to medium range
-    private double targetVelocity = 0.0;
-    private int targetRPM = 0; // Track current target RPM for manual adjustments
+    private FlywheelState currentState = FlywheelState.SHORT_RANGE; // Default to short range
+    private double targetVelocity = 0.0; // Track current target velocity in ticks/sec
 
     // Hardware configuration names
-    private static final String TURRET_SERVO_NAME = "turretServo";
     private static final String HOOD_SERVO_NAME = "hoodServo";
     private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
-
-    // Constants for turret servo positions
-    private static final double TURRET_MIN_POSITION = 0.0;
-    private static final double TURRET_MAX_POSITION = 1.0;
-    private static final double TURRET_CENTER_POSITION = 0.5;
 
     // Constants for hood servo positions
     private static final double HOOD_MIN_POSITION = 0.0; //
@@ -69,9 +65,14 @@ public class ShooterSubsystem {
 
     // Constants for flywheel motor (5203 Series Yellow Jacket 6000 RPM 1:1 Ratio)
     // Motor specs: 6000 RPM free speed, 28 CPR (counts per revolution)
-    // Max velocity: 6000 RPM / 60 sec = 100 RPS * 28 CPR = 2800 ticks/second
-    private static final double FLYWHEEL_MAX_VELOCITY = 2800.0; // ticks per second at 100% power
-    private static final double FLYWHEEL_MAX_POWER = 1.0;
+    private static final double FLYWHEEL_CPR = 28.0; // Counts per revolution for RPM calculation
+
+    // Simple PIDF coefficients for velocity control
+    // Aggressively tuned to reach higher RPM targets (2200+)
+    private static final double FLYWHEEL_P = 10.0;  // Proportional gain - increased
+    private static final double FLYWHEEL_I = 0.5;   // Integral gain - increased
+    private static final double FLYWHEEL_D = 0.0;   // Derivative - not needed
+    private static final double FLYWHEEL_F = 50.0;  // Feedforward - significantly increased
 
     /**
      * Constructor - only needs HardwareMap
@@ -79,23 +80,23 @@ public class ShooterSubsystem {
      */
     public ShooterSubsystem(HardwareMap hardwareMap) {
         // Initialize servos
-        turretServo = hardwareMap.get(Servo.class, TURRET_SERVO_NAME);
         hoodServo = hardwareMap.get(Servo.class, HOOD_SERVO_NAME);
 
         // Initialize motors
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
 
         // Configure flywheel motor for velocity control with encoder
-        flywheelMotor.setDirection(DcMotor.Direction.REVERSE); // Reverse motor direction
+        flywheelMotor.setDirection(DcMotor.Direction.REVERSE);
         flywheelMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
+        // Configure simple PIDF for velocity control
+        flywheelMotor.setVelocityPIDFCoefficients(FLYWHEEL_P, FLYWHEEL_I, FLYWHEEL_D, FLYWHEEL_F);
 
         // Initialize to default positions
-        turretServo.setPosition(TURRET_CENTER_POSITION);
         hoodServo.setPosition(HOOD_DEFAULT_POSITION);
-        flywheelMotor.setPower(0);
+        flywheelMotor.setVelocity(0);
     }
 
     /**
@@ -103,34 +104,6 @@ public class ShooterSubsystem {
      */
     public void periodic() {
         // Add any periodic updates here if needed
-    }
-
-    /* ========================================
-     * TURRET CONTROL METHODS
-     * ======================================== */
-
-    /**
-     * Set the turret servo position
-     * @param position Position from 0.0 to 1.0
-     */
-    public void setTurretPosition(double position) {
-        position = clamp(position, TURRET_MIN_POSITION, TURRET_MAX_POSITION);
-        turretServo.setPosition(position);
-    }
-
-    /**
-     * Center the turret
-     */
-    public void centerTurret() {
-        turretServo.setPosition(TURRET_CENTER_POSITION);
-    }
-
-    /**
-     * Get the current turret position
-     * @return Current position (0.0 to 1.0)
-     */
-    public double getTurretPosition() {
-        return turretServo.getPosition();
     }
 
     /* ========================================
@@ -166,16 +139,33 @@ public class ShooterSubsystem {
      * ======================================== */
 
     /**
-     * Set the flywheel motor power directly
-     * @param power Power from -1.0 (full reverse) to 1.0 (full forward)
+     * Set flywheel velocity directly in ticks per second
+     * @param velocity Target velocity in ticks per second
      */
-    public void setFlywheelPower(double power) {
-        power = clamp(power, -FLYWHEEL_MAX_POWER, FLYWHEEL_MAX_POWER);
-        flywheelMotor.setPower(power);
+    public void setFlywheelVelocity(double velocity) {
+        targetVelocity = velocity;
+        flywheelMotor.setVelocity(velocity);
     }
 
     /**
-     * Get the current flywheel power
+     * Set flywheel to target RPM
+     * @param rpm Target RPM
+     */
+    public void setFlywheelRPM(int rpm) {
+        double velocity = (rpm / 60.0) * FLYWHEEL_CPR;
+        setFlywheelVelocity(velocity);
+    }
+
+    /**
+     * Stop the flywheel
+     */
+    public void stopFlywheel() {
+        targetVelocity = 0.0;
+        flywheelMotor.setVelocity(0);
+    }
+
+    /**
+     * Get the current flywheel power (for telemetry)
      * @return Current power (-1.0 to 1.0)
      */
     public double getFlywheelPower() {
@@ -183,85 +173,29 @@ public class ShooterSubsystem {
     }
 
     /**
-     * Run flywheel forward at specified power (percentage-based)
-     * @param powerPercentage Power percentage from 0.0 to 1.0 (0% to 100%)
-     */
-    public void runFlywheelForward(double powerPercentage) {
-        double clampedPercentage = clamp(Math.abs(powerPercentage), 0.0, FLYWHEEL_MAX_POWER);
-        double targetVelocity = clampedPercentage * FLYWHEEL_MAX_VELOCITY;
-        flywheelMotor.setVelocity(targetVelocity);
-    }
-
-    /**
-     * Run flywheel in reverse at specified power (percentage-based)
-     * @param powerPercentage Power percentage from 0.0 to 1.0 (0% to 100%)
-     */
-    public void runFlywheelReverse(double powerPercentage) {
-        double clampedPercentage = clamp(Math.abs(powerPercentage), 0.0, FLYWHEEL_MAX_POWER);
-        double targetVelocity = clampedPercentage * FLYWHEEL_MAX_VELOCITY;
-        flywheelMotor.setVelocity(-targetVelocity);
-    }
-
-    /**
-     * Set flywheel to specific velocity in ticks per second
-     * @param velocity Target velocity in ticks per second
-     */
-    public void setFlywheelVelocity(double velocity) {
-        flywheelMotor.setVelocity(velocity);
-    }
-
-    /**
-     * Stop the flywheel
-     */
-    public void stopFlywheel() {
-        targetRPM = 0;
-        targetVelocity = 0.0;
-        flywheelMotor.setVelocity(0.0);
-    }
-
-    /**
-     * Get the current flywheel velocity
-     * @return Current velocity in ticks per second
+     * Get the current flywheel velocity in ticks per second
+     * @return Current velocity in ticks per second (from encoder)
      */
     public double getFlywheelVelocity() {
         return flywheelMotor.getVelocity();
     }
 
     /**
-     * Get the target flywheel velocity
-     * @return Target velocity in ticks per second
+     * Get the current flywheel RPM
+     * @return Current RPM calculated from encoder velocity
      */
-    public double getFlywheelTargetVelocity() {
-        // Note: DcMotorEx doesn't have a direct getTargetVelocity method,
-        // so we calculate it from the current power setting
-        return getFlywheelPower() * FLYWHEEL_MAX_VELOCITY;
+    public double getCurrentRPM() {
+        return (getFlywheelVelocity() / FLYWHEEL_CPR) * 60.0;
     }
 
     /**
-     * Get the maximum flywheel velocity
-     * @return Max velocity in ticks per second
-     */
-    public double getFlywheelMaxVelocity() {
-        return FLYWHEEL_MAX_VELOCITY;
-    }
-
-    /**
-     * Get current flywheel velocity as a percentage of max
-     * @return Velocity percentage from 0.0 to 1.0
-     */
-    public double getFlywheelVelocityPercentage() {
-        return getFlywheelVelocity() / FLYWHEEL_MAX_VELOCITY;
-    }
-
-    /**
-     * Set the flywheel state (range preset)
+     * Set the flywheel state (range preset) - sets both flywheel velocity and hood position
      * @param state The desired flywheel state
      */
     public void setFlywheelState(FlywheelState state) {
         currentState = state;
-        targetRPM = state.getRPM();
-        targetVelocity = state.getVelocity();
-        flywheelMotor.setVelocity(targetVelocity);
+        setFlywheelVelocity(state.getVelocity());
+        setHoodPosition(state.getHoodPosition());
     }
 
     /**
@@ -273,60 +207,49 @@ public class ShooterSubsystem {
     }
 
     /**
-     * Check if flywheel has reached its target velocity
+     * Check if flywheel has reached approximately its target velocity
      * Uses a tolerance of 5% to account for real-world variance
-     * @return true if flywheel is at target velocity
+     * @return true if flywheel is near target velocity
      */
-    public boolean isAtTargetVelocity() {
+    public boolean isAtTargetRPM() {
         if (targetVelocity == 0.0) {
-            return Math.abs(getFlywheelVelocity()) < 50.0; // Consider stopped if < 50 tps
+            return Math.abs(getFlywheelVelocity()) < 50.0; // Consider stopped if < 50 ticks/sec
         }
         double tolerance = targetVelocity * 0.05; // 5% tolerance
-        double currentVelocity = getFlywheelVelocity();
-        return Math.abs(currentVelocity - targetVelocity) <= tolerance;
+        double actualVelocity = getFlywheelVelocity();
+        return Math.abs(actualVelocity - targetVelocity) <= tolerance;
     }
 
     /**
-     * Get the current target velocity
-     * @return Target velocity in ticks per second
+     * Get the target RPM from current preset state
+     * @return Target RPM
+     */
+    public int getTargetRPM() {
+        return currentState.getTargetRPM();
+    }
+
+    /**
+     * Get the target velocity in ticks per second
+     * @return Target velocity
      */
     public double getTargetVelocity() {
         return targetVelocity;
     }
 
     /**
-     * Get the target RPM based on current state
-     * @return Target RPM
+     * Increment flywheel RPM by 100
      */
-    public int getTargetRPM() {
-        return targetRPM;
+    public void incrementFlywheelRPM() {
+        int currentRPM = (int)getCurrentRPM();
+        setFlywheelRPM(currentRPM + 100);
     }
 
     /**
-     * Set flywheel to specific RPM
-     * @param rpm Target RPM (will be clamped to valid range)
+     * Decrement flywheel RPM by 100
      */
-    public void setFlywheelRPM(int rpm) {
-        // Clamp RPM to reasonable range (0 to 6000 max motor speed)
-        targetRPM = Math.max(0, Math.min(6000, rpm));
-        targetVelocity = (targetRPM / 60.0) * 28.0; // Convert RPM to ticks per second
-        flywheelMotor.setVelocity(targetVelocity);
-    }
-
-    /**
-     * Increment flywheel RPM by specified amount
-     * @param increment Amount to increase RPM
-     */
-    public void incrementFlywheelRPM(int increment) {
-        setFlywheelRPM(targetRPM + increment);
-    }
-
-    /**
-     * Decrement flywheel RPM by specified amount
-     * @param decrement Amount to decrease RPM
-     */
-    public void decrementFlywheelRPM(int decrement) {
-        setFlywheelRPM(targetRPM - decrement);
+    public void decrementFlywheelRPM() {
+        int currentRPM = (int)getCurrentRPM();
+        setFlywheelRPM(currentRPM - 100);
     }
 
 
@@ -347,7 +270,6 @@ public class ShooterSubsystem {
      * Reset to default positions and stop motors
      */
     public void reset() {
-        centerTurret();
         hoodDefault();
         stopFlywheel();
     }
