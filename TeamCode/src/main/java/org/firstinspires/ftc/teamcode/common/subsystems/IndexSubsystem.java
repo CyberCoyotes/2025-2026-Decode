@@ -139,6 +139,36 @@ public class IndexSubsystem {
         setState(IndexState.IDLE);
     }
 
+    // ==================== INDIVIDUAL MOTOR CONTROL ====================
+
+    /**
+     * Run only the bottom motor forward (for intake integration)
+     */
+    public void runBottomMotorForward() {
+        indexBottomMotor.setPower(FORWARD_SPEED);
+    }
+
+    /**
+     * Run only the top motor forward
+     */
+    public void runTopMotorForward() {
+        indexTopMotor.setPower(FORWARD_SPEED);
+    }
+
+    /**
+     * Stop only the bottom motor
+     */
+    public void stopBottomMotor() {
+        indexBottomMotor.setPower(0.0);
+    }
+
+    /**
+     * Stop only the top motor
+     */
+    public void stopTopMotor() {
+        indexTopMotor.setPower(0.0);
+    }
+
     // ==================== TELEMETRY HELPER METHODS ====================
 
     /**

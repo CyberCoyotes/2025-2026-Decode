@@ -252,14 +252,18 @@ public class PrimeTeleOp extends LinearOpMode {
         // Intake wheel control (bumpers)
         // Slides automatically extend when intake is running and retract immediately when stopping
         // Wheels continue running for 300ms after slides retract
+        // Right bumper now also runs the bottom index motor to move artifacts through the system
         if (gamepad1.right_bumper) {
             intake.intakeArtifact();
+            index.runBottomMotorForward();  // Run bottom index motor with intake
         }
         else if (gamepad1.left_bumper) {
             intake.ejectArtifact();
+            index.stopBottomMotor();  // Stop bottom motor when ejecting
         }
         else {
             intake.stop();
+            index.stopBottomMotor();  // Stop bottom motor when intake stops
         }
 
         // Manual slide override (right trigger - disabled by default, slides are automatic)
