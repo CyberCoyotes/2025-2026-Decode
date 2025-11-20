@@ -36,7 +36,6 @@ public class PrimeTeleOp extends LinearOpMode {
     // Gamepad 2 - Shooter controls
     private boolean lastGP2_XState = false;         // SHORT_RANGE preset
     private boolean lastGP2_YState = false;         // MEDIUM_RANGE preset
-    private boolean lastGP2_AState = false;         // Toggle flywheel on/off
     private boolean lastGP2_BState = false;         // LONG_RANGE preset
     private boolean lastGP2_DpadUpState = false;    // Increase shooter RPM
     private boolean lastGP2_DpadDownState = false;  // Decrease shooter RPM
@@ -45,7 +44,10 @@ public class PrimeTeleOp extends LinearOpMode {
 
     // Flywheel and index sequential control state
     private boolean flywheelRunning = false;         // Track if flywheel is running
-    private boolean flywheelTestMode = false;        // Track if flywheel is in test mode
+
+    // Index bottom motor delayed stop state (keeps motor running after intake stops)
+    private boolean indexBottomDelayedStop = false;  // True when intake stopped but bottom motor still running
+    private long indexBottomStopTime = 0;            // Time when bottom motor should stop (in milliseconds)
 
     /* ========================================
      * CONSTANTS
@@ -60,6 +62,9 @@ public class PrimeTeleOp extends LinearOpMode {
     private static final double SHOOTER_MIN_POWER = 0.0;
     private static final double SHOOTER_MAX_POWER = 1.0;
     private static final double HOOD_INCREMENT = 0.05;  // Hood position increment per button press
+
+    // Index bottom motor delay (3x intake wheel delay of 300ms)
+    private static final long INDEX_BOTTOM_STOP_DELAY_MS = 900; // TODO: Test this delay timing
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -110,7 +115,6 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
         telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
         telemetry.addLine("  Right Bumper    - Shoot at Preset (Flywheel→Index)");
-        telemetry.addLine("  A Button        - Toggle Flywheel On/Off");
         telemetry.addLine("  X Button        - SHORT_RANGE Preset (RPM+Hood)");
         telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset (RPM+Hood)");
         telemetry.addLine("  B Button        - LONG_RANGE Preset (RPM+Hood)");
@@ -144,6 +148,12 @@ public class PrimeTeleOp extends LinearOpMode {
 
             // Handle intake controls
             handleIntakeControls();
+
+            // Handle delayed stop for index bottom motor
+            if (indexBottomDelayedStop && System.currentTimeMillis() >= indexBottomStopTime) {
+                index.stopBottomMotor();
+                indexBottomDelayedStop = false;
+            }
 
             // Handle index controls
             handleIndexControls();
@@ -252,14 +262,24 @@ public class PrimeTeleOp extends LinearOpMode {
         // Intake wheel control (bumpers)
         // Slides automatically extend when intake is running and retract immediately when stopping
         // Wheels continue running for 300ms after slides retract
+        // Right bumper now also runs the bottom index motor to move artifacts through the system
         if (gamepad1.right_bumper) {
             intake.intakeArtifact();
+            index.runBottomMotorForward();  // Run bottom index motor with intake
+            indexBottomDelayedStop = false; // Cancel any delayed stop
         }
         else if (gamepad1.left_bumper) {
             intake.ejectArtifact();
+            index.stopBottomMotor();  // Stop bottom motor when ejecting
+            indexBottomDelayedStop = false; // Cancel any delayed stop
         }
         else {
             intake.stop();
+            // Don't stop bottom motor immediately - start delayed stop if not already active
+            if (!indexBottomDelayedStop) {
+                indexBottomDelayedStop = true;
+                indexBottomStopTime = System.currentTimeMillis() + INDEX_BOTTOM_STOP_DELAY_MS;
+            }
         }
 
         // Manual slide override (right trigger - disabled by default, slides are automatic)
@@ -278,10 +298,11 @@ public class PrimeTeleOp extends LinearOpMode {
     private void handleIndexControls() {
         // Gamepad 2 Left Bumper - Run index motor forward (manual override)
         // Note: Right bumper now handles sequential flywheel + index control
+        // Note: Don't interfere with gamepad1.right_bumper or delayed stop controlling the bottom motor
         if (gamepad2.left_bumper) {
             index.runForward();
-        } else if (!gamepad2.right_bumper) {
-            // Only stop if right bumper is not controlling it
+        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexBottomDelayedStop) {
+            // Only stop if no other controls are using the index motors
             index.stop();
         }
     }
@@ -290,46 +311,21 @@ public class PrimeTeleOp extends LinearOpMode {
      * SHOOTER CONTROL HANDLER (GAMEPAD 2)
      * ======================================== */
     private void handleShooterControls() {
-        // A Button - Toggle flywheel on/off
-        if (gamepad2.a && !lastGP2_AState) {
-            flywheelTestMode = !flywheelTestMode;
-            if (flywheelTestMode) {
-                // Turn on flywheel at current state velocity
-                shooter.setFlywheelState(shooter.getFlywheelState());
-            } else {
-                // Turn off flywheel
-                shooter.stopFlywheel();
-            }
-        }
-        lastGP2_AState = gamepad2.a;
-
         // X Button - Set SHORT_RANGE preset (sets both flywheel RPM and hood position)
         if (gamepad2.x && !lastGP2_XState) {
             shooter.setFlywheelState(ShooterSubsystem.FlywheelState.SHORT_RANGE);
-            // If test mode is active, apply the velocity immediately
-            if (flywheelTestMode) {
-                shooter.setFlywheelState(ShooterSubsystem.FlywheelState.SHORT_RANGE);
-            }
         }
         lastGP2_XState = gamepad2.x;
 
         // Y Button - Set MEDIUM_RANGE preset (sets both flywheel RPM and hood position)
         if (gamepad2.y && !lastGP2_YState) {
             shooter.setFlywheelState(ShooterSubsystem.FlywheelState.MEDIUM_RANGE);
-            // If test mode is active, apply the velocity immediately
-            if (flywheelTestMode) {
-                shooter.setFlywheelState(ShooterSubsystem.FlywheelState.MEDIUM_RANGE);
-            }
         }
         lastGP2_YState = gamepad2.y;
 
         // B Button - Set LONG_RANGE preset (sets both flywheel RPM and hood position)
         if (gamepad2.b && !lastGP2_BState) {
             shooter.setFlywheelState(ShooterSubsystem.FlywheelState.LONG_RANGE);
-            // If test mode is active, apply the velocity immediately
-            if (flywheelTestMode) {
-                shooter.setFlywheelState(ShooterSubsystem.FlywheelState.LONG_RANGE);
-            }
         }
         lastGP2_BState = gamepad2.b;
 
@@ -360,12 +356,11 @@ public class PrimeTeleOp extends LinearOpMode {
         lastGP2_DpadRightState = gamepad2.dpad_right;
 
         // Right Bumper - Shoot at current preset (flywheel then index)
-        // Only active if NOT in test mode
         // 1. Start flywheel at current state velocity
         // 2. Wait for flywheel to reach target velocity
         // 3. Then start index motor
         // 4. Both run until button is released
-        if (gamepad2.right_bumper && !flywheelTestMode) {
+        if (gamepad2.right_bumper) {
             // Start or continue running flywheel at current state
             if (!flywheelRunning) {
                 shooter.setFlywheelState(shooter.getFlywheelState());
@@ -376,11 +371,14 @@ public class PrimeTeleOp extends LinearOpMode {
             if (shooter.isAtTargetRPM()) {
                 index.runForward();
             }
-        } else if (!flywheelTestMode) {
-            // Button released - stop both motors (only if not in test mode)
+        } else {
+            // Button released - stop both motors
+            // But don't stop if gamepad1.right_bumper is controlling the bottom motor
             if (flywheelRunning) {
                 shooter.stopFlywheel();
-                index.stop();
+                if (!gamepad1.right_bumper) {
+                    index.stop();
+                }
                 flywheelRunning = false;
             }
         }
@@ -428,7 +426,6 @@ public class PrimeTeleOp extends LinearOpMode {
 
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
-        telemetry.addData("Test Mode", flywheelTestMode ? "ACTIVE" : "OFF");
         telemetry.addData("Preset", shooter.getFlywheelState().name());
         telemetry.addData("Target RPM", shooter.getTargetRPM());
         telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));

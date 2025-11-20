@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
  * Index subsystem for moving game artifacts through the robot
- * Uses a single DC motor to transport artifacts from intake to shooter
+ * Uses two DC motors - bottom stage and top stage - to transport artifacts from intake to shooter
  */
 public class IndexSubsystem {
 
@@ -19,10 +19,12 @@ public class IndexSubsystem {
     }
 
     // Hardware
-    private final DcMotor indexMotor;
+    private final DcMotor indexBottomMotor;
+    private final DcMotor indexTopMotor;
 
-    // Hardware configuration name
-    private static final String INDEX_MOTOR_NAME = "indexMotor";
+    // Hardware configuration names
+    private static final String INDEX_BOTTOM_MOTOR_NAME = "indexBottomMotor";
+    private static final String INDEX_TOP_MOTOR_NAME = "indexTopMotor";
 
     // Motor speed constants
     private static final double FORWARD_SPEED = 1.0;   // Full speed forward
@@ -36,14 +38,21 @@ public class IndexSubsystem {
      * @param hardwareMap The hardware map from the OpMode
      */
     public IndexSubsystem(HardwareMap hardwareMap) {
-        // Initialize motor
-        indexMotor = hardwareMap.get(DcMotor.class, INDEX_MOTOR_NAME);
+        // Initialize motors
+        indexBottomMotor = hardwareMap.get(DcMotor.class, INDEX_BOTTOM_MOTOR_NAME);
+        indexTopMotor = hardwareMap.get(DcMotor.class, INDEX_TOP_MOTOR_NAME);
 
-        // Configure motor for indexing
-        indexMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        indexMotor.setDirection(DcMotor.Direction.REVERSE); // Reverse motor direction
-//        indexMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-//        indexMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        // Configure bottom motor for indexing
+        indexBottomMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        indexBottomMotor.setDirection(DcMotor.Direction.REVERSE); // Reverse motor direction
+//        indexBottomMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        indexBottomMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        // Configure top motor for indexing
+        indexTopMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        indexTopMotor.setDirection(DcMotor.Direction.REVERSE); // Reverse motor direction
+//        indexTopMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        indexTopMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Initialize to safe starting state
         setState(IndexState.IDLE);
@@ -87,6 +96,7 @@ public class IndexSubsystem {
 
     /**
      * Update motor power based on current state
+     * Both motors run together in the same direction
      */
     private void updateMotorHardware() {
         double power;
@@ -102,7 +112,8 @@ public class IndexSubsystem {
                 power = 0.0;
                 break;
         }
-        indexMotor.setPower(power);
+        indexBottomMotor.setPower(power);
+        indexTopMotor.setPower(power);
     }
 
     // ==================== CONVENIENCE METHODS ====================
@@ -128,29 +139,108 @@ public class IndexSubsystem {
         setState(IndexState.IDLE);
     }
 
+    // ==================== INDIVIDUAL MOTOR CONTROL ====================
+
+    /**
+     * Run only the bottom motor forward (for intake integration)
+     */
+    public void runBottomMotorForward() {
+        indexBottomMotor.setPower(FORWARD_SPEED);
+    }
+
+    /**
+     * Run only the top motor forward
+     */
+    public void runTopMotorForward() {
+        indexTopMotor.setPower(FORWARD_SPEED);
+    }
+
+    /**
+     * Stop only the bottom motor
+     */
+    public void stopBottomMotor() {
+        indexBottomMotor.setPower(0.0);
+    }
+
+    /**
+     * Stop only the top motor
+     */
+    public void stopTopMotor() {
+        indexTopMotor.setPower(0.0);
+    }
+
     // ==================== TELEMETRY HELPER METHODS ====================
 
     /**
-     * Get the current motor power
+     * Get the current bottom motor power
      * @return Current motor power (-1.0 to 1.0)
      */
-    public double getMotorPower() {
-        return indexMotor.getPower();
+    public double getBottomMotorPower() {
+        return indexBottomMotor.getPower();
     }
 
     /**
-     * Get the current motor position (encoder ticks)
+     * Get the current top motor power
+     * @return Current motor power (-1.0 to 1.0)
+     */
+    public double getTopMotorPower() {
+        return indexTopMotor.getPower();
+    }
+
+    /**
+     * Get the current bottom motor position (encoder ticks)
      * @return Current position in encoder ticks
      */
-    public int getMotorPosition() {
-        return indexMotor.getCurrentPosition();
+    public int getBottomMotorPosition() {
+        return indexBottomMotor.getCurrentPosition();
     }
 
     /**
-     * Check if motor is busy (if using RUN_TO_POSITION mode)
+     * Get the current top motor position (encoder ticks)
+     * @return Current position in encoder ticks
+     */
+    public int getTopMotorPosition() {
+        return indexTopMotor.getCurrentPosition();
+    }
+
+    /**
+     * Check if bottom motor is busy (if using RUN_TO_POSITION mode)
      * @return true if motor is busy
      */
+    public boolean isBottomMotorBusy() {
+        return indexBottomMotor.isBusy();
+    }
+
+    /**
+     * Check if top motor is busy (if using RUN_TO_POSITION mode)
+     * @return true if motor is busy
+     */
+    public boolean isTopMotorBusy() {
+        return indexTopMotor.isBusy();
+    }
+
+    // Legacy compatibility methods (deprecated - use specific motor methods instead)
+    /**
+     * @deprecated Use getBottomMotorPower() instead
+     */
+    @Deprecated
+    public double getMotorPower() {
+        return getBottomMotorPower();
+    }
+
+    /**
+     * @deprecated Use getBottomMotorPosition() instead
+     */
+    @Deprecated
+    public int getMotorPosition() {
+        return getBottomMotorPosition();
+    }
+
+    /**
+     * @deprecated Use isBottomMotorBusy() instead
+     */
+    @Deprecated
     public boolean isMotorBusy() {
-        return indexMotor.isBusy();
+        return isBottomMotorBusy();
     }
 }

@@ -68,11 +68,11 @@ public class ShooterSubsystem {
     private static final double FLYWHEEL_CPR = 28.0; // Counts per revolution for RPM calculation
 
     // Simple PIDF coefficients for velocity control
-    // Aggressively tuned to reach higher RPM targets (2200+)
-    private static final double FLYWHEEL_P = 10.0;  // Proportional gain - increased
-    private static final double FLYWHEEL_I = 0.5;   // Integral gain - increased
+    // Tuned to reach target RPM without overshoot
+    private static final double FLYWHEEL_P = 5.0;   // Proportional gain - reduced to prevent overshoot
+    private static final double FLYWHEEL_I = 0.1;   // Integral gain - reduced to prevent accumulation
     private static final double FLYWHEEL_D = 0.0;   // Derivative - not needed
-    private static final double FLYWHEEL_F = 50.0;  // Feedforward - significantly increased
+    private static final double FLYWHEEL_F = 32.0;  // Feedforward - tuned for velocity control // TODO: Test PIDF tuning
 
     /**
      * Constructor - only needs HardwareMap
