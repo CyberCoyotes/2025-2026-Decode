@@ -260,11 +260,11 @@ public class PrimeTeleOp extends LinearOpMode {
      * ======================================== */
     private void handleIndexControls() {
         // Y Button - Run index motor forward
-        // Note: Don't interfere with gamepad1.right_bumper controlling the bottom motor
+        // Note: Don't interfere with gamepad1.right_bumper or delayed stop controlling the bottom motor
         if (gamepad1.y) {
             index.runForward();
-        } else if (!gamepad1.right_bumper) {
-            // Only stop if right bumper is not controlling the bottom motor
+        } else if (!gamepad1.right_bumper && !indexBottomDelayedStop) {
+            // Only stop if right bumper or delayed stop is not controlling the bottom motor
             index.stop();
         }
     }
