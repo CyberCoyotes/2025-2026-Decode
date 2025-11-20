@@ -241,9 +241,11 @@ public class StateMachineTeleOp extends LinearOpMode {
      * ======================================== */
     private void handleIndexControls() {
         // Y Button - Run index motor forward
+        // Note: Don't interfere with gamepad1.right_bumper controlling the bottom motor
         if (gamepad1.y) {
             index.runForward();
-        } else {
+        } else if (!gamepad1.right_bumper) {
+            // Only stop if right bumper is not controlling the bottom motor
             index.stop();
         }
     }

@@ -282,10 +282,11 @@ public class PrimeTeleOp extends LinearOpMode {
     private void handleIndexControls() {
         // Gamepad 2 Left Bumper - Run index motor forward (manual override)
         // Note: Right bumper now handles sequential flywheel + index control
+        // Note: Don't interfere with gamepad1.right_bumper controlling the bottom motor
         if (gamepad2.left_bumper) {
             index.runForward();
-        } else if (!gamepad2.right_bumper) {
-            // Only stop if right bumper is not controlling it
+        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper) {
+            // Only stop if no other controls are using the index motors
             index.stop();
         }
     }
