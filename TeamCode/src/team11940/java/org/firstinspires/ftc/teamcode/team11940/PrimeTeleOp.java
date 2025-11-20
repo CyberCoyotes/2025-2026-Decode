@@ -45,6 +45,10 @@ public class PrimeTeleOp extends LinearOpMode {
     // Flywheel and index sequential control state
     private boolean flywheelRunning = false;         // Track if flywheel is running
 
+    // Index bottom motor delayed stop state (keeps motor running after intake stops)
+    private boolean indexBottomDelayedStop = false;  // True when intake stopped but bottom motor still running
+    private long indexBottomStopTime = 0;            // Time when bottom motor should stop (in milliseconds)
+
     /* ========================================
      * CONSTANTS
      * ======================================== */
@@ -58,6 +62,9 @@ public class PrimeTeleOp extends LinearOpMode {
     private static final double SHOOTER_MIN_POWER = 0.0;
     private static final double SHOOTER_MAX_POWER = 1.0;
     private static final double HOOD_INCREMENT = 0.05;  // Hood position increment per button press
+
+    // Index bottom motor delay (3x intake wheel delay of 300ms)
+    private static final long INDEX_BOTTOM_STOP_DELAY_MS = 900; // TODO: Test this delay timing
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -141,6 +148,12 @@ public class PrimeTeleOp extends LinearOpMode {
 
             // Handle intake controls
             handleIntakeControls();
+
+            // Handle delayed stop for index bottom motor
+            if (indexBottomDelayedStop && System.currentTimeMillis() >= indexBottomStopTime) {
+                index.stopBottomMotor();
+                indexBottomDelayedStop = false;
+            }
 
             // Handle index controls
             handleIndexControls();
@@ -253,14 +266,20 @@ public class PrimeTeleOp extends LinearOpMode {
         if (gamepad1.right_bumper) {
             intake.intakeArtifact();
             index.runBottomMotorForward();  // Run bottom index motor with intake
+            indexBottomDelayedStop = false; // Cancel any delayed stop
         }
         else if (gamepad1.left_bumper) {
             intake.ejectArtifact();
             index.stopBottomMotor();  // Stop bottom motor when ejecting
+            indexBottomDelayedStop = false; // Cancel any delayed stop
         }
         else {
             intake.stop();
-            index.stopBottomMotor();  // Stop bottom motor when intake stops
+            // Don't stop bottom motor immediately - start delayed stop if not already active
+            if (!indexBottomDelayedStop) {
+                indexBottomDelayedStop = true;
+                indexBottomStopTime = System.currentTimeMillis() + INDEX_BOTTOM_STOP_DELAY_MS;
+            }
         }
 
         // Manual slide override (right trigger - disabled by default, slides are automatic)
