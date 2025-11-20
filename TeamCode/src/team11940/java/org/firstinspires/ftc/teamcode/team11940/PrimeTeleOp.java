@@ -383,9 +383,12 @@ public class PrimeTeleOp extends LinearOpMode {
             }
         } else if (!flywheelTestMode) {
             // Button released - stop both motors (only if not in test mode)
+            // But don't stop if gamepad1.right_bumper is controlling the bottom motor
             if (flywheelRunning) {
                 shooter.stopFlywheel();
-                index.stop();
+                if (!gamepad1.right_bumper) {
+                    index.stop();
+                }
                 flywheelRunning = false;
             }
         }
