@@ -9,8 +9,8 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem.SlideSta
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
-@TeleOp(name = "TeleOp (State Machine)", group = "TeleOp")
-public class StateMachineTeleOp extends LinearOpMode {
+@TeleOp(name = "Team 22091 TeleOp", group = "TeleOp")
+public class PrimeTeleOp extends LinearOpMode {
 
     /* ========================================
      * SUBSYSTEMS
