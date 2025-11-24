@@ -18,8 +18,8 @@ public class ShooterSubsystem {
      */
     public enum FlywheelState {
         LONG_RANGE(2800, 0.60),    // Long range: 2800 RPM target, high hood
-        MEDIUM_RANGE(2500, 0.25),  // Medium range: 2500 RPM target, medium hood
-        SHORT_RANGE(2200, 0.15);   // Short range: 2200 RPM target, low hood
+        MEDIUM_RANGE(2500, 0.60),  // Medium range: 2500 RPM target, medium hood
+        SHORT_RANGE(2200, 0.20);   // Short range: 2200 RPM target, low hood
 
         private final int targetRPM;     // Target RPM
         private final double hoodPosition;
