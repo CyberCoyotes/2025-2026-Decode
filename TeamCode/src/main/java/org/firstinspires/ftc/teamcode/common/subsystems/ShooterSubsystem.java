@@ -18,8 +18,8 @@ public class ShooterSubsystem {
      */
     public enum FlywheelState {
         LONG_RANGE(2800, 0.60),    // Long range: 2800 RPM target, high hood
-        MEDIUM_RANGE(2500, 0.25),  // Medium range: 2500 RPM target, medium hood
-        SHORT_RANGE(2200, 0.15);   // Short range: 2200 RPM target, low hood
+        MEDIUM_RANGE(2500, 0.60),  // Medium range: 2500 RPM target, medium hood
+        SHORT_RANGE(2200, 0.20);   // Short range: 2200 RPM target, low hood
 
         private final int targetRPM;     // Target RPM
         private final double hoodPosition;
@@ -71,8 +71,8 @@ public class ShooterSubsystem {
     // Tuned to reach target RPM without overshoot
     private static final double FLYWHEEL_P = 5.0;   // Proportional gain - reduced to prevent overshoot
     private static final double FLYWHEEL_I = 0.1;   // Integral gain - reduced to prevent accumulation
-    private static final double FLYWHEEL_D = 0.0;   // Derivative - not needed
-    private static final double FLYWHEEL_F = 32.0;  // Feedforward - tuned for velocity control // TODO: Test PIDF tuning
+    private static final double FLYWHEEL_D = 1.0;   // Derivative - dampens overshoot and oscillation
+    private static final double FLYWHEEL_F = 20.0;  // Feedforward - further reduced to prevent overshoot
 
     /**
      * Constructor - only needs HardwareMap
