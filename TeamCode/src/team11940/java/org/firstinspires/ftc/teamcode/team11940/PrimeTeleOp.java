@@ -99,7 +99,6 @@ public class PrimeTeleOp extends LinearOpMode {
 
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
-        /* TODO Take out for Shooter Testing only!
         telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
         telemetry.addLine("  Left Stick      - Strafe");
         telemetry.addLine("  Right Stick     - Rotate");
@@ -113,7 +112,6 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
         telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
         telemetry.addLine();
-         */
 
         telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
         telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
