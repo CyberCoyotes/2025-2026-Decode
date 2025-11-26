@@ -7,6 +7,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
+import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
+
 /**
  * Basic Autonomous OpMode - Drive Forward for Time (Team 22091)
  *
@@ -37,6 +39,9 @@ public class DriveForwardTime extends LinearOpMode {
         drive = new MecanumDriveSubsystem(hardwareMap);
         odometry = new PinpointOdometrySubsystem(hardwareMap);
         drive.setOdometry(odometry);
+
+        // Set to robot-centric mode for autonomous (movements relative to robot)
+        drive.setState(DriveState.ROBOT_CENTRIC);
 
         telemetry.addData("Status", "Initialized - Ready to Start");
         telemetry.addLine();
