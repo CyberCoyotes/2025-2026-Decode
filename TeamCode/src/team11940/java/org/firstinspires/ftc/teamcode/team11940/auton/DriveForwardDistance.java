@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.team22091.auton;
+package org.firstinspires.ftc.teamcode.team11940.auton;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -10,14 +10,14 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
 import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 
 /**
- * Basic Autonomous OpMode - Drive Backward for Distance (Team 22091)
+ * Basic Autonomous OpMode - Drive Forward for Distance (Team 22091)
  *
- * This autonomous program drives the robot backward for a specified distance
+ * This autonomous program drives the robot forward for a specified distance
  * using odometry feedback from the GoBilda Pinpoint odometry computer.
- * The robot will drive backward 6 inches, then stop.
+ * The robot will drive forward 6 inches, then stop.
  */
-@Autonomous(name = "11940 Basic: Drive Backward (Distance)", group = "Basic")
-public class DriveBackwardDistance extends LinearOpMode {
+@Autonomous(name = "22091 Basic: Drive Forward (Distance)", group = "Basic")
+public class DriveForwardDistance extends LinearOpMode {
 
     // Subsystems
     private MecanumDriveSubsystem drive;
@@ -49,7 +49,7 @@ public class DriveBackwardDistance extends LinearOpMode {
         telemetry.addData("Status", "Initialized - Ready to Start");
         telemetry.addLine();
         telemetry.addLine("=== AUTONOMOUS PROGRAM ===");
-        telemetry.addLine("Drive Backward (Distance-Based)");
+        telemetry.addLine("Drive Forward (Distance-Based)");
         telemetry.addLine();
         telemetry.addData("Target Distance", "%.1f inches", TARGET_DISTANCE);
         telemetry.addData("Drive Speed", "%.0f%%", DRIVE_SPEED * 100);
@@ -68,19 +68,19 @@ public class DriveBackwardDistance extends LinearOpMode {
         ElapsedTime runtime = new ElapsedTime();
         runtime.reset();
 
-        telemetry.addLine("=== DRIVING BACKWARD ===");
+        telemetry.addLine("=== DRIVING FORWARD ===");
         telemetry.update();
 
         double startX = odometry.getX(DistanceUnit.INCH);
 
-        // Drive backward until target distance is reached or timeout
+        // Drive forward until target distance is reached or timeout
         while (opModeIsActive() && runtime.seconds() < TIMEOUT) {
             // Update odometry
             odometry.update();
 
-            // Calculate current distance traveled (X axis = forward/backward, use absolute value)
+            // Calculate current distance traveled (X axis = forward/backward)
             double currentX = odometry.getX(DistanceUnit.INCH);
-            double distanceTraveled = Math.abs(currentX - startX); // Use absolute value
+            double distanceTraveled = currentX - startX;
             double distanceRemaining = TARGET_DISTANCE - distanceTraveled;
 
             // Check if we've reached the target
@@ -88,11 +88,11 @@ public class DriveBackwardDistance extends LinearOpMode {
                 break; // Target reached
             }
 
-            // Drive backward (negative axial, no lateral, no rotation)
-            drive.drive(-DRIVE_SPEED, 0, 0);
+            // Drive forward (positive axial, no lateral, no rotation)
+            drive.drive(DRIVE_SPEED, 0, 0);
 
             // Display telemetry
-            telemetry.addLine("=== DRIVING BACKWARD ===");
+            telemetry.addLine("=== DRIVING FORWARD ===");
             telemetry.addData("Target Distance", "%.2f in", TARGET_DISTANCE);
             telemetry.addData("Distance Traveled", "%.2f in", distanceTraveled);
             telemetry.addData("Distance Remaining", "%.2f in", distanceRemaining);
@@ -115,7 +115,7 @@ public class DriveBackwardDistance extends LinearOpMode {
         // Calculate final distance traveled
         odometry.update();
         double finalX = odometry.getX(DistanceUnit.INCH);
-        double finalDistanceTraveled = Math.abs(finalX - startX);
+        double finalDistanceTraveled = finalX - startX;
         double finalError = TARGET_DISTANCE - finalDistanceTraveled;
         double finalTime = runtime.seconds();
 
