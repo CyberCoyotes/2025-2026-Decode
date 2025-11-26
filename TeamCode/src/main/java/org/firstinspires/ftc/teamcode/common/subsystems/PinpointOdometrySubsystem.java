@@ -74,6 +74,22 @@ public class PinpointOdometrySubsystem {
     // Set to true to negate heading values (makes clockwise positive)
     private static final boolean INVERT_HEADING = true;
 
+    // Distance calibration multiplier
+    // Used to correct odometry distance measurements based on real-world testing
+    // To calibrate: measure actual distance traveled, divide by reported distance
+    // Example: Robot travels 9 inches, odometry reports 6 inches → multiplier = 9/6 = 1.5
+    //
+    // CURRENT CONFIGURATION:
+    // - Odometry pods: 48mm diameter wheels (43mm width), 2048 PPR encoder
+    // - Swing-arm pods (spring-loaded, single pivot point)
+    // - goBILDA_SWINGARM_POD default is configured for different encoder resolution
+    // - Measured: 9 inches actual / 6 inches reported = 1.5x multiplier needed
+    //
+    // NOTE: The 1.5x error suggests encoder resolution mismatch. Standard goBILDA pods
+    // may use 8192 CPR (counts per revolution) while 2048 PPR encoders in quadrature
+    // mode should also produce 8192 CPR. The discrepancy may require further investigation.
+    private static final double DISTANCE_CALIBRATION_MULTIPLIER = 1.5;
+
     /* ========================================
      * CACHED VALUES
      * ======================================== */
@@ -194,22 +210,24 @@ public class PinpointOdometrySubsystem {
 
     /**
      * Get X position (forward/backward)
+     * Applies distance calibration multiplier for accurate measurements
      *
      * @param unit Distance unit (MM, CM, INCH, etc.)
-     * @return X coordinate
+     * @return X coordinate (calibrated)
      */
     public double getX(DistanceUnit unit) {
-        return currentPosition.getX(unit);
+        return currentPosition.getX(unit) * DISTANCE_CALIBRATION_MULTIPLIER;
     }
 
     /**
      * Get Y position (left/right)
+     * Applies distance calibration multiplier for accurate measurements
      *
      * @param unit Distance unit (MM, CM, INCH, etc.)
-     * @return Y coordinate
+     * @return Y coordinate (calibrated)
      */
     public double getY(DistanceUnit unit) {
-        return currentPosition.getY(unit);
+        return currentPosition.getY(unit) * DISTANCE_CALIBRATION_MULTIPLIER;
     }
 
     /**
