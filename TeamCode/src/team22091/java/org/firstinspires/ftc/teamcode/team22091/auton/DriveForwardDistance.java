@@ -71,16 +71,16 @@ public class DriveForwardDistance extends LinearOpMode {
         telemetry.addLine("=== DRIVING FORWARD ===");
         telemetry.update();
 
-        double startY = odometry.getY(DistanceUnit.INCH);
+        double startX = odometry.getX(DistanceUnit.INCH);
 
         // Drive forward until target distance is reached or timeout
         while (opModeIsActive() && runtime.seconds() < TIMEOUT) {
             // Update odometry
             odometry.update();
 
-            // Calculate current distance traveled
-            double currentY = odometry.getY(DistanceUnit.INCH);
-            double distanceTraveled = currentY - startY;
+            // Calculate current distance traveled (X axis = forward/backward)
+            double currentX = odometry.getX(DistanceUnit.INCH);
+            double distanceTraveled = currentX - startX;
             double distanceRemaining = TARGET_DISTANCE - distanceTraveled;
 
             // Check if we've reached the target
@@ -99,8 +99,8 @@ public class DriveForwardDistance extends LinearOpMode {
             telemetry.addData("Progress", "%.0f%%", (distanceTraveled / TARGET_DISTANCE) * 100);
             telemetry.addLine();
             telemetry.addLine("=== POSITION ===");
-            telemetry.addData("X", "%.2f in", odometry.getX(DistanceUnit.INCH));
-            telemetry.addData("Y", "%.2f in", currentY);
+            telemetry.addData("X (Forward)", "%.2f in", currentX);
+            telemetry.addData("Y (Strafe)", "%.2f in", odometry.getY(DistanceUnit.INCH));
             telemetry.addData("Heading", "%.1f°", odometry.getHeadingDegrees());
             telemetry.addLine();
             telemetry.addData("Elapsed Time", "%.2f sec", runtime.seconds());
@@ -114,16 +114,16 @@ public class DriveForwardDistance extends LinearOpMode {
 
         // Calculate final distance traveled
         odometry.update();
-        double finalY = odometry.getY(DistanceUnit.INCH);
-        double finalDistanceTraveled = finalY - startY;
+        double finalX = odometry.getX(DistanceUnit.INCH);
+        double finalDistanceTraveled = finalX - startX;
 
         telemetry.addLine("=== COMPLETE ===");
         telemetry.addData("Target Distance", "%.2f in", TARGET_DISTANCE);
         telemetry.addData("Actual Distance", "%.2f in", finalDistanceTraveled);
         telemetry.addData("Error", "%.2f in", TARGET_DISTANCE - finalDistanceTraveled);
         telemetry.addLine();
-        telemetry.addData("Final Position X", "%.2f in", odometry.getX(DistanceUnit.INCH));
-        telemetry.addData("Final Position Y", "%.2f in", finalY);
+        telemetry.addData("Final X (Forward)", "%.2f in", finalX);
+        telemetry.addData("Final Y (Strafe)", "%.2f in", odometry.getY(DistanceUnit.INCH));
         telemetry.addData("Final Heading", "%.1f°", odometry.getHeadingDegrees());
         telemetry.addData("Total Time", "%.2f sec", runtime.seconds());
         telemetry.update();

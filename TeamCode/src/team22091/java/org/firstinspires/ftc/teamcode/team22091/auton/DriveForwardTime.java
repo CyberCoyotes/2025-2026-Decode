@@ -13,7 +13,7 @@ import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsy
  * Basic Autonomous OpMode - Drive Forward for Time (Team 22091)
  *
  * This autonomous program drives the robot forward for a specified time period.
- * The robot will drive forward at a constant speed for 2 seconds, then stop.
+ * The robot will drive forward at a constant speed for 1 second, then stop.
  */
 @Autonomous(name = "22091 Basic: Drive Forward (Time)", group = "Basic")
 public class DriveForwardTime extends LinearOpMode {
@@ -23,7 +23,7 @@ public class DriveForwardTime extends LinearOpMode {
     private PinpointOdometrySubsystem odometry;
 
     // Configuration
-    private static final double DRIVE_TIME = 2.0; // seconds
+    private static final double DRIVE_TIME = 1.0; // seconds
     private static final double DRIVE_SPEED = 0.5; // 50% power
 
     @Override
