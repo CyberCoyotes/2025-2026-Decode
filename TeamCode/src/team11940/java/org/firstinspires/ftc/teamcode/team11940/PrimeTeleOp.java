@@ -49,6 +49,9 @@ public class PrimeTeleOp extends LinearOpMode {
     private boolean indexBottomDelayedStop = false;  // True when intake stopped but bottom motor still running
     private long indexBottomStopTime = 0;            // Time when bottom motor should stop (in milliseconds)
 
+    // Manual indexing state (for immediate stop without delay)
+    private boolean manualIndexingActive = false;    // True when manual indexing button is pressed
+
     /* ========================================
      * CONSTANTS
      * ======================================== */
@@ -96,7 +99,6 @@ public class PrimeTeleOp extends LinearOpMode {
 
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
-        /* TODO Take out for Shooter Testing only!
         telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
         telemetry.addLine("  Left Stick      - Strafe");
         telemetry.addLine("  Right Stick     - Rotate");
@@ -110,7 +112,6 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
         telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
         telemetry.addLine();
-         */
 
         telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
         telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
@@ -297,10 +298,17 @@ public class PrimeTeleOp extends LinearOpMode {
      * ======================================== */
     private void handleIndexControls() {
         // Gamepad 2 Left Bumper - Run index motor forward (manual override)
-        // Note: Right bumper now handles sequential flywheel + index control
-        // Note: Don't interfere with gamepad1.right_bumper or delayed stop controlling the bottom motor
+        // Manual indexing has immediate stop without delay when button is released
         if (gamepad2.left_bumper) {
             index.runForward();
+            manualIndexingActive = true;
+            indexBottomDelayedStop = false;  // Cancel any delayed stop from intake combo
+        } else if (manualIndexingActive) {
+            // Manual indexing was just released - stop immediately unless shooter is active
+            if (!gamepad2.right_bumper) {
+                index.stop();
+            }
+            manualIndexingActive = false;
         } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexBottomDelayedStop) {
             // Only stop if no other controls are using the index motors
             index.stop();
@@ -423,6 +431,8 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addData("Index State", index.getStateString());
         telemetry.addData("Motor Power", "%.2f", index.getMotorPower());
         telemetry.addData("Motor Position", index.getMotorPosition());
+        telemetry.addData("Manual Index", manualIndexingActive ? "ACTIVE" : "IDLE");
+        telemetry.addData("Delayed Stop", indexBottomDelayedStop ? "PENDING" : "NONE");
 
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
