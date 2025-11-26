@@ -92,13 +92,22 @@ public class DriveForwardTime extends LinearOpMode {
         // Stop all motors
         drive.stop();
 
-        telemetry.addLine("=== COMPLETE ===");
-        telemetry.addData("Final Position X", "%.2f in", odometry.getX(DistanceUnit.INCH));
-        telemetry.addData("Final Position Y", "%.2f in", odometry.getY(DistanceUnit.INCH));
-        telemetry.addData("Final Heading", "%.1f°", odometry.getHeadingDegrees());
-        telemetry.update();
+        // Freeze telemetry for debugging - stays visible until stop is pressed
+        while (opModeIsActive()) {
+            odometry.update();
 
-        // Keep telemetry visible
-        sleep(2000);
+            telemetry.addLine("=== COMPLETE ===");
+            telemetry.addData("Total Time", "%.2f sec", runtime.seconds());
+            telemetry.addLine();
+            telemetry.addLine("=== FINAL POSITION ===");
+            telemetry.addData("X (Forward)", "%.2f in", odometry.getX(DistanceUnit.INCH));
+            telemetry.addData("Y (Strafe)", "%.2f in", odometry.getY(DistanceUnit.INCH));
+            telemetry.addData("Heading", "%.1f°", odometry.getHeadingDegrees());
+            telemetry.addLine();
+            telemetry.addData("Status", "Press STOP to end");
+            telemetry.update();
+
+            sleep(50);
+        }
     }
 }

@@ -116,19 +116,28 @@ public class DriveBackwardDistance extends LinearOpMode {
         odometry.update();
         double finalX = odometry.getX(DistanceUnit.INCH);
         double finalDistanceTraveled = Math.abs(finalX - startX);
+        double finalError = TARGET_DISTANCE - finalDistanceTraveled;
+        double finalTime = runtime.seconds();
 
-        telemetry.addLine("=== COMPLETE ===");
-        telemetry.addData("Target Distance", "%.2f in", TARGET_DISTANCE);
-        telemetry.addData("Actual Distance", "%.2f in", finalDistanceTraveled);
-        telemetry.addData("Error", "%.2f in", TARGET_DISTANCE - finalDistanceTraveled);
-        telemetry.addLine();
-        telemetry.addData("Final X (Forward)", "%.2f in", finalX);
-        telemetry.addData("Final Y (Strafe)", "%.2f in", odometry.getY(DistanceUnit.INCH));
-        telemetry.addData("Final Heading", "%.1f°", odometry.getHeadingDegrees());
-        telemetry.addData("Total Time", "%.2f sec", runtime.seconds());
-        telemetry.update();
+        // Freeze telemetry for debugging - stays visible until stop is pressed
+        while (opModeIsActive()) {
+            odometry.update();
 
-        // Keep telemetry visible
-        sleep(3000);
+            telemetry.addLine("=== COMPLETE ===");
+            telemetry.addData("Target Distance", "%.2f in", TARGET_DISTANCE);
+            telemetry.addData("Actual Distance", "%.2f in", finalDistanceTraveled);
+            telemetry.addData("Error", "%.2f in", finalError);
+            telemetry.addLine();
+            telemetry.addLine("=== FINAL POSITION ===");
+            telemetry.addData("X (Forward)", "%.2f in", finalX);
+            telemetry.addData("Y (Strafe)", "%.2f in", odometry.getY(DistanceUnit.INCH));
+            telemetry.addData("Heading", "%.1f°", odometry.getHeadingDegrees());
+            telemetry.addLine();
+            telemetry.addData("Total Time", "%.2f sec", finalTime);
+            telemetry.addData("Status", "Press STOP to end");
+            telemetry.update();
+
+            sleep(50);
+        }
     }
 }
