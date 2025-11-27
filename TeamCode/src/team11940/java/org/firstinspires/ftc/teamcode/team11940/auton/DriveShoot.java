@@ -208,7 +208,7 @@ public class DriveShoot extends LinearOpMode {
         runtime.reset();
 
         // Activate shooter at medium range
-        shooter.setFlywheelState(ShooterSubsystem.FlywheelState.MEDIUM_RANGE);
+        shooter.setShooterState(ShooterSubsystem.ShooterState.MEDIUM_RANGE);
 
         while (opModeIsActive() && runtime.seconds() < duration) {
             odometry.update();
@@ -216,7 +216,7 @@ public class DriveShoot extends LinearOpMode {
             telemetry.addLine("=== SHOOTER ACTIVE ===");
             telemetry.addData("Mode", "MEDIUM RANGE");
             telemetry.addData("Current RPM", "%.0f", shooter.getCurrentRPM());
-            telemetry.addData("Target RPM", "%d", ShooterSubsystem.FlywheelState.MEDIUM_RANGE.getTargetRPM());
+            telemetry.addData("Target RPM", "%d", ShooterSubsystem.ShooterState.MEDIUM_RANGE.getTargetRPM());
             telemetry.addData("Time Remaining", "%.1f sec", duration - runtime.seconds());
             telemetry.update();
 
