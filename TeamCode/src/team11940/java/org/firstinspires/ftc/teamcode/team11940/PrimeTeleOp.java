@@ -142,11 +142,19 @@ public class PrimeTeleOp extends LinearOpMode {
             // Display alliance selection
             telemetry.addData("Status", "Waiting for START");
             telemetry.addLine();
+            telemetry.addLine("**********************************************");
+            telemetry.addLine("*** NOTICE: SELECT YOUR ALLIANCE COLOR! ***");
+            telemetry.addLine("**********************************************");
+            telemetry.addLine();
             telemetry.addData(">>> SELECTED ALLIANCE <<<", selectedAlliance.name());
             telemetry.addData("Heading Offset", "%.0f°", selectedAlliance.getHeadingOffset());
             telemetry.addLine();
-            telemetry.addLine("Press X for BLUE alliance");
-            telemetry.addLine("Press B for RED alliance");
+            telemetry.addLine(">>> Press X (BLUE) for BLUE Alliance <<<");
+            telemetry.addLine(">>> Press B (RED) for RED Alliance <<<");
+            telemetry.addLine();
+            telemetry.addLine("NOTE: This setting is only used if you");
+            telemetry.addLine("      run TeleOp WITHOUT autonomous first.");
+            telemetry.addLine("      Heading from autonomous is preserved.");
             telemetry.addLine();
             telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
             telemetry.addLine("  Left Stick      - Strafe");
@@ -177,8 +185,13 @@ public class PrimeTeleOp extends LinearOpMode {
         // Start in field-centric mode for competition
         drive.setState(DriveState.FIELD_CENTRIC);
 
-        // Reset heading with alliance-specific offset
-        drive.resetHeading(selectedAlliance.getHeadingOffset());
+        // HEADING MANAGEMENT:
+        // If you ran autonomous first, heading is already set correctly - DON'T reset it!
+        // The line below is commented out to preserve heading from autonomous.
+        //
+        // ONLY uncomment this if you're running TeleOp standalone (without autonomous)
+        // for testing purposes:
+        // drive.resetHeading(selectedAlliance.getHeadingOffset());
 
         /* ========================================
          * MAIN LOOP

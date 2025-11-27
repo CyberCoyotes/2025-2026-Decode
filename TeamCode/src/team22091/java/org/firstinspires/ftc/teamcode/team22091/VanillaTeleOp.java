@@ -14,12 +14,35 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
 public class VanillaTeleOp extends LinearOpMode {
 
     /* ========================================
+     * ALLIANCE SELECTION
+     * ======================================== */
+    public enum Alliance {
+        BLUE(90.0),      // Blue alliance: 90° heading offset (base wall is 90° CCW)
+        RED(270.0);      // Red alliance: 270° heading offset (180° from blue)
+
+        private final double headingOffset;
+
+        Alliance(double headingOffset) {
+            this.headingOffset = headingOffset;
+        }
+
+        public double getHeadingOffset() {
+            return headingOffset;
+        }
+    }
+
+    /* ========================================
      * SUBSYSTEMS
      * ======================================== */
 //    private IntakeSubsystem intake;
     private MecanumDriveSubsystem drive;
     private PinpointOdometrySubsystem odometry;
 //    private ShooterSubsystem shooter;
+
+    /* ========================================
+     * ALLIANCE CONFIGURATION
+     * ======================================== */
+    private Alliance selectedAlliance = Alliance.BLUE;  // Default to BLUE
 
     /* ========================================
      * CONTROL STATE VARIABLES
@@ -66,30 +89,63 @@ public class VanillaTeleOp extends LinearOpMode {
         drive.setDeadzone(DEFAULT_DEADZONE);
         drive.setFieldCentric(true);  // Start in field-centric mode
 
-        telemetry.addData("Status", "Ready to start!");
-        telemetry.addLine();
-        telemetry.addLine("=== CONTROLS ===");
-        telemetry.addLine("Left Stick - Drive/Strafe");
-        telemetry.addLine("Right Stick X - Turn");
-        telemetry.addLine("Right Trigger - Slow Mode");
-        telemetry.addLine("Left Trigger - Super Slow Mode");
-        telemetry.addLine();
-        telemetry.addLine("D-pad Up/Down - Speed Adjust");
-        telemetry.addLine("D-pad Left/Right - Sensitivity");
-        telemetry.addLine();
-        telemetry.addLine("Right Bumper - Intake");
-        telemetry.addLine("Left Bumper - Eject");
-        telemetry.addLine();
-        telemetry.addLine("Options - Toggle Field/Robot Mode");
-        telemetry.addLine("Share - Reset Heading (0°)");
-        telemetry.addLine();
-        telemetry.addData("Drive Mode", "FIELD-CENTRIC");
-        telemetry.update();
+        // Alliance selection loop
+        boolean lastXButton = false;
+        boolean lastBButton = false;
 
-        waitForStart();
+        while (!isStarted() && !isStopRequested()) {
+            // Toggle alliance selection with X (BLUE) and B (RED) buttons
+            boolean currentXButton = gamepad1.x;
+            boolean currentBButton = gamepad1.b;
 
-        // Reset heading at start - current direction is "forward"
-        drive.resetHeading();
+            if (currentXButton && !lastXButton) {
+                selectedAlliance = Alliance.BLUE;
+            } else if (currentBButton && !lastBButton) {
+                selectedAlliance = Alliance.RED;
+            }
+
+            lastXButton = currentXButton;
+            lastBButton = currentBButton;
+
+            telemetry.addData("Status", "Waiting for START");
+            telemetry.addLine();
+            telemetry.addLine("**********************************************");
+            telemetry.addLine("*** NOTICE: SELECT YOUR ALLIANCE COLOR! ***");
+            telemetry.addLine("**********************************************");
+            telemetry.addLine();
+            telemetry.addData(">>> SELECTED ALLIANCE <<<", selectedAlliance.name());
+            telemetry.addData("Heading Offset", "%.0f°", selectedAlliance.getHeadingOffset());
+            telemetry.addLine();
+            telemetry.addLine(">>> Press X (BLUE) for BLUE Alliance <<<");
+            telemetry.addLine(">>> Press B (RED) for RED Alliance <<<");
+            telemetry.addLine();
+            telemetry.addLine("NOTE: This setting is only used if you");
+            telemetry.addLine("      run TeleOp WITHOUT autonomous first.");
+            telemetry.addLine("      Heading from autonomous is preserved.");
+            telemetry.addLine();
+            telemetry.addLine("=== CONTROLS ===");
+            telemetry.addLine("Left Stick - Drive/Strafe");
+            telemetry.addLine("Right Stick X - Turn");
+            telemetry.addLine("Right Trigger - Slow Mode");
+            telemetry.addLine("Left Trigger - Super Slow Mode");
+            telemetry.addLine();
+            telemetry.addLine("D-pad Up/Down - Speed Adjust");
+            telemetry.addLine("D-pad Left/Right - Sensitivity");
+            telemetry.addLine();
+            telemetry.addLine("Options - Toggle Field/Robot Mode");
+            telemetry.addLine("Share - Reset Heading");
+            telemetry.addLine();
+            telemetry.addData("Drive Mode", "FIELD-CENTRIC");
+            telemetry.update();
+        }
+
+        // HEADING MANAGEMENT:
+        // If you ran autonomous first, heading is already set correctly - DON'T reset it!
+        // The line below is commented out to preserve heading from autonomous.
+        //
+        // ONLY uncomment this if you're running TeleOp standalone (without autonomous)
+        // for testing purposes:
+        // drive.resetHeading(selectedAlliance.getHeadingOffset());
 
         /* ========================================
          * MAIN CONTROL LOOP
@@ -209,7 +265,13 @@ public class VanillaTeleOp extends LinearOpMode {
              * ======================================== */
             telemetry.clearAll();
 
+            // Alliance & Orientation telemetry
+            telemetry.addLine("=== ALLIANCE & ORIENTATION ===");
+            telemetry.addData("Alliance", selectedAlliance.name());
+            telemetry.addData("Heading Offset", "%.0f°", selectedAlliance.getHeadingOffset());
+
             // Pinpoint Odometry telemetry
+            telemetry.addLine();
             telemetry.addLine("=== PINPOINT ODOMETRY ===");
             telemetry.addData("Position X", "%.2f in", odometry.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
             telemetry.addData("Position Y", "%.2f in", odometry.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));

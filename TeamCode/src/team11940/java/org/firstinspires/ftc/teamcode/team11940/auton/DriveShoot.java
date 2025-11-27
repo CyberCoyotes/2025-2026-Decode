@@ -24,10 +24,31 @@ import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsy
 @Autonomous(name = "11940: Drive & Shoot", group = "Complex")
 public class DriveShoot extends LinearOpMode {
 
+    /* ========================================
+     * ALLIANCE SELECTION
+     * ======================================== */
+    public enum Alliance {
+        BLUE(90.0),      // Blue alliance: 90° heading offset (base wall is 90° CCW)
+        RED(270.0);      // Red alliance: 270° heading offset (180° from blue)
+
+        private final double headingOffset;
+
+        Alliance(double headingOffset) {
+            this.headingOffset = headingOffset;
+        }
+
+        public double getHeadingOffset() {
+            return headingOffset;
+        }
+    }
+
     // Subsystems
     private MecanumDriveSubsystem drive;
     private PinpointOdometrySubsystem odometry;
     private ShooterSubsystem shooter;
+
+    // Alliance configuration
+    private Alliance selectedAlliance = Alliance.BLUE;  // Default to BLUE
 
     // Movement configuration
     private static final double DRIVE_SPEED = 0.4; // 40% power for distance moves
@@ -60,19 +81,43 @@ public class DriveShoot extends LinearOpMode {
         // Set to robot-centric mode for autonomous
         drive.setState(DriveState.ROBOT_CENTRIC);
 
-        telemetry.addData("Status", "Initialized - Ready to Start");
-        telemetry.addLine();
-        telemetry.addLine("=== AUTONOMOUS SEQUENCE ===");
-        telemetry.addLine("1. Drive forward 36 inches");
-        telemetry.addLine("2. Turn 45° counterclockwise");
-        telemetry.addLine("3. Drive forward 12 inches");
-        telemetry.addLine("4. Shoot (medium) for 5 seconds");
-        telemetry.update();
+        // Alliance selection loop
+        boolean lastXButton = false;
+        boolean lastBButton = false;
 
-        waitForStart();
+        while (!isStarted() && !isStopRequested()) {
+            // Toggle alliance selection with X (BLUE) and B (RED) buttons
+            boolean currentXButton = gamepad1.x;
+            boolean currentBButton = gamepad1.b;
 
-        // Reset position to (0, 0, 0) at start
-        odometry.resetPosAndIMU();
+            if (currentXButton && !lastXButton) {
+                selectedAlliance = Alliance.BLUE;
+            } else if (currentBButton && !lastBButton) {
+                selectedAlliance = Alliance.RED;
+            }
+
+            lastXButton = currentXButton;
+            lastBButton = currentBButton;
+
+            telemetry.addData("Status", "Initialized - Ready to Start");
+            telemetry.addLine();
+            telemetry.addData(">>> SELECTED ALLIANCE <<<", selectedAlliance.name());
+            telemetry.addData("Heading Offset", "%.0f°", selectedAlliance.getHeadingOffset());
+            telemetry.addLine();
+            telemetry.addLine("Press X for BLUE alliance");
+            telemetry.addLine("Press B for RED alliance");
+            telemetry.addLine();
+            telemetry.addLine("=== AUTONOMOUS SEQUENCE ===");
+            telemetry.addLine("1. Drive forward 36 inches");
+            telemetry.addLine("2. Turn 45° counterclockwise");
+            telemetry.addLine("3. Drive forward 12 inches");
+            telemetry.addLine("4. Shoot (medium) for 5 seconds");
+            telemetry.update();
+        }
+
+        // Reset position and set alliance-specific heading
+        // This heading will be preserved when transitioning to TeleOp
+        odometry.resetPosAndIMU(selectedAlliance.getHeadingOffset());
 
         /* ========================================
          * AUTONOMOUS SEQUENCE

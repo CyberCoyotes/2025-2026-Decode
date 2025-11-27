@@ -50,8 +50,9 @@ public class RedDrivePark extends LinearOpMode {
 
         waitForStart();
 
-        // Reset position to (0, 0, 0) at start
-        odometry.resetPosAndIMU();
+        // Reset position and set Red alliance heading (270° for base wall)
+        // This heading will be preserved when transitioning to TeleOp
+        odometry.resetPosAndIMU(270.0);
 
         /* ========================================
          * AUTONOMOUS ROUTINE
