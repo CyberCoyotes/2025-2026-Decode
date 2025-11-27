@@ -13,6 +13,24 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
 public class PrimeTeleOp extends LinearOpMode {
 
     /* ========================================
+     * ALLIANCE SELECTION
+     * ======================================== */
+    public enum Alliance {
+        BLUE(0.0),      // Blue alliance: 0° heading offset
+        RED(180.0);     // Red alliance: 180° heading offset
+
+        private final double headingOffset;
+
+        Alliance(double headingOffset) {
+            this.headingOffset = headingOffset;
+        }
+
+        public double getHeadingOffset() {
+            return headingOffset;
+        }
+    }
+
+    /* ========================================
      * SUBSYSTEMS
      * ======================================== */
     private MecanumDriveSubsystem drive;
@@ -20,6 +38,11 @@ public class PrimeTeleOp extends LinearOpMode {
     private IntakeSubsystem intake;
     private IndexSubsystem index;
     private ShooterSubsystem shooter;
+
+    /* ========================================
+     * ALLIANCE CONFIGURATION
+     * ======================================== */
+    private Alliance selectedAlliance = Alliance.BLUE;  // Default to BLUE
 
     /* ========================================
      * BUTTON STATE TRACKING
@@ -97,38 +120,65 @@ public class PrimeTeleOp extends LinearOpMode {
         drive.setSensitivity(DEFAULT_SENSITIVITY);
         drive.setDeadzone(DEFAULT_DEADZONE);
 
-        telemetry.addData("Status", "Ready to start!");
-        telemetry.addLine();
-        telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
-        telemetry.addLine("  Left Stick      - Strafe");
-        telemetry.addLine("  Right Stick     - Rotate");
-        telemetry.addLine("  Right Bumper    - Intake Wheels");
-        telemetry.addLine("  Left Bumper     - Eject Wheels");
-        telemetry.addLine("  (Slides auto-extend/retract)");
-        telemetry.addLine("  X Button        - Toggle Field-Centric");
-        telemetry.addLine("  B Button        - Toggle Turbo Mode");
-        telemetry.addLine("  A Button        - Emergency Stop");
-        telemetry.addLine("  Options         - Reset Heading");
-        telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
-        telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
-        telemetry.addLine();
+        // Alliance selection loop
+        boolean allianceSelected = false;
+        boolean lastXButton = false;
+        boolean lastBButton = false;
 
-        telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
-        telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
-        telemetry.addLine("  Right Bumper    - Shoot at Preset (Flywheel→Index)");
-        telemetry.addLine("  X Button        - SHORT_RANGE Preset (RPM+Hood)");
-        telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset (RPM+Hood)");
-        telemetry.addLine("  B Button        - LONG_RANGE Preset (RPM+Hood)");
-        telemetry.addLine("  D-Pad Left      - Hood Servo Down (Manual)");
-        telemetry.addLine("  D-Pad Right     - Hood Servo Up (Manual)");
-        telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter RPM (±100)");
-        telemetry.update();
+        while (!isStarted() && !isStopRequested()) {
+            // Toggle alliance selection with X (BLUE) and B (RED) buttons
+            boolean currentXButton = gamepad1.x;
+            boolean currentBButton = gamepad1.b;
 
-        waitForStart();
+            if (currentXButton && !lastXButton) {
+                selectedAlliance = Alliance.BLUE;
+            } else if (currentBButton && !lastBButton) {
+                selectedAlliance = Alliance.RED;
+            }
+
+            lastXButton = currentXButton;
+            lastBButton = currentBButton;
+
+            // Display alliance selection
+            telemetry.addData("Status", "Waiting for START");
+            telemetry.addLine();
+            telemetry.addData(">>> SELECTED ALLIANCE <<<", selectedAlliance.name());
+            telemetry.addData("Heading Offset", "%.0f°", selectedAlliance.getHeadingOffset());
+            telemetry.addLine();
+            telemetry.addLine("Press X for BLUE alliance");
+            telemetry.addLine("Press B for RED alliance");
+            telemetry.addLine();
+            telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
+            telemetry.addLine("  Left Stick      - Strafe");
+            telemetry.addLine("  Right Stick     - Rotate");
+            telemetry.addLine("  Right Bumper    - Intake Wheels");
+            telemetry.addLine("  Left Bumper     - Eject Wheels");
+            telemetry.addLine("  (Slides auto-extend/retract)");
+            telemetry.addLine("  X Button        - Toggle Field-Centric");
+            telemetry.addLine("  B Button        - Toggle Turbo Mode");
+            telemetry.addLine("  A Button        - Emergency Stop");
+            telemetry.addLine("  Options         - Reset Heading");
+            telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
+            telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
+            telemetry.addLine();
+
+            telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
+            telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
+            telemetry.addLine("  Right Bumper    - Shoot at Preset (Flywheel→Index)");
+            telemetry.addLine("  X Button        - SHORT_RANGE Preset (RPM+Hood)");
+            telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset (RPM+Hood)");
+            telemetry.addLine("  B Button        - LONG_RANGE Preset (RPM+Hood)");
+            telemetry.addLine("  D-Pad Left      - Hood Servo Down (Manual)");
+            telemetry.addLine("  D-Pad Right     - Hood Servo Up (Manual)");
+            telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter RPM (±100)");
+            telemetry.update();
+        }
 
         // Start in field-centric mode for competition
         drive.setState(DriveState.FIELD_CENTRIC);
-        drive.resetHeading();  // Reset heading at start
+
+        // Reset heading with alliance-specific offset
+        drive.resetHeading(selectedAlliance.getHeadingOffset());
 
         /* ========================================
          * MAIN LOOP
@@ -210,7 +260,7 @@ public class PrimeTeleOp extends LinearOpMode {
         // Options Button - Reset heading (only in field-centric)
         if (gamepad1.options && !lastOptionsState) {
             if (currentState == DriveState.FIELD_CENTRIC) {
-                drive.resetHeading();
+                drive.resetHeading(selectedAlliance.getHeadingOffset());
                 telemetry.addData("Action", "Heading Reset!");
             }
         }
@@ -403,6 +453,11 @@ public class PrimeTeleOp extends LinearOpMode {
      * TELEMETRY
      * ======================================== */
     private void updateTelemetry() {
+        telemetry.addLine("=== ALLIANCE & ORIENTATION ===");
+        telemetry.addData("Alliance", selectedAlliance.name());
+        telemetry.addData("Heading Offset", "%.0f°", selectedAlliance.getHeadingOffset());
+
+        telemetry.addLine();
         telemetry.addLine("=== PINPOINT ODOMETRY ===");
         telemetry.addData("Position X", "%.2f in", odometry.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
         telemetry.addData("Position Y", "%.2f in", odometry.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));

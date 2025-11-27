@@ -220,6 +220,23 @@ public class MecanumDriveSubsystem {
         }
     }
 
+    /**
+     * Reset heading with an initial offset
+     * Useful for setting field-centric orientation based on alliance or starting position
+     *
+     * @param headingOffsetDegrees Initial heading offset in degrees
+     *                            (e.g., 0 for blue alliance, 180 for red alliance)
+     */
+    public void resetHeading(double headingOffsetDegrees) {
+        imu.resetYaw();
+        if (odometry != null) {
+            odometry.resetPosAndIMU(headingOffsetDegrees);
+        }
+        // Note: If not using Pinpoint, the IMU is reset to 0 and the offset is not applied
+        // This is because the IMU.resetYaw() always resets to 0
+        // For IMU-only mode, you would need to track the offset separately
+    }
+
     /* ========================================
      * CONFIGURATION METHODS
      * ======================================== */

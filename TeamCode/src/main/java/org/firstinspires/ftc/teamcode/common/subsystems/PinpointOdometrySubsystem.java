@@ -313,6 +313,20 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
+     * Reset position and set initial heading offset
+     * Useful for setting field-centric orientation based on alliance
+     *
+     * @param headingDegrees Initial heading in degrees (e.g., 0 for blue, 180 for red)
+     */
+    public void resetPosAndIMU(double headingDegrees) {
+        odo.resetPosAndIMU();
+        // Set position with the specified heading offset
+        Pose2D initialPose = new Pose2D(DistanceUnit.MM, 0, 0, AngleUnit.DEGREES, headingDegrees);
+        odo.setPosition(initialPose);
+        currentPosition = initialPose;
+    }
+
+    /**
      * Recalibrate the IMU without resetting position
      * Robot must be stationary when calling this method
      *
