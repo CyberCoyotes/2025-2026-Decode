@@ -16,8 +16,8 @@ public class PrimeTeleOp extends LinearOpMode {
      * ALLIANCE SELECTION
      * ======================================== */
     public enum Alliance {
-        BLUE(0.0),      // Blue alliance: 0° heading offset
-        RED(180.0);     // Red alliance: 180° heading offset
+        BLUE(90.0),      // Blue alliance: 90° heading offset (base wall is 90° CCW)
+        RED(270.0);      // Red alliance: 270° heading offset (180° from blue)
 
         private final double headingOffset;
 
