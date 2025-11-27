@@ -119,9 +119,8 @@ public class VanillaTeleOp extends LinearOpMode {
             telemetry.addLine(">>> Press X (BLUE) for BLUE Alliance <<<");
             telemetry.addLine(">>> Press B (RED) for RED Alliance <<<");
             telemetry.addLine();
-            telemetry.addLine("NOTE: This setting is only used if you");
-            telemetry.addLine("      run TeleOp WITHOUT autonomous first.");
-            telemetry.addLine("      Heading from autonomous is preserved.");
+            telemetry.addLine("This sets your field-centric orientation");
+            telemetry.addLine("based on which side you're driving from.");
             telemetry.addLine();
             telemetry.addLine("=== CONTROLS ===");
             telemetry.addLine("Left Stick - Drive/Strafe");
@@ -139,13 +138,10 @@ public class VanillaTeleOp extends LinearOpMode {
             telemetry.update();
         }
 
-        // HEADING MANAGEMENT:
-        // If you ran autonomous first, heading is already set correctly - DON'T reset it!
-        // The line below is commented out to preserve heading from autonomous.
-        //
-        // ONLY uncomment this if you're running TeleOp standalone (without autonomous)
-        // for testing purposes:
-        // drive.resetHeading(selectedAlliance.getHeadingOffset());
+        // Reset heading based on alliance selection
+        // This ensures "forward" points the correct direction based on driver position
+        // Red and blue drivers stand on opposite sides, so they need different orientations
+        drive.resetHeading(selectedAlliance.getHeadingOffset());
 
         /* ========================================
          * MAIN CONTROL LOOP

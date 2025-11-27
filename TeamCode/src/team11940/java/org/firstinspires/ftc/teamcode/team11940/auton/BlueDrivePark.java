@@ -50,9 +50,9 @@ public class BlueDrivePark extends LinearOpMode {
 
         waitForStart();
 
-        // Reset position and set Blue alliance heading (90° for base wall)
-        // This heading will be preserved when transitioning to TeleOp
-        odometry.resetPosAndIMU(90.0);
+        // Reset position to (0, 0, 0) at start
+        // Note: TeleOp will set the proper field-centric heading based on alliance
+        odometry.resetPosAndIMU();
 
         /* ========================================
          * AUTONOMOUS ROUTINE
