@@ -13,6 +13,12 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
  * This is a template autonomous that demonstrates how to use the Pinpoint
  * odometry system for position tracking during autonomous.
  *
+ * BEST PRACTICE: All autonomous programs MUST end with robot facing
+ * the base wall direction (0° heading). This ensures TeleOp heading
+ * reset works correctly regardless of alliance selection.
+ *
+ * This simple program doesn't rotate the robot, so it already complies.
+ *
  * TODO: Implement actual autonomous logic for your competition strategy
  * TODO: Integrate Pedro Pathing 2.0 for trajectory following
  */

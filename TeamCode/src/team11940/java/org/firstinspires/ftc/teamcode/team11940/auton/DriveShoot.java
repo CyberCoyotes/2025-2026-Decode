@@ -18,8 +18,13 @@ import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsy
  * 2. Turn 45 degrees counterclockwise
  * 3. Drive forward 12 inches
  * 4. Run shooter at medium range for 5 seconds
+ * 5. Return to base wall orientation (IMPORTANT for TeleOp)
  *
  * Uses Pinpoint odometry for accurate positioning and heading control.
+ *
+ * BEST PRACTICE: All autonomous programs MUST end with robot facing
+ * the base wall direction (0° heading). This ensures TeleOp heading
+ * reset works correctly regardless of alliance selection.
  */
 @Autonomous(name = "11940: Drive & Shoot", group = "Complex")
 public class DriveShoot extends LinearOpMode {
@@ -104,6 +109,14 @@ public class DriveShoot extends LinearOpMode {
         telemetry.addLine("Step 4: Activating shooter...");
         telemetry.update();
         runShooter(SHOOTER_DURATION);
+
+        sleep(500); // Brief pause before final movement
+
+        // Step 5: Return to base wall orientation
+        // CRITICAL: This ensures TeleOp heading reset works correctly
+        telemetry.addLine("Step 5: Returning to base wall orientation...");
+        telemetry.update();
+        turnToHeading(0);  // Return to starting orientation
 
         // Stop all systems
         drive.stop();
