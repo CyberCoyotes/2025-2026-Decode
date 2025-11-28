@@ -138,7 +138,11 @@ public class PrimeTeleOp extends LinearOpMode {
             // Update subsystems
             odometry.update();  // Update odometry position and heading
             intake.periodic(); // Handle automatic slide control
-            index.periodic();  // Handle index motor updates
+
+            // Update flywheel override for index subsystem (allows shooting when artifact is detected)
+            index.setFlywheelOverride(flywheelRunning);
+            index.periodic();  // Handle index motor updates (distance sensor check)
+
             shooter.periodic(); // Handle shooter subsystem updates
 
             // Handle state transitions
@@ -429,8 +433,11 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("=== INDEX SUBSYSTEM ===");
         telemetry.addData("Index State", index.getStateString());
-        telemetry.addData("Motor Power", "%.2f", index.getMotorPower());
-        telemetry.addData("Motor Position", index.getMotorPosition());
+        telemetry.addData("Bottom Motor Power", "%.2f", index.getBottomMotorPower());
+        telemetry.addData("Top Motor Power", "%.2f", index.getTopMotorPower());
+        telemetry.addData("Distance Sensor", "%.2f cm", index.getDistance());
+        telemetry.addData("Artifact Detected", index.isArtifactDetected() ? "✓ YES" : "✗ NO");
+        telemetry.addData("Flywheel Override", index.isFlywheelOverrideActive() ? "ACTIVE" : "DISABLED");
         telemetry.addData("Manual Index", manualIndexingActive ? "ACTIVE" : "IDLE");
         telemetry.addData("Delayed Stop", indexBottomDelayedStop ? "PENDING" : "NONE");
 
