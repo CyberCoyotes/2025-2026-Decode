@@ -12,7 +12,6 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
 import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
 
-
 /**
  * Complex Autonomous OpMode for Team 11940
  *
