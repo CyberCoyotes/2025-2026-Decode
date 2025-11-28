@@ -72,7 +72,7 @@ public class ShooterSubsystem {
     private static final double FLYWHEEL_P = 5.0;   // Proportional gain - reduced to prevent overshoot
     private static final double FLYWHEEL_I = 0.1;   // Integral gain - reduced to prevent accumulation
     private static final double FLYWHEEL_D = 1.0;   // Derivative - dampens overshoot and oscillation
-    private static final double FLYWHEEL_F = 20.0;  // Feedforward - further reduced to prevent overshoot
+    private static final double FLYWHEEL_F = 28.0;  // Feedforward - balanced to reach target without overshoot
 
     /**
      * Constructor - only needs HardwareMap
