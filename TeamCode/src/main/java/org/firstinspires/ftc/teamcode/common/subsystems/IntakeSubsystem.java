@@ -46,12 +46,8 @@ public class IntakeSubsystem {
 
     // Constants for position servos (slides)
     private static final double SLIDE_IN_POSITION = 0.0;
-    private static final double SLIDE_OUT_POSITION = 1.00;  // TODO: Test the actual position
-                                                            // Started at 1.0
-    // 0.75 is short
-    // 0.85 good
-    // 0.90 better still
-    // 0.95 still works
+    private static final double SLIDE_OUT_POSITION = 0.90;  // Optimized position - prevents servo overheating
+                                                             // Testing showed 0.90 provides good extension without strain
 
     // Automatic slide control constants
     private static final long WHEEL_STOP_DELAY_MS = 300; // Delay before stopping wheels after slides retract

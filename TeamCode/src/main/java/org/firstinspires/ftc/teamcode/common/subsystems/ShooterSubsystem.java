@@ -19,7 +19,7 @@ public class ShooterSubsystem {
     public enum ShotState {
         LONG_RANGE(2800, 0.60),    // Long range: 2800 RPM target, high hood
         MEDIUM_RANGE(2500, 0.60),  // Medium range: 2500 RPM target, medium hood
-        SHORT_RANGE(2200, 0.20);   // Short range: 2200 RPM target, low hood
+        SHORT_RANGE(2200, 0.30);   // Short range: 2200 RPM target, low hood
 
         private final int targetRPM;     // Target RPM
         private final double hoodPosition;
@@ -72,7 +72,8 @@ public class ShooterSubsystem {
     private static final double FLYWHEEL_P = 5.0;   // Proportional gain - reduced to prevent overshoot
     private static final double FLYWHEEL_I = 0.1;   // Integral gain - reduced to prevent accumulation
     private static final double FLYWHEEL_D = 1.0;   // Derivative - dampens overshoot and oscillation
-    private static final double FLYWHEEL_F = 20.0;  // Feedforward - further reduced to prevent overshoot
+    private static final double FLYWHEEL_F = 22.0;  // Feedforward - tuned between undershoot (20) and overshoot (28)
+    // 24 is still going past RPM target a bit
 
     /**
      * Constructor - only needs HardwareMap
