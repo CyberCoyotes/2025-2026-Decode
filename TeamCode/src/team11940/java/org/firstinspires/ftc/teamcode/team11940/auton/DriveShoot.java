@@ -99,10 +99,10 @@ public class DriveShoot extends LinearOpMode {
 
         sleep(500); // Brief pause before shooting
 
-        // Step 4: Run shooter for 5 seconds
-        telemetry.addLine("Step 4: Activating shooter...");
+        // Step 4: Take shot at medium range for 5 seconds
+        telemetry.addLine("Step 4: Taking shot...");
         telemetry.update();
-        runShooter(SHOOTER_DURATION);
+        takeShot(ShooterSubsystem.ShotState.MEDIUM_RANGE, SHOOTER_DURATION);
 
         // Stop all systems
         drive.stop();
@@ -199,31 +199,46 @@ public class DriveShoot extends LinearOpMode {
     }
 
     /**
-     * Run the shooter at medium range for a specified duration
+     * Take a shot at the specified preset for a specified duration
+     * Coordinates flywheel spin-up and index motor engagement
      *
-     * @param duration Duration in seconds
+     * @param preset The shot preset (SHORT_RANGE, MEDIUM_RANGE, or LONG_RANGE)
+     * @param duration Total duration in seconds
      */
-    private void runShooter(double duration) {
+    private void takeShot(ShooterSubsystem.ShotState preset, double duration) {
         ElapsedTime runtime = new ElapsedTime();
         runtime.reset();
 
-        // Activate shooter at medium range
-        shooter.setShooterState(ShooterSubsystem.ShooterState.MEDIUM_RANGE);
+        // Set the shot state (flywheel + hood)
+        shooter.setShotState(preset);
+
+        // Wait for flywheel to reach target RPM before starting index
+        boolean indexStarted = false;
 
         while (opModeIsActive() && runtime.seconds() < duration) {
             odometry.update();
 
+            // Once flywheel reaches target RPM, start index motors
+            if (!indexStarted && shooter.isAtTargetRPM()) {
+                index.runForward();  // Starts both top and bottom index motors
+                indexStarted = true;
+            }
+
             telemetry.addLine("=== SHOOTER ACTIVE ===");
-            telemetry.addData("Mode", "MEDIUM RANGE");
+            telemetry.addData("Mode", preset.name());
             telemetry.addData("Current RPM", "%.0f", shooter.getCurrentRPM());
-            telemetry.addData("Target RPM", "%d", ShooterSubsystem.ShooterState.MEDIUM_RANGE.getTargetRPM());
+            telemetry.addData("Target RPM", "%d", preset.getTargetRPM());
+            telemetry.addData("At Target", shooter.isAtTargetRPM() ? "✓ YES" : "✗ NO");
+            telemetry.addData("Index Running", indexStarted ? "YES" : "Waiting for RPM");
             telemetry.addData("Time Remaining", "%.1f sec", duration - runtime.seconds());
             telemetry.update();
 
             sleep(50);
         }
 
+        // Stop both shooter and index when done
         shooter.stopFlywheel();
+        index.stop();
     }
 
     /**

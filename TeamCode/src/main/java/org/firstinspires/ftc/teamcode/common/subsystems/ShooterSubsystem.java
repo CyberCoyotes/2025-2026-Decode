@@ -16,7 +16,7 @@ public class ShooterSubsystem {
      * Comprehensive shooting presets with flywheel target RPM and hood position
      * Using velocity-based control for consistent speed under varying loads
      */
-    public enum ShooterState {
+    public enum ShotState {
         LONG_RANGE(2800, 0.60),    // Long range: 2800 RPM target, high hood
         MEDIUM_RANGE(2500, 0.60),  // Medium range: 2500 RPM target, medium hood
         SHORT_RANGE(2200, 0.20);   // Short range: 2200 RPM target, low hood
@@ -24,7 +24,7 @@ public class ShooterSubsystem {
         private final int targetRPM;     // Target RPM
         private final double hoodPosition;
 
-        ShooterState(int targetRPM, double hoodPosition) {
+        ShotState(int targetRPM, double hoodPosition) {
             this.targetRPM = targetRPM;
             this.hoodPosition = hoodPosition;
         }
@@ -50,7 +50,7 @@ public class ShooterSubsystem {
     private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
 
     // State tracking
-    private ShooterState currentShooterState = ShooterState.SHORT_RANGE; // Default to short range
+    private ShotState currentShotState = ShotState.SHORT_RANGE; // Default to short range
     private double targetVelocity = 0.0; // Track current target velocity in ticks/sec
 
     // Hardware configuration names
@@ -189,21 +189,21 @@ public class ShooterSubsystem {
     }
 
     /**
-     * Set the shooter state (range preset) - sets both flywheel velocity and hood position
-     * @param state The desired shooter state
+     * Set the shot state (range preset) - sets both flywheel velocity and hood position
+     * @param state The desired shot state
      */
-    public void setShooterState(ShooterState state) {
-        currentShooterState = state;
+    public void setShotState(ShotState state) {
+        currentShotState = state;
         setFlywheelVelocity(state.getVelocity());
         setHoodPosition(state.getHoodPosition());
     }
 
     /**
-     * Get the current shooter state
-     * @return Current shooter state
+     * Get the current shot state
+     * @return Current shot state
      */
-    public ShooterState getShooterState() {
-        return currentShooterState;
+    public ShotState getShotState() {
+        return currentShotState;
     }
 
     /**
@@ -225,7 +225,7 @@ public class ShooterSubsystem {
      * @return Target RPM
      */
     public int getTargetRPM() {
-        return currentShooterState.getTargetRPM();
+        return currentShotState.getTargetRPM();
     }
 
     /**
