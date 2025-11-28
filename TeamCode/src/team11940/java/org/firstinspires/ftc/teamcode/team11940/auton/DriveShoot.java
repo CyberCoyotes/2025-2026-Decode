@@ -7,6 +7,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
+
 
 import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 
@@ -28,6 +30,8 @@ public class DriveShoot extends LinearOpMode {
     private MecanumDriveSubsystem drive;
     private PinpointOdometrySubsystem odometry;
     private ShooterSubsystem shooter;
+    private IndexSubsystem index;
+
 
     // Movement configuration
     private static final double DRIVE_SPEED = 0.4; // 40% power for distance moves
