@@ -16,7 +16,7 @@
 | Control | Function |
 |---------|----------|
 | **Right Bumper** | Run intake wheels IN + extends slides + runs BOTH index motors (sensor auto-stops top motor) |
-| **Right Bumper + A** | Eject wheels OUT (reverse intake, stops index motors) |
+| **Right Bumper + A** | Eject wheels OUT (reverse intake AND reverse index motors) |
 
 > **Note:** Slides automatically extend when intake runs and retract when stopped. Wheels continue running for 300ms after slides retract to complete artifact transfer. The REV v3 color sensor automatically stops the top index motor when an artifact is detected (< 3cm), while the bottom motor continues to hold it in position.
 
@@ -45,7 +45,8 @@
 |---------|----------|
 | **Right Bumper** | Shoot at current preset (spins flywheel → waits for target RPM → runs index motor) |
 | **Right Bumper + A** | **Reverse flywheel & index** (runs both in reverse at -1000 RPM for clearing jams) |
-| **Left Bumper** | Manual index motor control (immediate stop, no delay) |
+| **Left Bumper** | Manual index motor control forward (immediate stop, no delay) |
+| **Left Bumper + A** | **Reverse index only** (runs index motors in reverse, no flywheel) |
 
 ### **Shooting Presets**
 | Control | Function | Description |
@@ -115,7 +116,7 @@
    - Bottom motor continues running to hold artifact
    - After release, bottom motor continues for 900ms to complete transfer
 
-5. **Eject Combo** - Press **Right Bumper + A** together to reverse intake and stop index motors (for clearing jams or ejecting artifacts).
+5. **Eject Combo** - Press **Right Bumper + A** together to reverse intake AND reverse index motors (for clearing jams or ejecting artifacts from the entire system).
 
 6. **Speed Adjustment** - Use **D-Pad Up/Down** during match to adjust speed on the fly.
 
@@ -133,17 +134,22 @@
    - Testing mechanisms
    - Fine positioning
 
-4. **Clearing Jams** - Press **Right Bumper + A** together to:
+4. **Reverse Index Only** - Press **Left Bumper + A** together to:
+   - Run ONLY index motors in REVERSE (no flywheel)
+   - Useful for clearing index jams without disturbing flywheel
+   - Good for backing out artifacts that got stuck in index
+
+5. **Clearing Flywheel Jams** - Press **Right Bumper + A** together to:
    - Run flywheel in REVERSE at -1000 RPM
    - Run both index motors in REVERSE
-   - Effectively clear jams and eject stuck artifacts
+   - Effectively clear jams from entire shooting system
    - Release to stop both systems
 
-5. **Fine-Tuning Shots** - After selecting a preset, use **D-Pad** to adjust:
+6. **Fine-Tuning Shots** - After selecting a preset, use **D-Pad** to adjust:
    - **Up/Down** for RPM (±100 per press)
    - **Left/Right** for hood angle
 
-6. **Watch the Telemetry** - Key indicators for shooting:
+7. **Watch the Telemetry** - Key indicators for shooting:
    - "At Target: ✓ YES" = Safe to shoot
    - "Current RPM" should match "Target RPM"
    - "Sequential Mode: RUNNING" = Shooting sequence active
@@ -162,8 +168,9 @@
 
 ### **Intake & Index Timing**
 - **Gamepad 1 Right Bumper**: Has 900ms delay after release to complete artifact transfer
-- **Gamepad 1 Right Bumper + A**: Eject combo - stops index immediately (no delay)
+- **Gamepad 1 Right Bumper + A**: Eject combo - reverses intake AND index motors (no delay)
 - **Gamepad 2 Left Bumper**: Immediate stop when released (no delay)
+- **Gamepad 2 Left Bumper + A**: Reverse index only combo - runs index motors in reverse
 - **Gamepad 2 Right Bumper + A**: Reverse combo - runs flywheel and index in reverse for jam clearing
 - Manual indexing cancels any pending delayed stops from intake combo
 

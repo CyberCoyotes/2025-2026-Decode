@@ -117,7 +117,8 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine();
 
         telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
-        telemetry.addLine("  Left Bumper     - Run Index Motor (Manual)");
+        telemetry.addLine("  Left Bumper     - Run Index Motor Forward");
+        telemetry.addLine("  LB + A Button   - Reverse Index Only");
         telemetry.addLine("  Right Bumper    - Shoot at Preset (Flywheel→Index)");
         telemetry.addLine("  RB + A Button   - Reverse Flywheel & Index");
         telemetry.addLine("  X Button        - SHORT_RANGE Preset (RPM+Hood)");
@@ -273,10 +274,10 @@ public class PrimeTeleOp extends LinearOpMode {
         // Slides automatically extend when intake is running and retract immediately when stopping
         // Wheels continue running for 300ms after slides retract
 
-        // Right bumper + A button combo - EJECT (reverse intake and stop index motors)
+        // Right bumper + A button combo - EJECT (reverse intake AND reverse index motors)
         if (gamepad1.right_bumper && gamepad1.a) {
             intake.ejectArtifact();
-            index.stop();  // Stop both motors when ejecting
+            index.runReverse();  // Run index motors in reverse to help eject
             indexBottomDelayedStop = false; // Cancel any delayed stop
             intakeIndexMotorsStarted = false;  // Reset flag
         }
@@ -318,9 +319,15 @@ public class PrimeTeleOp extends LinearOpMode {
      * INDEX CONTROL HANDLER
      * ======================================== */
     private void handleIndexControls() {
-        // Gamepad 2 Left Bumper - Run index motor forward (manual override)
+        // Gamepad 2 Left Bumper + A - REVERSE index motors only (no flywheel)
+        if (gamepad2.left_bumper && gamepad2.a) {
+            index.runReverse();
+            manualIndexingActive = true;  // Mark as active
+            indexBottomDelayedStop = false;  // Cancel any delayed stop
+        }
+        // Gamepad 2 Left Bumper alone - Run index motor forward (manual override)
         // Manual indexing has immediate stop without delay when button is released
-        if (gamepad2.left_bumper) {
+        else if (gamepad2.left_bumper) {
             // Manual indexing takes priority - use state machine
             // Start motors only once to avoid fighting with sensor
             if (!manualIndexingActive) {
@@ -334,9 +341,8 @@ public class PrimeTeleOp extends LinearOpMode {
                 index.stop();
             }
             manualIndexingActive = false;
-        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !gamepad1.left_bumper && !indexBottomDelayedStop) {
+        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexBottomDelayedStop) {
             // Only stop if no other controls are using the index motors
-            // Added check for gamepad1.left_bumper to prevent interference
             index.stop();
         }
     }
