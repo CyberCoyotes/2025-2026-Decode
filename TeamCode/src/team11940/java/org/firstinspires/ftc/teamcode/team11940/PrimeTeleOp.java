@@ -52,6 +52,9 @@ public class PrimeTeleOp extends LinearOpMode {
     // Manual indexing state (for immediate stop without delay)
     private boolean manualIndexingActive = false;    // True when manual indexing button is pressed
 
+    // Track when motors are initially started to prevent re-triggering
+    private boolean intakeIndexMotorsStarted = false;  // True when intake has started the index motors
+
     /* ========================================
      * CONSTANTS
      * ======================================== */
@@ -270,18 +273,26 @@ public class PrimeTeleOp extends LinearOpMode {
         // Right bumper runs BOTH index motors - sensor will auto-stop top motor when artifact detected
         if (gamepad1.right_bumper) {
             intake.intakeArtifact();
-            index.runBottomMotorForward();  // Run bottom index motor with intake
-            index.runTopMotorForward();     // Run top index motor - sensor will stop it when artifact detected
+            // Start both motors only once when button is first pressed
+            // This prevents fighting with the sensor's periodic() control
+            if (!intakeIndexMotorsStarted) {
+                index.runBottomMotorForward();
+                index.runTopMotorForward();
+                intakeIndexMotorsStarted = true;
+            }
             indexBottomDelayedStop = false; // Cancel any delayed stop
         }
         else if (gamepad1.left_bumper) {
             intake.ejectArtifact();
             index.stop();  // Stop both motors when ejecting
             indexBottomDelayedStop = false; // Cancel any delayed stop
+            intakeIndexMotorsStarted = false;  // Reset flag
         }
-        else {
+        else if (!gamepad2.left_bumper && !gamepad2.right_bumper) {
+            // Only stop if no gamepad2 control is active
             intake.stop();
             index.stopTopMotor();  // Stop top motor immediately when intake button released
+            intakeIndexMotorsStarted = false;  // Reset flag when button released
             // Don't stop bottom motor immediately - start delayed stop if not already active
             if (!indexBottomDelayedStop) {
                 indexBottomDelayedStop = true;
@@ -306,8 +317,12 @@ public class PrimeTeleOp extends LinearOpMode {
         // Gamepad 2 Left Bumper - Run index motor forward (manual override)
         // Manual indexing has immediate stop without delay when button is released
         if (gamepad2.left_bumper) {
-            index.runForward();
-            manualIndexingActive = true;
+            // Manual indexing takes priority - use state machine
+            // Start motors only once to avoid fighting with sensor
+            if (!manualIndexingActive) {
+                index.runForward();
+                manualIndexingActive = true;
+            }
             indexBottomDelayedStop = false;  // Cancel any delayed stop from intake combo
         } else if (manualIndexingActive) {
             // Manual indexing was just released - stop immediately unless shooter is active
@@ -315,8 +330,9 @@ public class PrimeTeleOp extends LinearOpMode {
                 index.stop();
             }
             manualIndexingActive = false;
-        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexBottomDelayedStop) {
+        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !gamepad1.left_bumper && !indexBottomDelayedStop) {
             // Only stop if no other controls are using the index motors
+            // Added check for gamepad1.left_bumper to prevent interference
             index.stop();
         }
     }
@@ -435,13 +451,17 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("=== INDEX SUBSYSTEM ===");
         telemetry.addData("Index State", index.getStateString());
-        telemetry.addData("Bottom Motor Power", "%.2f", index.getBottomMotorPower());
-        telemetry.addData("Top Motor Power", "%.2f", index.getTopMotorPower());
-        telemetry.addData("Distance Sensor", "%.2f cm", index.getDistance());
-        telemetry.addData("Artifact Detected", index.isArtifactDetected() ? "✓ YES" : "✗ NO");
+        telemetry.addData("Bottom Motor", "%.2f (%.0f%%)", index.getBottomMotorPower(), index.getBottomMotorPower() * 100);
+        telemetry.addData("Top Motor", "%.2f (%.0f%%)", index.getTopMotorPower(), index.getTopMotorPower() * 100);
+        telemetry.addLine();
+        telemetry.addData("Sensor Distance", "%.2f cm", index.getDistance());
+        telemetry.addData("Threshold", "%.2f cm", 3.0);
+        telemetry.addData("Artifact Detected", index.isArtifactDetected() ? "✓ YES (< 3cm)" : "✗ NO (>= 3cm)");
+        telemetry.addLine();
         telemetry.addData("Flywheel Override", index.isFlywheelOverrideActive() ? "ACTIVE" : "DISABLED");
         telemetry.addData("Manual Index", manualIndexingActive ? "ACTIVE" : "IDLE");
-        telemetry.addData("Delayed Stop", indexBottomDelayedStop ? "PENDING" : "NONE");
+        telemetry.addData("Intake Started", intakeIndexMotorsStarted ? "YES" : "NO");
+        telemetry.addData("Delayed Stop", indexBottomDelayedStop ? String.format("PENDING (%d ms)", indexBottomStopTime - System.currentTimeMillis()) : "NONE");
 
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
