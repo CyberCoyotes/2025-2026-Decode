@@ -166,6 +166,18 @@ public class ShooterSubsystem {
     }
 
     /**
+     * Run flywheel in reverse at moderate speed (for clearing jams or ejecting artifacts)
+     * Uses negative velocity to spin flywheel backwards
+     */
+    public void runFlywheelReverse() {
+        // Run at -1000 RPM (negative = reverse direction)
+        double reverseRPM = -1000.0;
+        double reverseVelocity = (reverseRPM / 60.0) * FLYWHEEL_CPR;
+        targetVelocity = reverseVelocity;
+        flywheelMotor.setVelocity(reverseVelocity);
+    }
+
+    /**
      * Get the current flywheel power (for telemetry)
      * @return Current power (-1.0 to 1.0)
      */

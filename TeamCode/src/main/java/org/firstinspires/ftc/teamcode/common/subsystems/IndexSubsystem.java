@@ -2,10 +2,13 @@ package org.firstinspires.ftc.teamcode.common.subsystems;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 /**
  * Index subsystem for moving game artifacts through the robot
  * Uses two DC motors - bottom stage and top stage - to transport artifacts from intake to shooter
+ * Includes REV v3 color sensor for detecting when artifact is in position
  */
 public class IndexSubsystem {
 
@@ -21,17 +24,23 @@ public class IndexSubsystem {
     // Hardware
     private final DcMotor indexBottomMotor;
     private final DcMotor indexTopMotor;
+    private final DistanceSensor colorSensor;
 
     // Hardware configuration names
     private static final String INDEX_BOTTOM_MOTOR_NAME = "indexBottomMotor";
     private static final String INDEX_TOP_MOTOR_NAME = "indexTopMotor";
+    private static final String COLOR_SENSOR_NAME = "indexColorSensor";
 
     // Motor speed constants
     private static final double FORWARD_SPEED = 1.0;   // Full speed forward
     private static final double REVERSE_SPEED = -1.0;  // Full speed reverse
 
+    // Sensor constants
+    private static final double DISTANCE_THRESHOLD_CM = 3.0;  // Stop top motor when distance < 3cm
+
     // State tracking
     private IndexState state = IndexState.IDLE;
+    private boolean flywheelOverride = false;  // When true, ignore distance sensor
 
     /**
      * Constructor - initializes hardware and sets initial state
@@ -41,6 +50,9 @@ public class IndexSubsystem {
         // Initialize motors
         indexBottomMotor = hardwareMap.get(DcMotor.class, INDEX_BOTTOM_MOTOR_NAME);
         indexTopMotor = hardwareMap.get(DcMotor.class, INDEX_TOP_MOTOR_NAME);
+
+        // Initialize color sensor (REV v3 Color Sensor with distance capability)
+        colorSensor = hardwareMap.get(DistanceSensor.class, COLOR_SENSOR_NAME);
 
         // Configure bottom motor for indexing
         indexBottomMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -60,11 +72,22 @@ public class IndexSubsystem {
 
     /**
      * Periodic method called once per scheduler run
-     * Can be used for any periodic updates needed
+     * Checks distance sensor and automatically stops top motor when artifact is detected
      */
     public void periodic() {
-        // Currently no periodic updates needed
-        // This method is here for future expansion
+        // Check distance sensor whenever top motor is running forward
+        // This handles both manual indexing (FORWARD state) and intake integration (direct motor control)
+        double topMotorPower = indexTopMotor.getPower();
+
+        if (topMotorPower > 0 && !flywheelOverride) {
+            double distance = getDistance();
+
+            // If artifact is detected (distance < 3cm), stop top motor
+            // Bottom motor continues to ensure artifact stays in position
+            if (distance < DISTANCE_THRESHOLD_CM) {
+                indexTopMotor.setPower(0.0);
+            }
+        }
     }
 
     // ==================== STATE MACHINE METHODS ====================
@@ -217,6 +240,41 @@ public class IndexSubsystem {
      */
     public boolean isTopMotorBusy() {
         return indexTopMotor.isBusy();
+    }
+
+    // ==================== COLOR SENSOR METHODS ====================
+
+    /**
+     * Set whether the flywheel is running (overrides distance sensor check)
+     * When flywheel is active, the distance sensor will not stop the top motor
+     * @param isFlywheelRunning true if flywheel is actively shooting
+     */
+    public void setFlywheelOverride(boolean isFlywheelRunning) {
+        this.flywheelOverride = isFlywheelRunning;
+    }
+
+    /**
+     * Get the distance reading from the color sensor
+     * @return Distance in centimeters
+     */
+    public double getDistance() {
+        return colorSensor.getDistance(DistanceUnit.CM);
+    }
+
+    /**
+     * Check if an artifact is detected (distance < threshold)
+     * @return true if artifact is detected
+     */
+    public boolean isArtifactDetected() {
+        return getDistance() < DISTANCE_THRESHOLD_CM;
+    }
+
+    /**
+     * Get the flywheel override status
+     * @return true if flywheel override is active
+     */
+    public boolean isFlywheelOverrideActive() {
+        return flywheelOverride;
     }
 
     // Legacy compatibility methods (deprecated - use specific motor methods instead)
