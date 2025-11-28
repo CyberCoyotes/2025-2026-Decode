@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
+
 /**
  * Flywheel RPM Test OpMode
  *
@@ -14,6 +16,11 @@ import com.qualcomm.robotcore.hardware.Servo;
  *
  * Tests three preset RPM values: 3000, 4000, and 5000 RPM
  * Hood is set to maximum position (0.6) for all tests
+ *
+ * INDEX MOTOR INTEGRATION:
+ * - Index motors automatically run when flywheel is within 5% of target RPM
+ * - Simulates actual shooting conditions with ball feed
+ * - Helps test if mechanical load affects achievable RPM
  *
  * CONTROLS:
  * - DPAD UP: Increase to next RPM preset (3000 -> 4000 -> 5000)
@@ -26,6 +33,7 @@ import com.qualcomm.robotcore.hardware.Servo;
  * - Target vs Actual Velocity (ticks/sec)
  * - Motor power output
  * - Error percentage
+ * - Index motor status (ready to feed/not ready)
  * - Battery voltage (affects performance)
  * - PIDF coefficients
  */
@@ -35,6 +43,7 @@ public class FlywheelRPMTest extends LinearOpMode {
     // Hardware
     private DcMotorEx flywheelMotor;
     private Servo hoodServo;
+    private IndexSubsystem indexSubsystem;
 
     // Hardware names - must match your robot configuration
     private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
@@ -42,6 +51,9 @@ public class FlywheelRPMTest extends LinearOpMode {
 
     // Motor specifications
     private static final double FLYWHEEL_CPR = 28.0; // Counts per revolution
+
+    // RPM tolerance for index motor activation (5% matches ShooterSubsystem)
+    private static final double RPM_TOLERANCE_PERCENT = 5.0;
 
     // Test RPM presets
     private static final int[] RPM_PRESETS = {3000, 4000, 5000};
@@ -72,9 +84,10 @@ public class FlywheelRPMTest extends LinearOpMode {
         telemetry.addData("Status", "Initializing flywheel test...");
         telemetry.update();
 
-        // Initialize motor
+        // Initialize hardware
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
         hoodServo = hardwareMap.get(Servo.class, HOOD_SERVO_NAME);
+        indexSubsystem = new IndexSubsystem(hardwareMap);
 
         // Configure flywheel motor for velocity control
         flywheelMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -163,14 +176,29 @@ public class FlywheelRPMTest extends LinearOpMode {
             lastXState = gamepad1.x;
 
             /* ========================================
-             * TELEMETRY - DETAILED DIAGNOSTICS
+             * INDEX MOTOR CONTROL
              * ======================================== */
-            telemetry.clearAll();
-
+            // Calculate current performance
             int targetRPM = RPM_PRESETS[currentPresetIndex];
             double targetVelocity = rpmToVelocity(targetRPM);
             double actualVelocity = flywheelMotor.getVelocity();
             double actualRPM = velocityToRPM(actualVelocity);
+
+            // Check if flywheel is at target RPM within tolerance
+            boolean isAtTargetRPM = isAtTargetRPM(targetRPM, actualRPM);
+
+            // Automatically run index motors when flywheel is ready
+            if (isRunning && isAtTargetRPM) {
+                indexSubsystem.runForward();
+            } else {
+                indexSubsystem.stop();
+            }
+
+            /* ========================================
+             * TELEMETRY - DETAILED DIAGNOSTICS
+             * ======================================== */
+            telemetry.clearAll();
+
             double motorPower = flywheelMotor.getPower();
 
             // Calculate error percentage
@@ -207,6 +235,19 @@ public class FlywheelRPMTest extends LinearOpMode {
                     telemetry.addData("Performance", "✗ POOR (>15%% error)");
                 }
             }
+            telemetry.addLine();
+
+            // Index motor status
+            telemetry.addLine("=== INDEX MOTORS ===");
+            if (isAtTargetRPM && isRunning) {
+                telemetry.addData("Status", "✓ FEEDING (RPM at target)");
+            } else if (isRunning) {
+                telemetry.addData("Status", "⏳ WAITING (Spinning up...)");
+            } else {
+                telemetry.addData("Status", "IDLE (Flywheel stopped)");
+            }
+            telemetry.addData("Bottom Motor", "%.2f", indexSubsystem.getBottomMotorPower());
+            telemetry.addData("Top Motor", "%.2f", indexSubsystem.getTopMotorPower());
             telemetry.addLine();
 
             // Velocity (raw encoder data)
@@ -262,6 +303,7 @@ public class FlywheelRPMTest extends LinearOpMode {
          * ======================================== */
         flywheelMotor.setVelocity(0);
         hoodServo.setPosition(0.0);
+        indexSubsystem.stop();
 
     } // End of runOpMode
 
@@ -285,6 +327,20 @@ public class FlywheelRPMTest extends LinearOpMode {
      */
     private double velocityToRPM(double velocity) {
         return (velocity / FLYWHEEL_CPR) * 60.0;
+    }
+
+    /**
+     * Check if actual RPM is within acceptable tolerance of target RPM
+     * @param targetRPM Target RPM
+     * @param actualRPM Actual RPM measured from encoder
+     * @return true if within tolerance
+     */
+    private boolean isAtTargetRPM(int targetRPM, double actualRPM) {
+        if (targetRPM == 0) {
+            return Math.abs(actualRPM) < 100.0; // Consider stopped if < 100 RPM
+        }
+        double tolerance = targetRPM * (RPM_TOLERANCE_PERCENT / 100.0);
+        return Math.abs(actualRPM - targetRPM) <= tolerance;
     }
 
 } // End of class
