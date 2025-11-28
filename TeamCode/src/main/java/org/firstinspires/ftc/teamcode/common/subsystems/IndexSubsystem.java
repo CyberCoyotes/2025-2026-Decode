@@ -75,14 +75,16 @@ public class IndexSubsystem {
      * Checks distance sensor and automatically stops top motor when artifact is detected
      */
     public void periodic() {
-        // Only check distance sensor when intaking (FORWARD state)
-        if (state == IndexState.FORWARD) {
+        // Check distance sensor whenever top motor is running forward
+        // This handles both manual indexing (FORWARD state) and intake integration (direct motor control)
+        double topMotorPower = indexTopMotor.getPower();
+
+        if (topMotorPower > 0 && !flywheelOverride) {
             double distance = getDistance();
 
-            // If artifact is detected (distance < 3cm) and flywheel is not overriding
-            if (distance < DISTANCE_THRESHOLD_CM && !flywheelOverride) {
-                // Stop top motor to prevent jamming
-                // Bottom motor continues to ensure artifact stays in position
+            // If artifact is detected (distance < 3cm), stop top motor
+            // Bottom motor continues to ensure artifact stays in position
+            if (distance < DISTANCE_THRESHOLD_CM) {
                 indexTopMotor.setPower(0.0);
             }
         }

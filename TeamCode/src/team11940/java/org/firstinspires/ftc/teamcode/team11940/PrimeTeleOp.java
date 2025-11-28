@@ -138,11 +138,6 @@ public class PrimeTeleOp extends LinearOpMode {
             // Update subsystems
             odometry.update();  // Update odometry position and heading
             intake.periodic(); // Handle automatic slide control
-
-            // Update flywheel override for index subsystem (allows shooting when artifact is detected)
-            index.setFlywheelOverride(flywheelRunning);
-            index.periodic();  // Handle index motor updates (distance sensor check)
-
             shooter.periodic(); // Handle shooter subsystem updates
 
             // Handle state transitions
@@ -162,6 +157,11 @@ public class PrimeTeleOp extends LinearOpMode {
 
             // Handle index controls
             handleIndexControls();
+
+            // Update flywheel override for index subsystem (allows shooting when artifact is detected)
+            // Run index.periodic() AFTER control handlers so sensor check happens last
+            index.setFlywheelOverride(flywheelRunning);
+            index.periodic();  // Handle index motor updates (distance sensor check)
 
             // Handle shooter controls (gamepad 2)
             handleShooterControls();
@@ -267,19 +267,21 @@ public class PrimeTeleOp extends LinearOpMode {
         // Intake wheel control (bumpers)
         // Slides automatically extend when intake is running and retract immediately when stopping
         // Wheels continue running for 300ms after slides retract
-        // Right bumper now also runs the bottom index motor to move artifacts through the system
+        // Right bumper runs BOTH index motors - sensor will auto-stop top motor when artifact detected
         if (gamepad1.right_bumper) {
             intake.intakeArtifact();
             index.runBottomMotorForward();  // Run bottom index motor with intake
+            index.runTopMotorForward();     // Run top index motor - sensor will stop it when artifact detected
             indexBottomDelayedStop = false; // Cancel any delayed stop
         }
         else if (gamepad1.left_bumper) {
             intake.ejectArtifact();
-            index.stopBottomMotor();  // Stop bottom motor when ejecting
+            index.stop();  // Stop both motors when ejecting
             indexBottomDelayedStop = false; // Cancel any delayed stop
         }
         else {
             intake.stop();
+            index.stopTopMotor();  // Stop top motor immediately when intake button released
             // Don't stop bottom motor immediately - start delayed stop if not already active
             if (!indexBottomDelayedStop) {
                 indexBottomDelayedStop = true;
