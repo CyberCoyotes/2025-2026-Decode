@@ -219,11 +219,15 @@ public class FlywheelRPMTest extends LinearOpMode {
                 targetRPM, currentPresetIndex + 1, RPM_PRESETS.length);
             telemetry.addLine();
 
-            // RPM Comparison
-            telemetry.addLine("=== RPM ===");
+            // RPM Comparison with detailed analysis
+            telemetry.addLine("=== RPM PERFORMANCE ===");
             telemetry.addData("Target RPM", "%d", targetRPM);
             telemetry.addData("Actual RPM", "%.1f", actualRPM);
             telemetry.addData("Error", "%.1f RPM (%.1f%%)", rpmError, errorPercent);
+
+            // Calculate percentage of target achieved
+            double percentAchieved = (actualRPM / targetRPM) * 100.0;
+            telemetry.addData("% of Target Achieved", "%.1f%%", percentAchieved);
 
             // Visual indicator of how close we are
             if (isRunning) {
@@ -233,6 +237,16 @@ public class FlywheelRPMTest extends LinearOpMode {
                     telemetry.addData("Performance", "⚠ MARGINAL (within 15%%)");
                 } else {
                     telemetry.addData("Performance", "✗ POOR (>15%% error)");
+                }
+
+                // Specific diagnosis for stuck power issue
+                if (percentAchieved < 70.0) {
+                    telemetry.addLine("⚠⚠ MAJOR ISSUE DETECTED:");
+                    telemetry.addLine("  Motor not reaching target!");
+                    telemetry.addLine("  Check:");
+                    telemetry.addLine("  1. Battery voltage");
+                    telemetry.addLine("  2. PIDF F coefficient");
+                    telemetry.addLine("  3. Mechanical resistance");
                 }
             }
             telemetry.addLine();
@@ -258,8 +272,26 @@ public class FlywheelRPMTest extends LinearOpMode {
 
             // Motor diagnostics
             telemetry.addLine("=== MOTOR DIAGNOSTICS ===");
-            telemetry.addData("Motor Power", "%.3f", motorPower);
+            telemetry.addData("Motor Power", "%.3f (%.1f%%)", motorPower, motorPower * 100);
             telemetry.addData("Encoder Position", "%d", flywheelMotor.getCurrentPosition());
+
+            // CRITICAL: Diagnose why power isn't increasing with RPM
+            if (isRunning) {
+                double expectedMinPower = Math.min(1.0, targetRPM / 6000.0); // Rough estimate
+                if (motorPower < expectedMinPower * 0.7) {
+                    telemetry.addLine("⚠ POWER TOO LOW for target RPM!");
+                    telemetry.addLine("  → PIDF tuning issue likely");
+                }
+
+                // Check if power is stuck/constant
+                if (targetRPM >= 4000 && motorPower < 0.7) {
+                    telemetry.addLine("⚠ Power should be >70% at 4000+ RPM");
+                }
+                if (targetRPM >= 5000 && motorPower < 0.85) {
+                    telemetry.addLine("⚠ Power should be >85% at 5000 RPM");
+                }
+            }
+            telemetry.addLine();
 
             // Battery voltage - LOW VOLTAGE SIGNIFICANTLY IMPACTS PERFORMANCE!
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
@@ -267,22 +299,45 @@ public class FlywheelRPMTest extends LinearOpMode {
             if (voltage < 12.0) {
                 telemetry.addLine("⚠ WARNING: Low battery affects max RPM!");
             }
+            if (voltage < 11.5) {
+                telemetry.addLine("⚠⚠ CRITICAL: Battery too low!");
+            }
             telemetry.addLine();
 
-            // PIDF Info
-            telemetry.addLine("=== PIDF COEFFICIENTS ===");
-            telemetry.addData("P", FLYWHEEL_P);
-            telemetry.addData("I", FLYWHEEL_I);
-            telemetry.addData("D", FLYWHEEL_D);
-            telemetry.addData("F", FLYWHEEL_F);
+            // PIDF Info with actionable recommendations
+            telemetry.addLine("=== PIDF ANALYSIS ===");
+            telemetry.addData("Current P", "%.1f", FLYWHEEL_P);
+            telemetry.addData("Current I", "%.1f", FLYWHEEL_I);
+            telemetry.addData("Current D", "%.1f", FLYWHEEL_D);
+            telemetry.addData("Current F", "%.1f", FLYWHEEL_F);
             telemetry.addLine();
 
             // Theoretical F calculation for current target
             double theoreticalF = 32767.0 / targetVelocity;
-            telemetry.addData("Theoretical F for target", "%.2f", theoreticalF);
-            telemetry.addData("Current F", "%.2f", FLYWHEEL_F);
+            telemetry.addData("Theoretical F (optimal)", "%.2f", theoreticalF);
+            telemetry.addData("F Difference", "%.2f", FLYWHEEL_F - theoreticalF);
+
             if (Math.abs(theoreticalF - FLYWHEEL_F) > 5) {
-                telemetry.addLine("ℹ Consider adjusting F coefficient");
+                if (FLYWHEEL_F > theoreticalF + 5) {
+                    telemetry.addLine("⚠ F is TOO HIGH for this RPM");
+                    telemetry.addData("  Recommended F", "%.1f", theoreticalF);
+                } else {
+                    telemetry.addLine("⚠ F is TOO LOW for this RPM");
+                    telemetry.addData("  Recommended F", "%.1f", theoreticalF);
+                }
+            } else {
+                telemetry.addLine("✓ F is appropriate for target");
+            }
+
+            // Show recommended PIDF for all presets
+            telemetry.addLine();
+            telemetry.addLine("=== RECOMMENDED PIDF VALUES ===");
+            for (int i = 0; i < RPM_PRESETS.length; i++) {
+                int rpm = RPM_PRESETS[i];
+                double vel = rpmToVelocity(rpm);
+                double recF = 32767.0 / vel;
+                String marker = (i == currentPresetIndex) ? "→ " : "  ";
+                telemetry.addData(marker + rpm + " RPM", "F=%.1f", recF);
             }
             telemetry.addLine();
 
