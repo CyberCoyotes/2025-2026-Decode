@@ -41,7 +41,7 @@ public class IntakeSubsystem {
 
     // Constants for continuous rotation servos (wheels)
     private static final double STOP_POSITION = 0.5;
-    private static final double INTAKE_SPEED = -1.0;   // Full speed intake // TODO test sign change
+    private static final double INTAKE_SPEED = -1.0;   // Full speed intake
     private static final double EJECT_SPEED = 1.0;   // Full speed eject
 
     // Constants for position servos (slides)
@@ -74,6 +74,10 @@ public class IntakeSubsystem {
         // Initialize slide servos (position)
         intakeSlideLeft = hardwareMap.get(Servo.class, SLIDE_LEFT_NAME);
         intakeSlideRight = hardwareMap.get(Servo.class, SLIDE_RIGHT_NAME);
+
+        // Set direction of left side servos so they mirror right side
+        intakeWheelLeft.setDirection(Servo.Direction.FORWARD);
+        intakeSlideLeft.setDirection(Servo.Direction.FORWARD);
 
         // Reverse right side servos so they mirror left side
         intakeWheelRight.setDirection(Servo.Direction.REVERSE);
