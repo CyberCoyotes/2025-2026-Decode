@@ -17,7 +17,7 @@ public class ShooterSubsystem {
      * Using velocity-based control for consistent speed under varying loads
      */
     public enum ShotState {
-        LONG_RANGE(2800, 0.60),    // Long range: 2800 RPM target, high hood
+        LONG_RANGE(3500, 0.60),    // Long range: 2800 RPM target, high hood
         MEDIUM_RANGE(2500, 0.60),  // Medium range: 2500 RPM target, medium hood
         SHORT_RANGE(2200, 0.30);   // Short range: 2200 RPM target, low hood
 
@@ -171,7 +171,7 @@ public class ShooterSubsystem {
      */
     public void runFlywheelReverse() {
         // Run at -1000 RPM (negative = reverse direction)
-        double reverseRPM = -1000.0;
+        double reverseRPM = -2000.0;
         double reverseVelocity = (reverseRPM / 60.0) * FLYWHEEL_CPR;
         targetVelocity = reverseVelocity;
         flywheelMotor.setVelocity(reverseVelocity);
