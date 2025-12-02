@@ -46,11 +46,23 @@ public class IntakeSubsystem {
 
     // Constants for position servos (slides)
     private static final double SLIDE_IN_POSITION = 0.0;
-    private static final double SLIDE_OUT_POSITION = 0.90;  // Optimized position - prevents servo overheating
-                                                             // Testing showed 0.90 provides good extension without strain
 
-    // Automatic slide control constants
-    private static final long WHEEL_STOP_DELAY_MS = 300; // Delay before stopping wheels after slides retract
+    /*
+    * Optimized position - prevents servo overheating
+    * Previously 0.90 but seemed to be going too far
+    * Testing showed 0.85 provides good extension without strain
+    */
+    private static final double SLIDE_OUT_POSITION = 0.85;
+
+    /*
+    * Automatic slide control constants
+    * Delay before stopping wheels after slides retract
+    * Previously 300
+    * Trying a longer delay now that there is no concern with
+    * Artifact shoving up into the shooter
+    */
+    private static final long WHEEL_STOP_DELAY_MS = 1200;
+
 
     // State tracking
     private WheelState wheelState = WheelState.IDLE;
