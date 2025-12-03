@@ -16,8 +16,8 @@ import java.util.List;
  * Configure the Limelight in the robot configuration as "limelight"
  * Pipeline 0 should be configured for AprilTag detection with 36h11 family
  */
-@TeleOp(name = "Limelight AprilTag", group = "ALPHA")
 @Disabled
+@TeleOp(name = "Limelight AprilTag", group = "ALPHA")
 
 public class OpTestLimelight extends LinearOpMode {
 

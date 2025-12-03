@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.common.teleop;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -37,7 +38,8 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
  * - Battery voltage (affects performance)
  * - PIDF coefficients
  */
-@TeleOp(name = "Flywheel RPM Test", group = "Test")
+@Disabled
+@TeleOp(name = "Flywheel RPM Test", group = "ALPHA")
 public class FlywheelRPMTest extends LinearOpMode {
 
     // Hardware

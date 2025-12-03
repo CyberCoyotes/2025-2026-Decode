@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 
-@TeleOp(name = "MainTeleOp 11940", group = "TeleOp")
 @Disabled
+@TeleOp(name = "MainTeleOp 11940", group = "ALPHA")
 
 public class BasicTeleOp extends LinearOpMode {
 

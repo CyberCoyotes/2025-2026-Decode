@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.common.teleop;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -38,7 +39,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
  *
  * When all move forward at same speed, robot should drive straight forward.
  */
-@TeleOp(name = "Motor Direction Test", group = "Test")
+@Disabled
+@TeleOp(name = "Motor Direction Test", group = "ALPHA")
 public class MotorDirectionTest extends LinearOpMode {
 
     private DcMotor leftFront;
