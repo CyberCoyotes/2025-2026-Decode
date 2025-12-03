@@ -17,8 +17,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
  * This autonomous program drives the robot backward for a specified time period.
  * The robot will drive backward at a constant speed for 2 seconds, then stop.
  */
-@Disabled
-@Autonomous(name = "Drive Backward (Time)", group = "Basic")
+@Autonomous(name = "Drive Backward (Time)", group = "Time")
 public class DriveBackwardTime extends LinearOpMode {
 
     // Subsystems
@@ -27,7 +26,7 @@ public class DriveBackwardTime extends LinearOpMode {
 
     // Configuration
     private static final double DRIVE_TIME = 2.0; // seconds
-    private static final double DRIVE_SPEED = 0.5; // 50% power
+    private static final double DRIVE_SPEED = 0.35; // 50% power
 
     @Override
     public void runOpMode() throws InterruptedException {

@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
  * using odometry feedback from the GoBilda Pinpoint odometry computer.
  * The robot will drive backward 6 inches, then stop.
  */
-@Autonomous(name = "Drive Backward (Distance)", group = "Basic")
+@Autonomous(name = "Drive Backward (Distance)", group = "Distance")
 public class DriveBackwardDistance extends LinearOpMode {
 
     // Subsystems
@@ -26,7 +26,7 @@ public class DriveBackwardDistance extends LinearOpMode {
 
     // Configuration
     private static final double TARGET_DISTANCE = 18.0; // inches
-    private static final double DRIVE_SPEED = 0.3; // 40% power
+    private static final double DRIVE_SPEED = 0.35; // 40% power
     private static final double DISTANCE_TOLERANCE = 0.25; // inches - stop within this range
     private static final double TIMEOUT = 5.0; // seconds - safety timeout
 

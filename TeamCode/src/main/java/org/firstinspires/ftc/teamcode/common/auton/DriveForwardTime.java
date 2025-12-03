@@ -17,8 +17,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
  * This autonomous program drives the robot forward for a specified time period.
  * The robot will drive forward at a constant speed for 1 second, then stop.
  */
-@Disabled
-@Autonomous(name = "Drive Forward (Time)", group = "Basic")
+@Autonomous(name = "Drive Forward (Time)", group = "Time")
 public class DriveForwardTime extends LinearOpMode {
 
     // Subsystems
@@ -26,8 +25,8 @@ public class DriveForwardTime extends LinearOpMode {
     private PinpointOdometrySubsystem odometry;
 
     // Configuration
-    private static final double DRIVE_TIME = 1.0; // seconds
-    private static final double DRIVE_SPEED = 0.5; // 50% power
+    private static final double DRIVE_TIME = 2.0; // seconds
+    private static final double DRIVE_SPEED = 0.35; // 50% power
 
     @Override
     public void runOpMode() throws InterruptedException {
