@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.common.auton;
 import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -23,6 +24,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
  *
  * Uses Pinpoint odometry for accurate positioning and heading control.
  */
+@Disabled
 @Autonomous(name = "Long Drive & Shoot", group = "BLUE")
 public class BlueLongDriveShoot extends LinearOpMode {
 

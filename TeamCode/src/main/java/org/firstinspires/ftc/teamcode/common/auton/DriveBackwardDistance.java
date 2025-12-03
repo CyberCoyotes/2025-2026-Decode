@@ -25,9 +25,9 @@ public class DriveBackwardDistance extends LinearOpMode {
     private PinpointOdometrySubsystem odometry;
 
     // Configuration
-    private static final double TARGET_DISTANCE = 6.0; // inches
-    private static final double DRIVE_SPEED = 0.4; // 40% power
-    private static final double DISTANCE_TOLERANCE = 0.5; // inches - stop within this range
+    private static final double TARGET_DISTANCE = 18.0; // inches
+    private static final double DRIVE_SPEED = 0.3; // 40% power
+    private static final double DISTANCE_TOLERANCE = 0.25; // inches - stop within this range
     private static final double TIMEOUT = 5.0; // seconds - safety timeout
 
     @Override

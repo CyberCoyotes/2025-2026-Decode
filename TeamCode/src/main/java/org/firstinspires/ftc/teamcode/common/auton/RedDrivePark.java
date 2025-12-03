@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.common.auton;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -16,6 +17,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
  * TODO: Implement actual autonomous logic for your competition strategy
  * TODO: Integrate Pedro Pathing 2.0 for trajectory following
  */
+@Disabled
 @Autonomous(name = "Red: Drive & Park", group = "Autonomous")
 public class RedDrivePark extends LinearOpMode {
 

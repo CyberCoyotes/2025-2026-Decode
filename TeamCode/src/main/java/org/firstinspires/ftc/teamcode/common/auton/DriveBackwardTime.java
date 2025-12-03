@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.common.auton;
 import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -16,6 +17,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
  * This autonomous program drives the robot backward for a specified time period.
  * The robot will drive backward at a constant speed for 2 seconds, then stop.
  */
+@Disabled
 @Autonomous(name = "Drive Backward (Time)", group = "Basic")
 public class DriveBackwardTime extends LinearOpMode {
 
