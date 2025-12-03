@@ -57,11 +57,10 @@ public class IntakeSubsystem {
     /*
     * Automatic slide control constants
     * Delay before stopping wheels after slides retract
-    * Previously 300
-    * Trying a longer delay now that there is no concern with
-    * Artifact shoving up into the shooter
+    * Previously 300, then 1200
+    * Set to 600ms to work with index motor delays
     */
-    private static final long WHEEL_STOP_DELAY_MS = 1200;
+    private static final long WHEEL_STOP_DELAY_MS = 600;
 
 
     // State tracking

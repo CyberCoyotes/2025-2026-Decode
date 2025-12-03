@@ -24,10 +24,9 @@ public class PrimeTeleOp extends LinearOpMode {
     /* ========================================
      * BUTTON STATE TRACKING
      * ======================================== */
-    private boolean lastXState = false;         // Toggle field-centric
-    private boolean lastYState = false;         // Toggle precision mode
-    private boolean lastBState = false;         // Toggle turbo mode
-    private boolean lastStartState = false;     // Reset heading
+    private boolean lastBackState = false;      // Toggle field-centric
+    private boolean lastStartState = false;     // Toggle robot-centric
+    private boolean lastGuideState = false;     // Reset heading (mode/guide button)
     private boolean lastDpadUpState = false;    // Increase speed
     private boolean lastDpadDownState = false;  // Decrease speed
     private boolean lastDpadLeftState = false;  // Decrease sensitivity
@@ -45,9 +44,11 @@ public class PrimeTeleOp extends LinearOpMode {
     // Flywheel and index sequential control state
     private boolean flywheelRunning = false;         // Track if flywheel is running
 
-    // Index bottom motor delayed stop state (keeps motor running after intake stops)
+    // Index motor delayed stop state (keeps motors running after intake stops)
     private boolean indexBottomDelayedStop = false;  // True when intake stopped but bottom motor still running
     private long indexBottomStopTime = 0;            // Time when bottom motor should stop (in milliseconds)
+    private boolean indexTopDelayedStop = false;     // True when intake stopped but top motor still running (unless sensor stops it)
+    private long indexTopStopTime = 0;               // Time when top motor should stop (in milliseconds)
 
     // Manual indexing state (for immediate stop without delay)
     private boolean manualIndexingActive = false;    // True when manual indexing button is pressed
@@ -63,14 +64,19 @@ public class PrimeTeleOp extends LinearOpMode {
     private static final double SPEED_STEP = 0.05;
     private static final double SENSITIVITY_STEP = 0.1;
 
+    // Drive mode speed multipliers
+    private static final double SLOW_MOTION_SPEED = 0.30;  // 30% speed on left trigger
+    private static final double TURBO_SPEED = 1.0;         // 100% speed on right trigger
+
     // Shooter constants
     private static final double SHOOTER_POWER_INCREMENT = 0.05;  // 5% per button press
     private static final double SHOOTER_MIN_POWER = 0.0;
     private static final double SHOOTER_MAX_POWER = 1.0;
     private static final double HOOD_INCREMENT = 0.05;  // Hood position increment per button press
 
-    // Index bottom motor delay (3x intake wheel delay of 300ms)
-    private static final long INDEX_BOTTOM_STOP_DELAY_MS = 900; // TODO: Test this delay timing
+    // Index motor delays - both motors use same delay but top motor can be stopped early by sensor
+    private static final long INDEX_BOTTOM_STOP_DELAY_MS = 1500;
+    private static final long INDEX_TOP_STOP_DELAY_MS = 1500;    // Same as bottom, but sensor can override
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -105,13 +111,15 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
         telemetry.addLine("  Left Stick      - Strafe");
         telemetry.addLine("  Right Stick     - Rotate");
+        telemetry.addLine("  Left Trigger    - Slow Motion (30% Speed)");
+        telemetry.addLine("  Right Trigger   - Turbo Mode (100% Speed)");
+        telemetry.addLine("  Left Bumper     - Index Motors Only");
         telemetry.addLine("  Right Bumper    - Intake (Wheels + Index)");
         telemetry.addLine("  RB + A Button   - Eject (Reverse Intake)");
-        telemetry.addLine("  (Slides auto-extend/retract)");
-        telemetry.addLine("  X Button        - Toggle Field-Centric");
-        telemetry.addLine("  B Button        - Toggle Turbo Mode");
         telemetry.addLine("  A Button (alone) - Emergency Stop");
-        telemetry.addLine("  START Button    - Reset Heading");
+        telemetry.addLine("  BACK Button     - Toggle Field-Centric");
+        telemetry.addLine("  START Button    - Toggle Robot-Centric");
+        telemetry.addLine("  MODE Button     - Reset Heading");
         telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
         telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
         telemetry.addLine();
@@ -154,10 +162,14 @@ public class PrimeTeleOp extends LinearOpMode {
             // Handle intake controls
             handleIntakeControls();
 
-            // Handle delayed stop for index bottom motor
+            // Handle delayed stop for index motors
             if (indexBottomDelayedStop && System.currentTimeMillis() >= indexBottomStopTime) {
                 index.stopBottomMotor();
                 indexBottomDelayedStop = false;
+            }
+            if (indexTopDelayedStop && System.currentTimeMillis() >= indexTopStopTime) {
+                index.stopTopMotor();
+                indexTopDelayedStop = false;
             }
 
             // Handle index controls
@@ -177,6 +189,21 @@ public class PrimeTeleOp extends LinearOpMode {
             double lateral = gamepad1.left_stick_x;     // Strafe left/right
             double yaw = gamepad1.right_stick_x;        // Rotate left/right
 
+            // Apply trigger-based speed modifiers
+            double speedMultiplier = 1.0;
+            if (gamepad1.left_trigger > 0.1) {
+                // Slow motion mode - 30% speed
+                speedMultiplier = SLOW_MOTION_SPEED;
+            } else if (gamepad1.right_trigger > 0.1) {
+                // Turbo mode - 100% speed
+                speedMultiplier = TURBO_SPEED;
+            }
+
+            // Apply speed multiplier to inputs
+            axial *= speedMultiplier;
+            lateral *= speedMultiplier;
+            yaw *= speedMultiplier;
+
             // Drive based on current state
             if (drive.getState() != DriveState.IDLE) {
                 drive.drive(axial, lateral, yaw);  // Correct order: axial, lateral, yaw
@@ -193,41 +220,30 @@ public class PrimeTeleOp extends LinearOpMode {
     private void handleStateTransitions() {
         DriveState currentState = drive.getState();
 
-        // X Button - Toggle between ROBOT_CENTRIC and FIELD_CENTRIC
-        if (gamepad1.x && !lastXState) {
-            if (currentState == DriveState.ROBOT_CENTRIC) {
-                drive.setState(DriveState.FIELD_CENTRIC);
-            } else if (currentState == DriveState.FIELD_CENTRIC) {
-                drive.setState(DriveState.ROBOT_CENTRIC);
-            }
+        // BACK Button - Toggle to Field-Centric mode
+        if (gamepad1.back && !lastBackState) {
+            drive.setState(DriveState.FIELD_CENTRIC);
         }
-        lastXState = gamepad1.x;
+        lastBackState = gamepad1.back;
 
-        // Y Button - Now used for index motor control (see handleIndexControls())
-
-        // B Button - Toggle TURBO mode
-        if (gamepad1.b && !lastBState) {
-            if (currentState == DriveState.TURBO) {
-                // Return to previous mode
-                drive.setState(DriveState.ROBOT_CENTRIC);
-            } else {
-                drive.setState(DriveState.TURBO);
-            }
-        }
-        lastBState = gamepad1.b;
-
-        // START Button - Reset heading (only in field-centric)
+        // START Button - Toggle to Robot-Centric mode
         if (gamepad1.start && !lastStartState) {
+            drive.setState(DriveState.ROBOT_CENTRIC);
+        }
+        lastStartState = gamepad1.start;
+
+        // GUIDE/MODE Button - Reset heading (only in field-centric)
+        if (gamepad1.guide && !lastGuideState) {
             if (currentState == DriveState.FIELD_CENTRIC) {
                 drive.resetHeading();
                 telemetry.addData("Action", "Heading Reset!");
             }
         }
-        lastStartState = gamepad1.start;
+        lastGuideState = gamepad1.guide;
 
         // A Button alone - Emergency stop (sets to IDLE)
         // A Button is also used in combos (see handleIntakeControls and handleShooterControls)
-        if (gamepad1.a && !gamepad1.right_bumper) {
+        if (gamepad1.a && !gamepad1.right_bumper && !gamepad1.left_bumper) {
             drive.setState(DriveState.IDLE);
         } else if (currentState == DriveState.IDLE && !gamepad1.a) {
             // Resume to robot-centric when A is released
@@ -272,14 +288,34 @@ public class PrimeTeleOp extends LinearOpMode {
     private void handleIntakeControls() {
         // Intake wheel control
         // Slides automatically extend when intake is running and retract immediately when stopping
-        // Wheels continue running for 300ms after slides retract
+        // Wheels continue running for 600ms after slides retract
 
+        // Left bumper + A button combo - REVERSE index motors only (no intake wheels)
+        if (gamepad1.left_bumper && gamepad1.a) {
+            index.runReverse();
+            manualIndexingActive = true;  // Mark as active
+            indexBottomDelayedStop = false; // Cancel any delayed stop
+            indexTopDelayedStop = false; // Cancel any delayed stop
+        }
+        // Left bumper alone - Run index motors only (no intake wheels)
+        else if (gamepad1.left_bumper) {
+            // Start both motors only once when button is first pressed
+            if (!manualIndexingActive) {
+                index.runBottomMotorForward();
+                index.runTopMotorForward();
+                manualIndexingActive = true;
+            }
+            indexBottomDelayedStop = false; // Cancel any delayed stop
+            indexTopDelayedStop = false; // Cancel any delayed stop
+        }
         // Right bumper + A button combo - EJECT (reverse intake AND reverse index motors)
-        if (gamepad1.right_bumper && gamepad1.a) {
+        else if (gamepad1.right_bumper && gamepad1.a) {
             intake.ejectArtifact();
             index.runReverse();  // Run index motors in reverse to help eject
             indexBottomDelayedStop = false; // Cancel any delayed stop
+            indexTopDelayedStop = false; // Cancel any delayed stop
             intakeIndexMotorsStarted = false;  // Reset flag
+            manualIndexingActive = false;  // Reset flag
         }
         // Right bumper alone - INTAKE (runs BOTH index motors, sensor auto-stops top motor)
         else if (gamepad1.right_bumper) {
@@ -292,27 +328,33 @@ public class PrimeTeleOp extends LinearOpMode {
                 intakeIndexMotorsStarted = true;
             }
             indexBottomDelayedStop = false; // Cancel any delayed stop
+            indexTopDelayedStop = false; // Cancel any delayed stop
+            manualIndexingActive = false;  // Reset flag
         }
         // No buttons pressed - STOP (but only if gamepad2 isn't controlling index)
         else if (!gamepad2.left_bumper && !gamepad2.right_bumper) {
+            // Stop intake wheels
             intake.stop();
-            index.stopTopMotor();  // Stop top motor immediately when intake button released
             intakeIndexMotorsStarted = false;  // Reset flag when button released
-            // Don't stop bottom motor immediately - start delayed stop if not already active
-            if (!indexBottomDelayedStop) {
-                indexBottomDelayedStop = true;
-                indexBottomStopTime = System.currentTimeMillis() + INDEX_BOTTOM_STOP_DELAY_MS;
+
+            // Handle index motor stops based on which control was being used
+            if (manualIndexingActive) {
+                // Manual index control was released - stop immediately
+                index.stop();
+                manualIndexingActive = false;
+            } else {
+                // Intake control was released - use delayed stop
+                // Top motor has delayed stop but can be stopped early by sensor in index.periodic()
+                if (!indexBottomDelayedStop) {
+                    indexBottomDelayedStop = true;
+                    indexBottomStopTime = System.currentTimeMillis() + INDEX_BOTTOM_STOP_DELAY_MS;
+                }
+                if (!indexTopDelayedStop) {
+                    indexTopDelayedStop = true;
+                    indexTopStopTime = System.currentTimeMillis() + INDEX_TOP_STOP_DELAY_MS;
+                }
             }
         }
-
-        // Manual slide override (right trigger - disabled by default, slides are automatic)
-        // Uncomment below to enable manual slide control:
-        // if (gamepad1.right_trigger > 0.5) {
-        //     intake.disableAutoSlideControl();
-        //     intake.setSlideState(SlideState.OUT);
-        // } else {
-        //     intake.setSlideState(SlideState.IN);
-        // }
     }
 
     /* ========================================
@@ -324,6 +366,7 @@ public class PrimeTeleOp extends LinearOpMode {
             index.runReverse();
             manualIndexingActive = true;  // Mark as active
             indexBottomDelayedStop = false;  // Cancel any delayed stop
+            indexTopDelayedStop = false;  // Cancel any delayed stop
         }
         // Gamepad 2 Left Bumper alone - Run index motor forward (manual override)
         // Manual indexing has immediate stop without delay when button is released
@@ -335,13 +378,14 @@ public class PrimeTeleOp extends LinearOpMode {
                 manualIndexingActive = true;
             }
             indexBottomDelayedStop = false;  // Cancel any delayed stop from intake combo
+            indexTopDelayedStop = false;  // Cancel any delayed stop from intake combo
         } else if (manualIndexingActive) {
             // Manual indexing was just released - stop immediately unless shooter is active
             if (!gamepad2.right_bumper) {
                 index.stop();
             }
             manualIndexingActive = false;
-        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexBottomDelayedStop) {
+        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexBottomDelayedStop && !indexTopDelayedStop) {
             // Only stop if no other controls are using the index motors
             index.stop();
         }
@@ -478,7 +522,8 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addData("Flywheel Override", index.isFlywheelOverrideActive() ? "ACTIVE" : "DISABLED");
         telemetry.addData("Manual Index", manualIndexingActive ? "ACTIVE" : "IDLE");
         telemetry.addData("Intake Started", intakeIndexMotorsStarted ? "YES" : "NO");
-        telemetry.addData("Delayed Stop", indexBottomDelayedStop ? String.format("PENDING (%d ms)", indexBottomStopTime - System.currentTimeMillis()) : "NONE");
+        telemetry.addData("Bottom Delayed Stop", indexBottomDelayedStop ? String.format("PENDING (%d ms)", indexBottomStopTime - System.currentTimeMillis()) : "NONE");
+        telemetry.addData("Top Delayed Stop", indexTopDelayedStop ? String.format("PENDING (%d ms)", indexTopStopTime - System.currentTimeMillis()) : "NONE");
 
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
@@ -499,8 +544,16 @@ public class PrimeTeleOp extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("=== MODES ===");
         telemetry.addData("Field-Centric", drive.getState() == DriveState.FIELD_CENTRIC ? "ON" : "OFF");
-        telemetry.addData("Precision Mode", drive.getState() == DriveState.PRECISION ? "ON" : "OFF");
-        telemetry.addData("Turbo Mode", drive.getState() == DriveState.TURBO ? "ON" : "OFF");
+        telemetry.addData("Robot-Centric", drive.getState() == DriveState.ROBOT_CENTRIC ? "ON" : "OFF");
+
+        // Show trigger-based speed mode
+        String speedMode = "Normal";
+        if (gamepad1.left_trigger > 0.1) {
+            speedMode = "SLOW MOTION (30%)";
+        } else if (gamepad1.right_trigger > 0.1) {
+            speedMode = "TURBO (100%)";
+        }
+        telemetry.addData("Speed Mode", speedMode);
 
         telemetry.update();
     }

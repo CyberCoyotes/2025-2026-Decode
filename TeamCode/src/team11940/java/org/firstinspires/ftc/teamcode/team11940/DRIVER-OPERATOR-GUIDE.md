@@ -11,26 +11,30 @@
 |---------|----------|
 | **Left Stick** | Strafe (side-to-side and forward/backward movement) |
 | **Right Stick** | Rotate (turn left/right) |
+| **Left Trigger** | Slow Motion Mode (30% speed while held) |
+| **Right Trigger** | Turbo Mode (100% speed while held) |
 
 ### **Intake System**
 | Control | Function |
 |---------|----------|
+| **Left Bumper** | Run ONLY index motors (immediate stop when released, no delay) |
+| **Left Bumper + A** | Reverse ONLY index motors (no intake wheels) |
 | **Right Bumper** | Run intake wheels IN + extends slides + runs BOTH index motors (sensor auto-stops top motor) |
 | **Right Bumper + A** | Eject wheels OUT (reverse intake AND reverse index motors) |
 
-> **Note:** Slides automatically extend when intake runs and retract when stopped. Wheels continue running for 300ms after slides retract to complete artifact transfer. The REV v3 color sensor automatically stops the top index motor when an artifact is detected (< 3cm), while the bottom motor continues to hold it in position.
+> **Note:** Slides automatically extend when intake runs and retract when stopped. Wheels continue running for 600ms after slides retract. Both index motors continue for 1500ms after release to complete artifact transfer. The REV v3 color sensor can stop the top index motor early when an artifact is detected (< 3cm), while the bottom motor continues to hold it in position.
 
 ### **Drive Modes**
 | Control | Function |
 |---------|----------|
-| **X Button** | Toggle between Field-Centric and Robot-Centric modes |
-| **B Button** | Toggle Turbo Mode (maximum speed) |
+| **BACK Button** | Switch to Field-Centric mode |
+| **START Button** | Switch to Robot-Centric mode |
+| **MODE Button** | Reset Heading (only works in Field-Centric mode) |
 | **A Button (alone)** | Emergency Stop (hold to freeze all drive motors) |
 
 ### **Configuration**
 | Control | Function |
 |---------|----------|
-| **START Button** | Reset Heading (only works in Field-Centric mode) |
 | **D-Pad Up** | Increase drive speed |
 | **D-Pad Down** | Decrease drive speed |
 | **D-Pad Right** | Increase steering sensitivity |
@@ -102,23 +106,34 @@
 
 ### **For Drivers (Gamepad 1)**
 
-1. **Start in Field-Centric Mode** - The robot will move relative to the field regardless of robot orientation. Press **X** to switch to Robot-Centric if needed.
+1. **Drive Mode Selection** - Use **BACK** for Field-Centric mode (move relative to field) or **START** for Robot-Centric mode (move relative to robot orientation).
 
-2. **Reset Heading Often** - Press **START** button after aligning with field to reset your reference point in Field-Centric mode.
+2. **Reset Heading Often** - Press **MODE** button after aligning with field to reset your reference point in Field-Centric mode.
 
-3. **Emergency Stop** - Hold **A** button alone to immediately stop all drive motors if you lose control.
+3. **Speed Control** - Use triggers for instant speed changes:
+   - **Left Trigger** = Slow motion (30% speed) for precise positioning
+   - **Right Trigger** = Turbo (100% speed) for quick movement
+   - Release triggers for normal speed
 
-4. **Intake Combo** - When you press **Right Bumper**, the system automatically:
+4. **Emergency Stop** - Hold **A** button alone to immediately stop all drive motors if you lose control.
+
+5. **Index Only Control** - Press **Left Bumper** to run ONLY index motors without intake wheels:
+   - Immediate stop when released (no delay)
+   - Useful for feeding artifacts to shooter
+   - Press **Left Bumper + A** to reverse index motors only
+
+6. **Intake Combo** - When you press **Right Bumper**, the system automatically:
    - Spins intake wheels IN
    - Extends slides automatically
    - Runs BOTH index motors forward
-   - **Color sensor auto-stops top motor when artifact detected (< 3cm)**
+   - **Color sensor can stop top motor early when artifact detected (< 3cm)**
    - Bottom motor continues running to hold artifact
-   - After release, bottom motor continues for 900ms to complete transfer
+   - After release, intake wheels continue for 600ms
+   - After release, index motors continue for 1500ms to complete transfer
 
-5. **Eject Combo** - Press **Right Bumper + A** together to reverse intake AND reverse index motors (for clearing jams or ejecting artifacts from the entire system).
+7. **Eject Combo** - Press **Right Bumper + A** together to reverse intake AND reverse index motors (for clearing jams or ejecting artifacts from the entire system).
 
-6. **Speed Adjustment** - Use **D-Pad Up/Down** during match to adjust speed on the fly.
+8. **Speed Adjustment** - Use **D-Pad Up/Down** during match to adjust base speed on the fly.
 
 ### **For Operators (Gamepad 2)**
 
@@ -167,7 +182,9 @@
 - Monitor "Sensor Distance" and "Artifact Detected" in telemetry for real-time feedback
 
 ### **Intake & Index Timing**
-- **Gamepad 1 Right Bumper**: Has 900ms delay after release to complete artifact transfer
+- **Gamepad 1 Left Bumper**: Index motors only - immediate stop when released (no delay)
+- **Gamepad 1 Left Bumper + A**: Reverse index motors only (no intake wheels)
+- **Gamepad 1 Right Bumper**: Intake wheels stop after 600ms delay, index motors stop after 1500ms delay
 - **Gamepad 1 Right Bumper + A**: Eject combo - reverses intake AND index motors (no delay)
 - **Gamepad 2 Left Bumper**: Immediate stop when released (no delay)
 - **Gamepad 2 Left Bumper + A**: Reverse index only combo - runs index motors in reverse
@@ -177,8 +194,8 @@
 ### **Drive Mode Differences**
 - **Field-Centric**: Robot moves relative to field orientation (forward is always away from drivers)
 - **Robot-Centric**: Robot moves relative to robot orientation (forward is robot's front)
-- **Turbo**: Maximum speed override for quick repositioning
-- **Precision**: (Available but not assigned) - Reduced speed for fine positioning
+- **Slow Motion** (Left Trigger): 30% speed for precise positioning
+- **Turbo** (Right Trigger): 100% speed for quick movement
 
 ### **Shooter Safety**
 - Flywheel must reach target RPM before index motor starts (automatic)
@@ -196,10 +213,13 @@
 | Setting | Value |
 |---------|-------|
 | Base Speed | 0.85 (85%) |
+| Slow Motion Speed | 0.30 (30%) |
+| Turbo Speed | 1.0 (100%) |
 | Sensitivity | 1.2 |
 | Deadzone | 0.1 |
-| Index Bottom Motor Delay | 900ms |
-| Intake Wheel Stop Delay | 300ms |
+| Index Bottom Motor Delay | 1500ms |
+| Index Top Motor Delay | 1500ms (sensor can override) |
+| Intake Wheel Stop Delay | 600ms |
 | Shooter RPM Increment | 100 RPM per press |
 | Hood Position Increment | 0.05 per press |
 | **Color Sensor Distance Threshold** | **3.0 cm** |
@@ -215,7 +235,7 @@
 
 **Hardware:** REV v3 Color Sensor for artifact detection
 
-**Last Updated:** 2025-11-28
+**Last Updated:** 2025-12-03
 
 ---
 
