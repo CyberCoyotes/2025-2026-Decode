@@ -189,20 +189,25 @@ public class PrimeTeleOp extends LinearOpMode {
             double lateral = gamepad1.left_stick_x;     // Strafe left/right
             double yaw = gamepad1.right_stick_x;        // Rotate left/right
 
-            // Apply trigger-based speed modifiers
-            double speedMultiplier = 1.0;
+            // Apply trigger-based speed modifiers to base speed (analog control)
+            double effectiveSpeed = baseSpeed;  // Start with base speed
+
+            // Left trigger: smoothly interpolate from base speed down to slow motion speed
+            // Trigger value 0.0 → base speed, 1.0 → 30% of base speed
             if (gamepad1.left_trigger > 0.1) {
-                // Slow motion mode - 30% speed
-                speedMultiplier = SLOW_MOTION_SPEED;
-            } else if (gamepad1.right_trigger > 0.1) {
-                // Turbo mode - 100% speed
-                speedMultiplier = TURBO_SPEED;
+                // Linear interpolation: baseSpeed + (targetSpeed - baseSpeed) * triggerValue
+                double targetSpeed = baseSpeed * SLOW_MOTION_SPEED;
+                effectiveSpeed = baseSpeed + (targetSpeed - baseSpeed) * gamepad1.left_trigger;
+            }
+            // Right trigger: smoothly interpolate from base speed up to turbo speed
+            // Trigger value 0.0 → base speed, 1.0 → 100% speed
+            else if (gamepad1.right_trigger > 0.1) {
+                // Linear interpolation: baseSpeed + (targetSpeed - baseSpeed) * triggerValue
+                effectiveSpeed = baseSpeed + (TURBO_SPEED - baseSpeed) * gamepad1.right_trigger;
             }
 
-            // Apply speed multiplier to inputs
-            axial *= speedMultiplier;
-            lateral *= speedMultiplier;
-            yaw *= speedMultiplier;
+            // Apply effective speed to drive subsystem
+            drive.setSpeed(effectiveSpeed);
 
             // Drive based on current state
             if (drive.getState() != DriveState.IDLE) {
