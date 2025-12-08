@@ -5,6 +5,8 @@ import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsy
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
@@ -17,6 +19,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsyste
  * using odometry feedback from the GoBilda Pinpoint odometry computer.
  * The robot will drive backward 6 inches, then stop.
  */
+@Disabled
 @Autonomous(name = "Drive Backward (Distance)", group = "Distance")
 public class DriveBackwardDistance extends LinearOpMode {
 

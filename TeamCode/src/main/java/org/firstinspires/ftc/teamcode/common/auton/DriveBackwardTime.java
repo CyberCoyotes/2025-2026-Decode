@@ -25,7 +25,7 @@ public class DriveBackwardTime extends LinearOpMode {
     private PinpointOdometrySubsystem odometry;
 
     // Configuration
-    private static final double DRIVE_TIME = 2.0; // seconds
+    private static final double DRIVE_TIME = 1.0; // seconds
     private static final double DRIVE_SPEED = 0.35; // 50% power
 
     @Override
