@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.common.pedropathing.PedroAutonBase;
  *   - Field is 144" × 144". (0, 0) = bottom-left corner of field.
  *   - X increases toward the right wall, Y increases toward the far wall.
  *   - Heading 0 = facing right (+X), 90° = facing far wall (+Y).
- *   - Use https://pedro-path-generator.vercel.app/ to visualize paths.
+ *   - Use https://visualizer.pedropathing.com/ to visualize paths.
  *
  * STARTING POSITION:
  *   Update START_POSE after you know the game field layout and where
