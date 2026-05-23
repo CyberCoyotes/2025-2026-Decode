@@ -1,0 +1,26 @@
+# Normalize all text files to LF in the repo; let each OS checkout as-is
+* text=auto eol=lf
+
+# Java / Gradle source — always LF
+*.java text eol=lf
+*.gradle text eol=lf
+*.gradle.kts text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.properties text eol=lf
+
+# Shell scripts — LF only
+gradlew text eol=lf
+
+# Windows batch — CRLF
+gradlew.bat text eol=crlf
+
+# Binaries — no line-ending conversion
+*.png binary
+*.jpg binary
+*.wav binary
+*.jar binary
+*.pdf binary
+*.zip binary
