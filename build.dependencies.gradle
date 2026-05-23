@@ -1,6 +1,7 @@
 repositories {
     mavenCentral()
     google() // Needed for androidx
+    maven { url = "https://mymaven.bylazar.com/releases" } // Pedro Pathing
 }
 
 dependencies {
@@ -13,5 +14,11 @@ dependencies {
     implementation 'org.firstinspires.ftc:FtcCommon:11.1.0'
     implementation 'org.firstinspires.ftc:Vision:11.1.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
+
+    // ─── Path following ───────────────────────────────────────────────────────
+    implementation 'com.pedropathing:ftc:2.1.2'
+
+    // ─── Command-based framework (WPILib-adjacent, bridges to 2027 WPILib) ───
+    implementation 'org.ftclib.ftclib:core:2.1.1'
 }
 
