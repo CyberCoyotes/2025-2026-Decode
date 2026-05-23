@@ -30,11 +30,6 @@ android {
     flavorDimensions "robot"
 
     productFlavors {
-        practiceBot {
-            dimension "robot"
-            buildConfigField "String", "ROBOT_NAME", '"PracticeBot"'
-        }
-
         team11940 {
             dimension "robot"
             buildConfigField "String", "ROBOT_NAME", '"Team11940"'
