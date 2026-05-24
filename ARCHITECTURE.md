@@ -305,12 +305,11 @@ Written in English. No code. This is what the robot does, not how. If a rewrite 
 
 ## 7. Pose fusion (Limelight + Pinpoint)
 
-[CONFIRM — high level shape; specific implementation in a follow-up issue]
+**Deferred — not part of the command-based rewrite.**
 
-- Pinpoint provides continuous high-frequency pose estimate.
-- Limelight provides absolute pose corrections from AprilTags when visible.
-- Fusion: trust Pinpoint by default; when Limelight reports a valid botpose with acceptable latency, blend the AprilTag pose into the Pinpoint estimate (latency-compensated).
-- Both teleop and auton consume the fused pose, not the raw Pinpoint pose.
+All OpModes use raw Pinpoint pose during the rewrite. Limelight remains available for telemetry and vision-alignment commands but does not feed the pose estimate.
+
+Pose fusion is a follow-on project after the rewrite is stable. When that project starts, open a new issue and design it there rather than in this document.
 
 ---
 
@@ -334,7 +333,7 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 - [x] `IntakeCommand` is written first (pattern validation); `ShootCommand` is written second and becomes the gold-standard template
 - [x] Shoot sequence: wait for `AT_SPEED` OR 2-second timeout (whichever first), then feed regardless; command ends on button release
 - [x] Shoot sequence timeout value: 2 seconds (spin-up wait only, not total command duration)
-- [ ] Pose fusion implementation approach (latency-compensated blend vs. simple replacement)
+- [x] Pose fusion: deferred; raw Pinpoint pose used throughout the rewrite; fusion is a separate follow-on project
 - [ ] Whether `IntakeSubsystem` stays as one class (wheels + slides) or splits into two
 - [ ] Whether the existing button bindings carry forward unchanged or get simplified
 - [ ] Whether per-team commands go in `team11940/commands/` and `team22091/commands/`, or stay in `common/commands/` with team-specific factories
