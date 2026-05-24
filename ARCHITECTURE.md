@@ -87,8 +87,8 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 │   ├── teleop/          PrimeTeleOpBase (abstract CommandOpMode)
 │   ├── auton/           PedroAutonBase + shared auton commands/paths
 │   └── pedropathing/    PedroConfig, Tuning, TUNING.md, paths/
-├── team11940/           Team11940Config, PrimeTeleOp wrapper, team-specific commands/auton
-└── team22091/           Team22091Config, PrimeTeleOp wrapper, team-specific commands/auton
+├── team11940/           Team11940Config, TeleOp wrapper (@TeleOp name + getRobotConfig())
+└── team22091/           Team22091Config, TeleOp wrapper (@TeleOp name + getRobotConfig())
 ```
 
 ### Dependencies
@@ -336,7 +336,7 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 - [x] Pose fusion: deferred; raw Pinpoint pose used throughout the rewrite; fusion is a separate follow-on project
 - [x] `IntakeSubsystem` stays as one class (wheels + slides); auto-slide coupling is intentional physical behavior, not a command-layer concern
 - [x] Existing button bindings carry forward unchanged into the rewrite
-- [ ] Whether per-team commands go in `team11940/commands/` and `team22091/commands/`, or stay in `common/commands/` with team-specific factories
+- [x] All commands live in `common/commands/`; no team-specific command directories. Team identity is fully expressed by the `@TeleOp` display name (in the flavor wrapper) and tuning values in `RobotConfig`.
 
 ---
 
