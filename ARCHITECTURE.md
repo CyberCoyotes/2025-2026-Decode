@@ -334,7 +334,7 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 - [x] Shoot sequence: wait for `AT_SPEED` OR 2-second timeout (whichever first), then feed regardless; command ends on button release
 - [x] Shoot sequence timeout value: 2 seconds (spin-up wait only, not total command duration)
 - [x] Pose fusion: deferred; raw Pinpoint pose used throughout the rewrite; fusion is a separate follow-on project
-- [ ] Whether `IntakeSubsystem` stays as one class (wheels + slides) or splits into two
+- [x] `IntakeSubsystem` stays as one class (wheels + slides); auto-slide coupling is intentional physical behavior, not a command-layer concern
 - [ ] Whether the existing button bindings carry forward unchanged or get simplified
 - [ ] Whether per-team commands go in `team11940/commands/` and `team22091/commands/`, or stay in `common/commands/` with team-specific factories
 
