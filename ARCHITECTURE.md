@@ -232,6 +232,8 @@ When in doubt during a rewrite session, re-read these two files. They are the so
 | `MEDIUM_RANGE` | 2500 | 0.60 |
 | `LONG_RANGE` | 2800 | 0.60 |
 
+> **Known code drift:** `ShooterSubsystem.ShotState.LONG_RANGE` is currently hardcoded to 3500 RPM (experimental value). Fix to 2800 when rewriting ShooterSubsystem.
+
 ---
 
 ## 6. Behavior specification
