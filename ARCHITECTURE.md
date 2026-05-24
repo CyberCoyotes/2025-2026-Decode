@@ -276,9 +276,9 @@ Written in English. No code. This is what the robot does, not how. If a rewrite 
 
 1. Operator presses RB.
 2. Shooter commanded to current preset (spins up).
-3. When shooter reports `AT_SPEED`, index commanded to `FEEDING`.
-4. Continue feeding for up to 2 seconds OR until artifact count = 0 (whichever first). [CONFIRM: timeout value, end condition]
-5. On release of RB, shooter returns to IDLE, index returns to IDLE.
+3. Wait for `AT_SPEED` OR 2-second timeout — whichever comes first. Index fires regardless after the wait.
+4. Index commanded to `FEEDING`; continues until RB is released.
+5. On release of RB, shooter returns to `IDLE`, index returns to `IDLE`.
 
 ### Jam clear (composite behavior)
 
@@ -332,8 +332,8 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 
 - [x] `ShooterSubsystem` is the gold standard
 - [x] `IntakeCommand` is written first (pattern validation); `ShootCommand` is written second and becomes the gold-standard template
-- [ ] Shoot sequence timeout value (2 seconds? configurable?)
-- [ ] Shoot sequence end condition (timeout only, artifact-count, both?)
+- [x] Shoot sequence: wait for `AT_SPEED` OR 2-second timeout (whichever first), then feed regardless; command ends on button release
+- [x] Shoot sequence timeout value: 2 seconds (spin-up wait only, not total command duration)
 - [ ] Pose fusion implementation approach (latency-compensated blend vs. simple replacement)
 - [ ] Whether `IntakeSubsystem` stays as one class (wheels + slides) or splits into two
 - [ ] Whether the existing button bindings carry forward unchanged or get simplified
