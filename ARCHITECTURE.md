@@ -138,7 +138,7 @@ These are the smells we're rewriting away from. Do not reintroduce them.
 
 ## 4. Reference implementation — the gold standard
 
-**`ShooterSubsystem` is the gold-standard subsystem.** [CONFIRM: agree, or pick a different one]
+**`ShooterSubsystem` is the gold-standard subsystem.**
 
 Every other subsystem must match its pattern:
 - Public `Status` enum
@@ -330,7 +330,7 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 
 `[CONFIRM]` markers throughout this doc flag decisions that are not yet locked. Claude Code is instructed (section 8) to stop and ask when it hits one relevant to the current task. When a decision is made, replace the `[CONFIRM]` with the chosen answer and note the change in the commit message.
 
-- [ ] `ShooterSubsystem` is the gold standard (or pick another)
+- [x] `ShooterSubsystem` is the gold standard
 - [ ] `ShootCommand` is the first command to write (or pick another)
 - [ ] Shoot sequence timeout value (2 seconds? configurable?)
 - [ ] Shoot sequence end condition (timeout only, artifact-count, both?)
