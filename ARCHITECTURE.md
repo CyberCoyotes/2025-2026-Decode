@@ -148,7 +148,7 @@ Every other subsystem must match its pattern:
 - Hardware names as `private static final String` constants
 - No knowledge of other subsystems
 
-**`ShootCommand` is the gold-standard command.** [CONFIRM: write this first, then use as template]
+**`ShootCommand` is the gold-standard command.** Write `IntakeCommand` first to validate the pattern (one subsystem, simple lifecycle), then write `ShootCommand` as the template all other commands follow. `ShootCommand` cannot be written until `ShooterSubsystem` and `IndexSubsystem` are rewritten with their `Status` enums.
 
 Every other command must match its pattern:
 - Extends `CommandBase`
@@ -331,7 +331,7 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 `[CONFIRM]` markers throughout this doc flag decisions that are not yet locked. Claude Code is instructed (section 8) to stop and ask when it hits one relevant to the current task. When a decision is made, replace the `[CONFIRM]` with the chosen answer and note the change in the commit message.
 
 - [x] `ShooterSubsystem` is the gold standard
-- [ ] `ShootCommand` is the first command to write (or pick another)
+- [x] `IntakeCommand` is written first (pattern validation); `ShootCommand` is written second and becomes the gold-standard template
 - [ ] Shoot sequence timeout value (2 seconds? configurable?)
 - [ ] Shoot sequence end condition (timeout only, artifact-count, both?)
 - [ ] Pose fusion implementation approach (latency-compensated blend vs. simple replacement)
