@@ -108,7 +108,7 @@ public class BlueLongDriveShoot extends LinearOpMode {
         // Step 4: Take shot at medium range for 5 seconds
         telemetry.addLine("Step 4: Taking shot...");
         telemetry.update();
-        takeShot(ShooterSubsystem.ShotState.MEDIUM_RANGE, SHOOTER_DURATION);
+        takeShot(ShooterSubsystem.ShotPreset.MEDIUM_RANGE, SHOOTER_DURATION);
 
         // Stop all systems
         drive.stop();
@@ -211,12 +211,12 @@ public class BlueLongDriveShoot extends LinearOpMode {
      * @param preset The shot preset (SHORT_RANGE, MEDIUM_RANGE, or LONG_RANGE)
      * @param duration Total duration in seconds
      */
-    private void takeShot(ShooterSubsystem.ShotState preset, double duration) {
+    private void takeShot(ShooterSubsystem.ShotPreset preset, double duration) {
         ElapsedTime runtime = new ElapsedTime();
         runtime.reset();
 
         // Set the shot state (flywheel + hood)
-        shooter.setShotState(preset);
+        shooter.setPreset(preset);
 
         // Wait for flywheel to reach target RPM before starting index
         boolean indexStarted = false;

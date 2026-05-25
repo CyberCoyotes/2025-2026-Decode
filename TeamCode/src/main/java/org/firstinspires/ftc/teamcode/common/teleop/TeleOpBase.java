@@ -318,17 +318,17 @@ public abstract class PrimeTeleOpBase extends LinearOpMode {
      * ======================================== */
     private void handleShooterControls() {
         if (gamepad2.x && !lastGP2_XState) {
-            shooter.setShotState(ShooterSubsystem.ShotState.SHORT_RANGE);
+            shooter.setPreset(ShooterSubsystem.ShotPreset.SHORT_RANGE);
         }
         lastGP2_XState = gamepad2.x;
 
         if (gamepad2.y && !lastGP2_YState) {
-            shooter.setShotState(ShooterSubsystem.ShotState.MEDIUM_RANGE);
+            shooter.setPreset(ShooterSubsystem.ShotPreset.MEDIUM_RANGE);
         }
         lastGP2_YState = gamepad2.y;
 
         if (gamepad2.b && !lastGP2_BState) {
-            shooter.setShotState(ShooterSubsystem.ShotState.LONG_RANGE);
+            shooter.setPreset(ShooterSubsystem.ShotPreset.LONG_RANGE);
         }
         lastGP2_BState = gamepad2.b;
 
@@ -358,7 +358,7 @@ public abstract class PrimeTeleOpBase extends LinearOpMode {
             flywheelRunning = true;
         } else if (gamepad2.right_bumper) {
             if (!flywheelRunning) {
-                shooter.setShotState(shooter.getShotState());
+                shooter.setPreset(shooter.getPreset());
                 flywheelRunning = true;
             }
             if (shooter.isAtTargetRPM()) {
@@ -420,12 +420,12 @@ public abstract class PrimeTeleOpBase extends LinearOpMode {
 
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
-        telemetry.addData("Preset", shooter.getShotState().name());
+        telemetry.addData("Preset", shooter.getPreset().name());
         telemetry.addData("Target RPM", shooter.getTargetRPM());
         telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
         telemetry.addData("At Target", shooter.isAtTargetRPM() ? "✓ YES" : "✗ NO");
         telemetry.addData("Motor Power", String.format("%.0f%%", shooter.getFlywheelPower() * 100));
-        telemetry.addData("Preset Hood", String.format("%.2f", shooter.getShotState().getHoodPosition()));
+        telemetry.addData("Preset Hood", String.format("%.2f", shooter.getPreset().getHoodPosition()));
         telemetry.addData("Current Hood", String.format("%.2f", shooter.getHoodPosition()));
         telemetry.addData("Sequential Mode", flywheelRunning ? "RUNNING" : "IDLE");
 
