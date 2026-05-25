@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.common.subsystems;
 
+import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
@@ -8,210 +9,171 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
+import java.util.Collections;
 import java.util.List;
 
-/**
- * Subsystem for managing the Limelight 3A vision sensor
- * Configured for AprilTag detection using 36h11 tag family (2025-2026 FTC DECODE season)
- */
-public class LimelightSubsystem {
+public class LimelightSubsystem extends SubsystemBase {
 
-    private Limelight3A limelight;
-    private LLResult latestResult;
-    private LLStatus status;
+    // Hardware config name (ARCHITECTURE.md §5)
+    private static final String LIMELIGHT_NAME = "limelight";
 
-    /**
-     * Initialize the Limelight subsystem
-     * @param hardwareMap The hardware map from the OpMode
-     */
+    // Pipeline 0 = AprilTag 36h11 (configured in the Limelight web interface, not in code)
+    private static final int DEFAULT_PIPELINE = 0;
+
+    private static final int POLL_RATE_HZ = 100;
+
+    public enum Status {
+        OFFLINE,
+        SEARCHING,
+        LOCKED
+    }
+
+    private final Limelight3A limelight;
+    private LLResult           latestResult;
+    private LLStatus           latestStatus;
+
     public LimelightSubsystem(HardwareMap hardwareMap) {
-        // Get the Limelight from hardware map
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        
-        // Switch to pipeline 0 (configure this in Limelight web interface for 36h11 AprilTags)
-        limelight.pipelineSwitch(0);
-        
-        // Start polling for data
+        limelight = hardwareMap.get(Limelight3A.class, LIMELIGHT_NAME);
+        limelight.pipelineSwitch(DEFAULT_PIPELINE);
+        limelight.setPollRateHz(POLL_RATE_HZ);
         limelight.start();
     }
 
-    /**
-     * Update the latest result and status from the Limelight
-     * Call this periodically in your main loop
-     */
-    public void update() {
+    @Override
+    public void periodic() {
         latestResult = limelight.getLatestResult();
-        status = limelight.getStatus();
+        latestStatus = limelight.getStatus();
     }
 
+    // ---- Status -------------------------------------------------------
+
     /**
-     * Get the latest result from the Limelight
-     * @return LLResult object containing detection data
+     * Derives the current operating state from the most recent SDK snapshots.
+     *
+     * <p>OFFLINE is signaled by a null {@code LLStatus} (pre-first-poll case) OR by
+     * {@code getTemp() <= 0.0} (unreachable-device case — a running camera always reports
+     * positive thermal data). This temperature check is based on observed SDK behavior.
+     *
+     * <p>TODO: verify temperature-based OFFLINE detection against physical hardware.
+     * If OFFLINE triggers spuriously during normal operation, switch to another signal
+     * (e.g. stale FPS reading, status timestamp) as needed.
      */
-    public LLResult getLatestResult() {
-        return latestResult;
+    public Status getStatus() {
+        if (latestStatus == null || latestStatus.getTemp() <= 0.0) return Status.OFFLINE;
+        if (latestResult == null || !latestResult.isValid())        return Status.SEARCHING;
+        return Status.LOCKED;
     }
 
+    public boolean isOffline()   { return getStatus() == Status.OFFLINE; }
+    public boolean isSearching() { return getStatus() == Status.SEARCHING; }
+    public boolean isLocked()    { return getStatus() == Status.LOCKED; }
+
+    /** Alias for {@link #isLocked()}; reads more naturally at call sites. */
+    public boolean hasTarget()   { return isLocked(); }
+
+    // ---- Getters ------------------------------------------------------
+
     /**
-     * Get the status of the Limelight (temperature, CPU, FPS, etc.)
-     * @return LLStatus object containing status information
+     * Horizontal angle to the primary target, in degrees.
+     *
+     * <p><strong>Caller must verify {@link #isLocked()} (or {@link #hasTarget()}) before
+     * reading this value.</strong> When not locked, the return value is undefined — in
+     * practice 0.0 or whatever the Limelight last reported. This is the standard FRC/FTC
+     * convention for tx/ty; the contract is the guard, not a sentinel return value.
      */
-    public LLStatus getStatus() {
-        return status;
+    public double getTx() {
+        return latestResult != null ? latestResult.getTx() : 0.0;
     }
 
     /**
-     * Check if the Limelight has valid data
-     * @return true if data is valid, false otherwise
+     * Vertical angle to the primary target, in degrees.
+     *
+     * <p>Same contract as {@link #getTx()} — caller must verify {@link #isLocked()} first.
      */
-    public boolean hasValidData() {
-        return latestResult != null && latestResult.isValid();
+    public double getTy() {
+        return latestResult != null ? latestResult.getTy() : 0.0;
     }
 
     /**
-     * Get all detected AprilTags (fiducials)
-     * @return List of FiducialResult objects, or empty list if no tags detected
-     */
-    public List<LLResultTypes.FiducialResult> getDetectedAprilTags() {
-        if (hasValidData()) {
-            return latestResult.getFiducialResults();
-        }
-        return java.util.Collections.emptyList();
-    }
-
-    /**
-     * Get the number of AprilTags currently detected
-     * @return Number of detected tags
-     */
-    public int getAprilTagCount() {
-        return getDetectedAprilTags().size();
-    }
-
-    /**
-     * Check if a specific AprilTag ID is currently detected
-     * @param targetId The AprilTag ID to look for
-     * @return true if the tag is detected, false otherwise
-     */
-    public boolean isTagDetected(int targetId) {
-        for (LLResultTypes.FiducialResult tag : getDetectedAprilTags()) {
-            if (tag.getFiducialId() == targetId) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Get a specific AprilTag by ID
-     * @param targetId The AprilTag ID to find
-     * @return FiducialResult for the tag, or null if not found
-     */
-    public LLResultTypes.FiducialResult getTagById(int targetId) {
-        for (LLResultTypes.FiducialResult tag : getDetectedAprilTags()) {
-            if (tag.getFiducialId() == targetId) {
-                return tag;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Get the robot's estimated position (botpose) from AprilTag localization
-     * @return Pose3D object with robot position, or null if not available
+     * Robot's estimated field pose derived from visible AprilTags.
+     *
+     * @return Pose3D from the most recent valid result, or {@code null} if not locked.
      */
     public Pose3D getBotPose() {
-        if (hasValidData()) {
-            return latestResult.getBotpose();
+        if (latestResult == null || !latestResult.isValid()) return null;
+        return latestResult.getBotpose();
+    }
+
+    /**
+     * Total vision-pipeline latency (capture + targeting), in milliseconds.
+     *
+     * <p>Returns 0.0 when no valid result is available. When implementing pose fusion
+     * (ARCHITECTURE.md §7), use this value: the pose returned by {@link #getBotPose()} is
+     * this many milliseconds old and should be combined with drive state at the capture
+     * timestamp, not the current timestamp.
+     *
+     * @return latency in ms, or 0.0 if not locked.
+     */
+    public double getTotalLatencyMs() {
+        if (latestResult == null || !latestResult.isValid()) return 0.0;
+        return latestResult.getCaptureLatency() + latestResult.getTargetingLatency();
+    }
+
+    /**
+     * All AprilTags visible in the current frame.
+     *
+     * @return list of fiducial results; never {@code null}; empty when not locked.
+     */
+    public List<LLResultTypes.FiducialResult> getDetectedAprilTags() {
+        if (latestResult == null || !latestResult.isValid()) return Collections.emptyList();
+        return latestResult.getFiducialResults();
+    }
+
+    /**
+     * Finds a specific AprilTag by its fiducial ID.
+     *
+     * @param tagId fiducial ID to search for.
+     * @return the matching {@link LLResultTypes.FiducialResult}, or {@code null} if not detected.
+     */
+    public LLResultTypes.FiducialResult getTagById(int tagId) {
+        for (LLResultTypes.FiducialResult tag : getDetectedAprilTags()) {
+            if (tag.getFiducialId() == tagId) return tag;
         }
         return null;
     }
 
     /**
-     * Get the horizontal angle to the primary target
-     * @return Horizontal angle in degrees (tx)
+     * Currently active pipeline index as reported by the Limelight.
+     *
+     * @return pipeline index, or -1 if the status snapshot is not yet available.
      */
-    public double getTargetX() {
-        if (hasValidData()) {
-            return latestResult.getTx();
-        }
-        return 0.0;
+    public int getPipelineIndex() {
+        return latestStatus != null ? latestStatus.getPipelineIndex() : -1;
     }
 
     /**
-     * Get the vertical angle to the primary target
-     * @return Vertical angle in degrees (ty)
+     * Raw {@link LLStatus} snapshot, for telemetry and diagnostics only.
+     *
+     * <p>Exposes internal SDK state. Use only for debugging or telemetry display —
+     * do not branch on {@code LLStatus} fields in production logic.
+     *
+     * @return the most recent status snapshot, or {@code null} before the first {@link #periodic()} call.
      */
-    public double getTargetY() {
-        if (hasValidData()) {
-            return latestResult.getTy();
-        }
-        return 0.0;
+    public LLStatus getLLStatus() {
+        return latestStatus;
     }
 
-    /**
-     * Get the total latency (capture + targeting)
-     * @return Latency in milliseconds
-     */
-    public double getTotalLatency() {
-        if (hasValidData()) {
-            return latestResult.getCaptureLatency() + latestResult.getTargetingLatency();
-        }
-        return 0.0;
-    }
+    // ---- Verb methods -------------------------------------------------
 
     /**
-     * Switch to a different pipeline
-     * @param pipelineIndex The index of the pipeline to switch to (0-9)
+     * Switches the active vision pipeline.
+     *
+     * <p>Fire-and-forget: returns immediately; the Limelight changes pipelines
+     * asynchronously within milliseconds.
+     *
+     * @param pipelineIndex pipeline to activate (0–9).
      */
     public void switchPipeline(int pipelineIndex) {
         limelight.pipelineSwitch(pipelineIndex);
-    }
-
-    /**
-     * Stop the Limelight
-     * Call this when the OpMode is stopping
-     */
-    public void stop() {
-        limelight.stop();
-    }
-
-    /**
-     * Get a formatted string with AprilTag information for telemetry
-     * @return String with AprilTag data
-     */
-    public String getAprilTagTelemetry() {
-        StringBuilder sb = new StringBuilder();
-        List<LLResultTypes.FiducialResult> tags = getDetectedAprilTags();
-        
-        if (tags.isEmpty()) {
-            sb.append("No AprilTags detected");
-        } else {
-            sb.append(String.format("Detected %d tag(s): ", tags.size()));
-            for (int i = 0; i < tags.size(); i++) {
-                LLResultTypes.FiducialResult tag = tags.get(i);
-                if (i > 0) sb.append(", ");
-                sb.append(String.format("ID %d (%.1f°, %.1f°)", 
-                    tag.getFiducialId(), 
-                    tag.getTargetXDegrees(), 
-                    tag.getTargetYDegrees()));
-            }
-        }
-        
-        return sb.toString();
-    }
-
-    /**
-     * Get Limelight status information for telemetry
-     * @return String with status data
-     */
-    public String getStatusTelemetry() {
-        if (status == null) {
-            return "Status: Unknown";
-        }
-        return String.format("Temp: %.1f°C, CPU: %.1f%%, FPS: %d, Pipeline: %d", 
-            status.getTemp(), 
-            status.getCpu(), 
-            (int)status.getFps(),
-            status.getPipelineIndex());
     }
 }
