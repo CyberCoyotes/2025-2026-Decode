@@ -32,12 +32,6 @@ import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
  * <p>A companion command {@code ClearIndexJamCommand} (index reverse only, no shooter) will
  * exist in a separate file and is not part of this session.
  *
- * <p>Intended binding (operator gamepad, RB + A):
- * <pre>
- *   operatorGamepad.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
- *       .and(operatorGamepad.getGamepadButton(GamepadKeys.Button.A))
- *       .whileTrue(new ClearJamCommand(shooterSubsystem, indexSubsystem));
- * </pre>
  */
 public class ClearJamCommand extends CommandBase {
 
