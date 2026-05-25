@@ -1,539 +1,222 @@
 package org.firstinspires.ftc.teamcode.common.subsystems;
 
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.IMU;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.common.config.RobotConfig;
+import java.util.function.DoubleSupplier;
 
-/**
- * Mecanum Drive Subsystem for Teams 11940 & Teams 22091
- * Supports field-centric and robot-centric drive modes
- * Configurable speed, sensitivity, and deadzone
- * Implements state machine for different drive modes
- */
-public class MecanumDriveSubsystem {
+public class MecanumDriveSubsystem extends SubsystemBase {
 
-    /* ========================================
-     * DRIVE STATE ENUM
-     * ======================================== */
-    public enum DriveState {
-        IDLE,              // Emergency stop - no movement
-        ROBOT_CENTRIC,     // Normal robot-relative driving
-        FIELD_CENTRIC,     // Field-relative driving using IMU
-        PRECISION,         // Slow, precise movements (50% speed)
-        TURBO              // Fast movements (100% speed)
-    }
+    // Hardware config names
+    private static final String LEFT_FRONT_NAME  = "leftFront";
+    private static final String LEFT_BACK_NAME   = "leftBack";
+    private static final String RIGHT_FRONT_NAME = "rightFront";
+    private static final String RIGHT_BACK_NAME  = "rightBack";
 
-    /* ========================================
-     * HARDWARE
-     * ======================================== */
+    // PRECISION speed-mode multiplier (applied on top of baseSpeed)
+    private static final double PRECISION_MULTIPLIER = 0.5;
+
+    public enum HeadingMode { FIELD_CENTRIC, ROBOT_CENTRIC }
+    public enum SpeedMode   { NORMAL, PRECISION, TURBO }
+
     private final DcMotorEx leftFront;
     private final DcMotorEx leftBack;
     private final DcMotorEx rightFront;
     private final DcMotorEx rightBack;
-    private final IMU imu;
 
-    /* ========================================
-     * ODOMETRY (OPTIONAL)
-     * ======================================== */
-    private PinpointOdometrySubsystem odometry = null;  // Optional Pinpoint odometry
+    private final DoubleSupplier headingSupplier;
 
-    /* ========================================
-     * STATE MACHINE
-     * ======================================== */
-    private DriveState currentState = DriveState.FIELD_CENTRIC;  // Default to field-centric for competition
+    private HeadingMode headingMode = HeadingMode.FIELD_CENTRIC;
+    private SpeedMode   speedMode   = SpeedMode.NORMAL;
 
-    /* ========================================
-     * CONFIGURATION VARIABLES
-     * ======================================== */
-    private double speedMultiplier = 1.0;      // Overall speed (0.0 to 1.0)
-    private double sensitivityMultiplier = 1.0; // Sensitivity curve (0.5 to 2.0)
-    private double deadzone = 0.1;              // Joystick deadzone (0.0 to 0.3)
-    private boolean fieldCentric = true;        // Enable/disable field-centric drive
+    private double baseSpeed;
+    private double sensitivity;
+    private double deadzone;
 
-    /* ========================================
-     * CONSTANTS
-     * ======================================== */
-    private static final double MIN_SPEED = 0.1;
-    private static final double MAX_SPEED = 1.0;
-    private static final double MIN_SENSITIVITY = 0.5;
-    private static final double MAX_SENSITIVITY = 2.0;
-    private static final double MIN_DEADZONE = 0.0;
-    private static final double MAX_DEADZONE = 0.3;
+    private double headingOffset  = 0.0;
 
-    /* ========================================
-     * CONSTRUCTOR
-     * ======================================== */
-    public MecanumDriveSubsystem(HardwareMap hardwareMap) {
-        // Initialize motors with hardware map names
-        leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
-        leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
-        rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
-        rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
+    private double storedForward  = 0.0;
+    private double storedStrafe   = 0.0;
+    private double storedRotate   = 0.0;
 
-        // Set motor directions
-        // TODO: Test and adjust these directions based on your robot's wiring
-        leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftBack.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightFront.setDirection(DcMotorSimple.Direction.FORWARD);
-        rightBack.setDirection(DcMotorSimple.Direction.FORWARD);
+    /**
+     * @param headingSupplier Returns the robot heading in <b>radians</b>. Any
+     *                        degrees-to-radians conversion for Pinpoint or IMU sources
+     *                        must happen at the wiring layer (TeleOp constructor), not here.
+     */
+    public MecanumDriveSubsystem(HardwareMap hardwareMap,
+                                 DoubleSupplier headingSupplier,
+                                 RobotConfig config) {
+        leftFront  = hardwareMap.get(DcMotorEx.class, LEFT_FRONT_NAME);
+        leftBack   = hardwareMap.get(DcMotorEx.class, LEFT_BACK_NAME);
+        rightFront = hardwareMap.get(DcMotorEx.class, RIGHT_FRONT_NAME);
+        rightBack  = hardwareMap.get(DcMotorEx.class, RIGHT_BACK_NAME);
 
-        // Set zero power behavior to brake for better control
+        // Standard goBilda mecanum convention (rightFront + rightBack reversed per inventory)
+        leftFront.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftBack.setDirection(DcMotorSimple.Direction.FORWARD);
+        rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightBack.setDirection(DcMotorSimple.Direction.REVERSE);
+
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Set motors to run without encoders for teleop
         leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        // Initialize IMU
-        imu = hardwareMap.get(IMU.class, "imu");
-
-        // Configure IMU orientation based on Control Hub mounting
-        // COMPETITION BOT MOUNTING CONFIGURATION:
-        // - Control Hub is mounted VERTICALLY on the LEFT side of the robot
-        // - Located approximately 7 inches toward the back
-        // - Located approximately 7 inches to the left
-        // - Logo/stickers face INWARD (toward the center/right side of robot)
-        // - USB ports face UP
-        //
-        // This configuration is CRITICAL for field-centric driving to work correctly!
-        //
-        // To verify orientation is correct, test that:
-        // - Forward on stick moves robot FORWARD (in field-centric mode)
-        // - Yaw increases when robot rotates COUNTER-CLOCKWISE (✓ verified working)
-        // - Pitch increases when robot front tips UP
-        //
-        // For vertically mounted Control Hub on left side with logo facing right/inward:
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,  // Logo faces inward (right/center)
-                RevHubOrientationOnRobot.UsbFacingDirection.UP       // USB ports face up
-        ));
-        imu.initialize(parameters);
+        this.headingSupplier = headingSupplier;
+        this.baseSpeed       = config.defaultBaseSpeed();
+        this.sensitivity     = config.defaultSensitivity();
+        this.deadzone        = config.defaultDeadzone();
     }
 
-    /* ========================================
-     * DRIVE METHODS
-     * ======================================== */
+    @Override
+    public void periodic() {
+        // 1. Deadzone
+        double y = applyDeadzone(storedForward);
+        double x = applyDeadzone(storedStrafe);
+        double r = applyDeadzone(storedRotate);
 
-    /**
-     * Main drive method for mecanum wheels
-     * Supports both field-centric and robot-centric modes
-     * Behavior changes based on current state
-     *
-     * @param axial Forward/backward motion (left stick Y)
-     * @param lateral Left/right strafe motion (left stick X)
-     * @param yaw Rotation motion (right stick X)
-     */
-    public void drive(double axial, double lateral, double yaw) {
-        // Handle IDLE state - stop all motors
-        if (currentState == DriveState.IDLE) {
-            stop();
-            return;
+        // 2. Sensitivity curve: sign * |v|^sensitivity
+        y = applySensitivity(y);
+        x = applySensitivity(x);
+        r = applySensitivity(r);
+
+        // 3. Speed-mode multiplier (Option B: TURBO bypasses baseSpeed entirely)
+        if (speedMode == SpeedMode.TURBO) {
+            // no scaling — full power available
+        } else if (speedMode == SpeedMode.PRECISION) {
+            double scale = baseSpeed * PRECISION_MULTIPLIER;
+            y *= scale;
+            x *= scale;
+            r *= scale;
+        } else {
+            y *= baseSpeed;
+            x *= baseSpeed;
+            r *= baseSpeed;
         }
 
-        // Apply deadzone first
-        axial = applyDeadzone(axial);
-        lateral = applyDeadzone(lateral);
-        yaw = applyDeadzone(yaw);
-
-        // Apply sensitivity curve
-        axial = applySensitivity(axial);
-        lateral = applySensitivity(lateral);
-        yaw = applySensitivity(yaw);
-
-        // Apply field-centric transformation if in FIELD_CENTRIC state
-        if (currentState == DriveState.FIELD_CENTRIC) {
-            // Get the robot's current heading (from Pinpoint or IMU)
-            double botHeading = getHeadingRadians();
-
-            // Rotate the movement direction to be relative to the field
-            // This uses a 2D rotation matrix to transform joystick inputs
-            double rotatedAxial = axial * Math.cos(-botHeading) - lateral * Math.sin(-botHeading);
-            double rotatedLateral = axial * Math.sin(-botHeading) + lateral * Math.cos(-botHeading);
-
-            axial = rotatedAxial;
-            lateral = rotatedLateral;
+        // 4. Field-centric rotation
+        if (headingMode == HeadingMode.FIELD_CENTRIC) {
+            double heading  = getHeading();
+            double rotatedY =  y * Math.cos(-heading) - x * Math.sin(-heading);
+            double rotatedX =  y * Math.sin(-heading) + x * Math.cos(-heading);
+            y = rotatedY;
+            x = rotatedX;
         }
 
-        // Calculate wheel powers using mecanum drive kinematics
-        double leftFrontPower = axial + lateral + yaw;
-        double leftBackPower = axial - lateral + yaw;
-        double rightFrontPower = axial - lateral - yaw;
-        double rightBackPower = axial + lateral - yaw;
+        // 5. Mecanum mixing (standard sign convention)
+        double lf = y + x + r;
+        double lb = y - x + r;
+        double rf = y - x - r;
+        double rb = y + x - r;
 
-        // Normalize wheel powers to ensure no value exceeds 1.0
-        double maxPower = Math.max(
-                Math.max(Math.abs(leftFrontPower), Math.abs(leftBackPower)),
-                Math.max(Math.abs(rightFrontPower), Math.abs(rightBackPower))
-        );
-
-        if (maxPower > 1.0) {
-            leftFrontPower /= maxPower;
-            leftBackPower /= maxPower;
-            rightFrontPower /= maxPower;
-            rightBackPower /= maxPower;
+        // 6. Normalize
+        double max = Math.max(
+                Math.max(Math.abs(lf), Math.abs(lb)),
+                Math.max(Math.abs(rf), Math.abs(rb)));
+        if (max > 1.0) {
+            lf /= max;
+            lb /= max;
+            rf /= max;
+            rb /= max;
         }
 
-        // Apply state-based speed multiplier and base speed multiplier
-        double effectiveSpeed = speedMultiplier * getStateSpeedMultiplier();
-        leftFrontPower *= effectiveSpeed;
-        leftBackPower *= effectiveSpeed;
-        rightFrontPower *= effectiveSpeed;
-        rightBackPower *= effectiveSpeed;
-
-        // Set motor powers
-        leftFront.setPower(leftFrontPower);
-        leftBack.setPower(leftBackPower);
-        rightFront.setPower(rightFrontPower);
-        rightBack.setPower(rightBackPower);
+        // 7. Set motor powers
+        leftFront.setPower(lf);
+        leftBack.setPower(lb);
+        rightFront.setPower(rf);
+        rightBack.setPower(rb);
     }
 
-    /**
-     * Stop all drive motors
-     */
+    // ---- Verb methods (inputs) ----------------------------------------
+
+    /** Stores the requested drive velocities; actual motor output is applied in periodic(). */
+    public void drive(double forward, double strafe, double rotate) {
+        storedForward = forward;
+        storedStrafe  = strafe;
+        storedRotate  = rotate;
+    }
+
+    /** Zeroes all stored velocities; motors coast to stop on the next periodic() tick. */
     public void stop() {
-        leftFront.setPower(0);
-        leftBack.setPower(0);
-        rightFront.setPower(0);
-        rightBack.setPower(0);
+        storedForward = 0.0;
+        storedStrafe  = 0.0;
+        storedRotate  = 0.0;
+    }
+
+    public void setHeadingMode(HeadingMode mode) {
+        headingMode = mode;
+    }
+
+    public void toggleHeadingMode() {
+        headingMode = (headingMode == HeadingMode.FIELD_CENTRIC)
+                ? HeadingMode.ROBOT_CENTRIC
+                : HeadingMode.FIELD_CENTRIC;
+    }
+
+    public void setSpeedMode(SpeedMode mode) {
+        speedMode = mode;
+    }
+
+    public void setBaseSpeed(double speed) {
+        baseSpeed = speed;
+    }
+
+    public void setSensitivity(double sensitivity) {
+        this.sensitivity = sensitivity;
+    }
+
+    public void setDeadzone(double deadzone) {
+        this.deadzone = deadzone;
     }
 
     /**
-     * Reset the IMU yaw to zero
-     * This defines the current heading as "forward" for field-centric mode
-     * Call this at the start of TeleOp or when repositioning the robot
-     *
-     * If Pinpoint odometry is enabled, this will reset both IMU and Pinpoint
+     * Captures the current heading from the supplier as a zero-point offset.
+     * getHeading() returns zero immediately after this call. Does not modify
+     * the heading supplier itself.
      */
     public void resetHeading() {
-        imu.resetYaw();
-        if (odometry != null) {
-            odometry.resetPosAndIMU();
-        }
+        headingOffset = headingSupplier.getAsDouble();
     }
 
-    /* ========================================
-     * CONFIGURATION METHODS
-     * ======================================== */
+    // ---- Getters / predicates (outputs) -------------------------------
 
-    /**
-     * Enable or disable field-centric drive
-     * @param enabled true for field-centric, false for robot-centric
-     * @deprecated Use setState() instead for better state control
-     */
-    @Deprecated
-    public void setFieldCentric(boolean enabled) {
-        this.fieldCentric = enabled;
-        // Also update state for compatibility
-        if (enabled) {
-            setState(DriveState.FIELD_CENTRIC);
-        } else {
-            setState(DriveState.ROBOT_CENTRIC);
-        }
-    }
+    public HeadingMode getHeadingMode() { return headingMode; }
+    public SpeedMode   getSpeedMode()   { return speedMode; }
+    public double      getBaseSpeed()   { return baseSpeed; }
+    public double      getSensitivity() { return sensitivity; }
+    public double      getDeadzone()    { return deadzone; }
 
-    /**
-     * Toggle between field-centric and robot-centric modes
-     * @return The new state (true = field-centric, false = robot-centric)
-     * @deprecated Use setState() instead for better state control
-     */
-    @Deprecated
-    public boolean toggleFieldCentric() {
-        this.fieldCentric = !this.fieldCentric;
-        // Also update state for compatibility
-        if (fieldCentric) {
-            setState(DriveState.FIELD_CENTRIC);
-        } else {
-            setState(DriveState.ROBOT_CENTRIC);
-        }
-        return this.fieldCentric;
-    }
-
-    /**
-     * Set the overall speed multiplier
-     * @param speed Speed multiplier (0.1 to 1.0)
-     */
-    public void setSpeed(double speed) {
-        speedMultiplier = clamp(speed, MIN_SPEED, MAX_SPEED);
-    }
-
-    /**
-     * Set the sensitivity curve
-     * @param sensitivity Sensitivity multiplier (0.5 to 2.0)
-     *                   < 1.0 = less sensitive (more gradual)
-     *                   = 1.0 = linear
-     *                   > 1.0 = more sensitive (more aggressive)
-     */
-    public void setSensitivity(double sensitivity) {
-        sensitivityMultiplier = clamp(sensitivity, MIN_SENSITIVITY, MAX_SENSITIVITY);
-    }
-
-    /**
-     * Set the joystick deadzone
-     * @param deadzone Deadzone threshold (0.0 to 0.3)
-     */
-    public void setDeadzone(double deadzone) {
-        this.deadzone = clamp(deadzone, MIN_DEADZONE, MAX_DEADZONE);
-    }
-
-    /**
-     * Increase speed by 10%
-     */
-    public void increaseSpeed() {
-        setSpeed(speedMultiplier + 0.1);
-    }
-
-    /**
-     * Decrease speed by 10%
-     */
-    public void decreaseSpeed() {
-        setSpeed(speedMultiplier - 0.1);
-    }
-
-    /**
-     * Increase sensitivity
-     */
-    public void increaseSensitivity() {
-        setSensitivity(sensitivityMultiplier + 0.1);
-    }
-
-    /**
-     * Decrease sensitivity
-     */
-    public void decreaseSensitivity() {
-        setSensitivity(sensitivityMultiplier - 0.1);
-    }
-
-    /* ========================================
-     * GETTERS
-     * ======================================== */
-
-    public double getSpeed() {
-        return speedMultiplier;
-    }
-
-    public double getSensitivity() {
-        return sensitivityMultiplier;
-    }
-
-    public double getDeadzone() {
-        return deadzone;
-    }
-
-    /**
-     * Check if currently in field-centric mode
-     * @return true if in field-centric state
-     */
-    public boolean isFieldCentric() {
-        return currentState == DriveState.FIELD_CENTRIC;
-    }
-
-    /**
-     * Get the current robot heading
-     * Uses Pinpoint odometry if available, otherwise falls back to IMU
-     * @return Heading in degrees (-180 to +180)
-     */
+    /** Returns the heading in radians relative to the last resetHeading() call. */
     public double getHeading() {
-        if (odometry != null) {
-            return odometry.getHeadingDegrees();
-        }
-        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        return headingSupplier.getAsDouble() - headingOffset;
     }
 
-    /**
-     * Get the current robot heading in radians
-     * Uses Pinpoint odometry if available, otherwise falls back to IMU
-     * @return Heading in radians
-     */
-    public double getHeadingRadians() {
-        if (odometry != null) {
-            return odometry.getHeadingRadians();
-        }
-        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+    /** True when all stored velocities are zero (not derived from motor state). */
+    public boolean isStopped() {
+        return storedForward == 0.0 && storedStrafe == 0.0 && storedRotate == 0.0;
     }
 
-    public double getLeftFrontPower() {
-        return leftFront.getPower();
+    public boolean isFieldCentric() {
+        return headingMode == HeadingMode.FIELD_CENTRIC;
     }
 
-    public double getLeftBackPower() {
-        return leftBack.getPower();
-    }
+    // ---- Helpers ------------------------------------------------------
 
-    public double getRightFrontPower() {
-        return rightFront.getPower();
-    }
-
-    public double getRightBackPower() {
-        return rightBack.getPower();
-    }
-
-    /**
-     * Get the Pinpoint odometry subsystem (if configured)
-     * @return Pinpoint odometry subsystem or null if not configured
-     */
-    public PinpointOdometrySubsystem getOdometry() {
-        return odometry;
-    }
-
-    /**
-     * Set the Pinpoint odometry subsystem for heading and position tracking
-     * When set, the drive subsystem will use Pinpoint heading instead of IMU for field-centric drive
-     * @param odometry The Pinpoint odometry subsystem
-     */
-    public void setOdometry(PinpointOdometrySubsystem odometry) {
-        this.odometry = odometry;
-    }
-
-    /**
-     * Check if Pinpoint odometry is enabled
-     * @return true if Pinpoint is configured, false if using IMU only
-     */
-    public boolean isUsingPinpoint() {
-        return odometry != null;
-    }
-
-    /* ========================================
-     * STATE MACHINE METHODS
-     * ======================================== */
-
-    /**
-     * Set the current drive state
-     * @param newState The new state to transition to
-     */
-    public void setState(DriveState newState) {
-        this.currentState = newState;
-    }
-
-    /**
-     * Get the current drive state
-     * @return The current state
-     */
-    public DriveState getState() {
-        return currentState;
-    }
-
-    /**
-     * Get a string representation of the current state
-     * @return State name as string
-     */
-    public String getStateString() {
-        switch (currentState) {
-            case IDLE:
-                return "IDLE (Stopped)";
-            case ROBOT_CENTRIC:
-                return "Robot-Centric";
-            case FIELD_CENTRIC:
-                return "Field-Centric";
-            case PRECISION:
-                return "Precision Mode";
-            case TURBO:
-                return "Turbo Mode";
-            default:
-                return "Unknown";
-        }
-    }
-
-    /**
-     * Get the speed multiplier for the current state
-     * @return Speed multiplier (0.0 to 1.0)
-     */
-    public double getStateSpeedMultiplier() {
-        switch (currentState) {
-            case IDLE:
-                return 0.0;      // No movement
-            case ROBOT_CENTRIC:
-            case FIELD_CENTRIC:
-                return 1.0;      // Normal speed (uses base speed multiplier)
-            case PRECISION:
-                return 0.5;      // 50% speed for precise movements
-            case TURBO:
-                return 1.0;      // 100% speed (ignores base speed limit)
-            default:
-                return 1.0;
-        }
-    }
-
-    /* ========================================
-     * HELPER METHODS
-     * ======================================== */
-
-    /**
-     * Apply deadzone to input value
-     * @param value Raw input value
-     * @return Value with deadzone applied (0 if within deadzone)
-     */
     private double applyDeadzone(double value) {
         return Math.abs(value) > deadzone ? value : 0.0;
     }
 
-    /**
-     * Apply sensitivity curve to input value
-     * @param value Input value after deadzone
-     * @return Value with sensitivity curve applied
-     */
     private double applySensitivity(double value) {
         if (value == 0.0) return 0.0;
-
-        // Preserve sign
-        double sign = Math.signum(value);
-        double magnitude = Math.abs(value);
-
-        // Apply power curve based on sensitivity
-        // sensitivity < 1.0: makes controls more gradual
-        // sensitivity = 1.0: linear (no change)
-        // sensitivity > 1.0: makes controls more aggressive
-        magnitude = Math.pow(magnitude, sensitivityMultiplier);
-
-        return sign * magnitude;
-    }
-
-    /**
-     * Clamp value between min and max
-     * @param value Value to clamp
-     * @param min Minimum value
-     * @param max Maximum value
-     * @return Clamped value
-     */
-    private double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    /* ========================================
-     * TELEMETRY HELPER
-     * ======================================== */
-
-    /**
-     * Get formatted telemetry string for drive subsystem
-     * @return Telemetry string with all relevant info
-     */
-    public String getTelemetry() {
-        String headingSource = isUsingPinpoint() ? "Pinpoint" : "IMU";
-        return String.format(
-                "State: %s | Speed Mult: %.0f%%\n" +
-                        "Base Speed: %.0f%% | Sensitivity: %.1fx | Deadzone: %.2f\n" +
-                        "Heading: %.1f° (%s)\n" +
-                        "LF: %.2f | RF: %.2f\n" +
-                        "LB: %.2f | RB: %.2f",
-                getStateString(),
-                getStateSpeedMultiplier() * 100,
-                speedMultiplier * 100,
-                sensitivityMultiplier,
-                deadzone,
-                getHeading(),
-                headingSource,
-                leftFront.getPower(),
-                rightFront.getPower(),
-                leftBack.getPower(),
-                rightBack.getPower()
-        );
+        return Math.copySign(Math.pow(Math.abs(value), sensitivity), value);
     }
 }
