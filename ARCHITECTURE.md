@@ -58,7 +58,7 @@ Every command MUST:
 - **Classes:** Nouns. `ShooterSubsystem`, `ShootCommand`, `Team11940Config`.
 - **Status enum values:** Gerunds. `INTAKING`, `SPINNING_UP`, `FEEDING`.
 - **Command methods on subsystems:** Action verbs. `intake()`, `shoot()`, `stop()`, `reset()`.
-- **Setters:** `set` + property. `setHoodPosition()`, `setShotState()`.
+- **Setters:** `set` + property. `setHoodPosition()`, `setPreset()`.
 - **Getters:** `get` + property, OR `is`/`has` + property for booleans. `getCurrentRPM()`, `isReady()`, `hasArtifact()`.
 - **Commands:** Verb + `Command`. `ShootCommand`, `IntakeCommand`, `ClearJamCommand`.
 
@@ -232,7 +232,7 @@ When in doubt during a rewrite session, re-read these two files. They are the so
 | `MEDIUM_RANGE` | 2500 | 0.60 |
 | `LONG_RANGE` | 2800 | 0.60 |
 
-> **Known code drift:** `ShooterSubsystem.ShotState.LONG_RANGE` is currently hardcoded to 3500 RPM (experimental value). Fix to 2800 when rewriting ShooterSubsystem.
+> **Known code drift:** `ShooterSubsystem.ShotPreset.LONG_RANGE` is currently hardcoded to 3500 RPM (experimental value). Fix to 2800 when rewriting ShooterSubsystem.
 
 ---
 
