@@ -87,8 +87,8 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 │   ├── teleop/          PrimeTeleOpBase (abstract CommandOpMode)
 │   ├── auton/           PedroAutonBase + shared auton commands/paths
 │   └── pedropathing/    PedroConfig, Tuning, TUNING.md, paths/
-├── team11940/           Team11940Config, PrimeTeleOp wrapper, team-specific commands/auton
-└── team22091/           Team22091Config, PrimeTeleOp wrapper, team-specific commands/auton
+├── team11940/           Team11940Config, TeleOp wrapper (@TeleOp name + getRobotConfig())
+└── team22091/           Team22091Config, TeleOp wrapper (@TeleOp name + getRobotConfig())
 ```
 
 ### Dependencies
@@ -138,7 +138,7 @@ These are the smells we're rewriting away from. Do not reintroduce them.
 
 ## 4. Reference implementation — the gold standard
 
-**`ShooterSubsystem` is the gold-standard subsystem.** [CONFIRM: agree, or pick a different one]
+**`ShooterSubsystem` is the gold-standard subsystem.**
 
 Every other subsystem must match its pattern:
 - Public `Status` enum
@@ -148,7 +148,7 @@ Every other subsystem must match its pattern:
 - Hardware names as `private static final String` constants
 - No knowledge of other subsystems
 
-**`ShootCommand` is the gold-standard command.** [CONFIRM: write this first, then use as template]
+**`ShootCommand` is the gold-standard command.** Write `IntakeCommand` first to validate the pattern (one subsystem, simple lifecycle), then write `ShootCommand` as the template all other commands follow. `ShootCommand` cannot be written until `ShooterSubsystem` and `IndexSubsystem` are rewritten with their `Status` enums.
 
 Every other command must match its pattern:
 - Extends `CommandBase`
@@ -232,6 +232,8 @@ When in doubt during a rewrite session, re-read these two files. They are the so
 | `MEDIUM_RANGE` | 2500 | 0.60 |
 | `LONG_RANGE` | 2800 | 0.60 |
 
+> **Known code drift:** `ShooterSubsystem.ShotState.LONG_RANGE` is currently hardcoded to 3500 RPM (experimental value). Fix to 2800 when rewriting ShooterSubsystem.
+
 ---
 
 ## 6. Behavior specification
@@ -274,9 +276,9 @@ Written in English. No code. This is what the robot does, not how. If a rewrite 
 
 1. Operator presses RB.
 2. Shooter commanded to current preset (spins up).
-3. When shooter reports `AT_SPEED`, index commanded to `FEEDING`.
-4. Continue feeding for up to 2 seconds OR until artifact count = 0 (whichever first). [CONFIRM: timeout value, end condition]
-5. On release of RB, shooter returns to IDLE, index returns to IDLE.
+3. Wait for `AT_SPEED` OR 2-second timeout — whichever comes first. Index fires regardless after the wait.
+4. Index commanded to `FEEDING`; continues until RB is released.
+5. On release of RB, shooter returns to `IDLE`, index returns to `IDLE`.
 
 ### Jam clear (composite behavior)
 
@@ -303,12 +305,11 @@ Written in English. No code. This is what the robot does, not how. If a rewrite 
 
 ## 7. Pose fusion (Limelight + Pinpoint)
 
-[CONFIRM — high level shape; specific implementation in a follow-up issue]
+**Deferred — not part of the command-based rewrite.**
 
-- Pinpoint provides continuous high-frequency pose estimate.
-- Limelight provides absolute pose corrections from AprilTags when visible.
-- Fusion: trust Pinpoint by default; when Limelight reports a valid botpose with acceptable latency, blend the AprilTag pose into the Pinpoint estimate (latency-compensated).
-- Both teleop and auton consume the fused pose, not the raw Pinpoint pose.
+All OpModes use raw Pinpoint pose during the rewrite. Limelight remains available for telemetry and vision-alignment commands but does not feed the pose estimate.
+
+Pose fusion is a follow-on project after the rewrite is stable. When that project starts, open a new issue and design it there rather than in this document.
 
 ---
 
@@ -328,14 +329,14 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 
 `[CONFIRM]` markers throughout this doc flag decisions that are not yet locked. Claude Code is instructed (section 8) to stop and ask when it hits one relevant to the current task. When a decision is made, replace the `[CONFIRM]` with the chosen answer and note the change in the commit message.
 
-- [ ] `ShooterSubsystem` is the gold standard (or pick another)
-- [ ] `ShootCommand` is the first command to write (or pick another)
-- [ ] Shoot sequence timeout value (2 seconds? configurable?)
-- [ ] Shoot sequence end condition (timeout only, artifact-count, both?)
-- [ ] Pose fusion implementation approach (latency-compensated blend vs. simple replacement)
-- [ ] Whether `IntakeSubsystem` stays as one class (wheels + slides) or splits into two
-- [ ] Whether the existing button bindings carry forward unchanged or get simplified
-- [ ] Whether per-team commands go in `team11940/commands/` and `team22091/commands/`, or stay in `common/commands/` with team-specific factories
+- [x] `ShooterSubsystem` is the gold standard
+- [x] `IntakeCommand` is written first (pattern validation); `ShootCommand` is written second and becomes the gold-standard template
+- [x] Shoot sequence: wait for `AT_SPEED` OR 2-second timeout (whichever first), then feed regardless; command ends on button release
+- [x] Shoot sequence timeout value: 2 seconds (spin-up wait only, not total command duration)
+- [x] Pose fusion: deferred; raw Pinpoint pose used throughout the rewrite; fusion is a separate follow-on project
+- [x] `IntakeSubsystem` stays as one class (wheels + slides); auto-slide coupling is intentional physical behavior, not a command-layer concern
+- [x] Existing button bindings carry forward unchanged into the rewrite
+- [x] All commands live in `common/commands/`; no team-specific command directories. Team identity is fully expressed by the `@TeleOp` display name (in the flavor wrapper) and tuning values in `RobotConfig`.
 
 ---
 
