@@ -26,16 +26,6 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
  * {@code end} returns immediately; the subsystem's {@code periodic} clears the
  * {@code FINISHING} state after the stop-delay window elapses.
  *
- * <p>Intended binding:
- * <pre>
- *   driverGamepad.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
- *       .and(driverGamepad.getGamepadButton(GamepadKeys.Button.A))
- *       .whileTrue(new EjectCommand(intakeSubsystem));
- * </pre>
- *
- * <p>Note: the existing TeleOp uses {@code RIGHT_BUMPER + A} as the eject combo (not
- * {@code LEFT_BUMPER}, which drives manual index-forward in the existing code). The binding
- * above carries this pairing forward into the command-based rewrite.
  */
 public class EjectCommand extends CommandBase {
 

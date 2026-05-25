@@ -26,11 +26,6 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
  * {@code end} returns immediately; the subsystem's {@code periodic} clears the
  * {@code FINISHING} state after the stop-delay window elapses.
  *
- * <p>Intended binding:
- * <pre>
- *   driverGamepad.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
- *       .whileTrue(new IntakeCommand(intakeSubsystem));
- * </pre>
  */
 public class IntakeCommand extends CommandBase {
 
