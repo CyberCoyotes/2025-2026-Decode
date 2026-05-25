@@ -1,305 +1,153 @@
 package org.firstinspires.ftc.teamcode.common.subsystems;
 
+import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
-/**
- * Components of the Scoring Subsystem:
- * - Hood Adjustment with a goBilda position based servo
- * - Ball launcher-flywheel with a goBilda motor
- */
-public class ShooterSubsystem {
+public class ShooterSubsystem extends SubsystemBase {
 
-    /**
-     * Comprehensive shooting presets with flywheel target RPM and hood position
-     * Using velocity-based control for consistent speed under varying loads
-     */
+    // Hardware config names
+    private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
+    private static final String HOOD_SERVO_NAME     = "hoodServo";
+
+    // Hood servo limits
+    private static final double HOOD_MIN_POSITION     = 0.0;
+    private static final double HOOD_MAX_POSITION     = 0.60;
+    private static final double HOOD_DEFAULT_POSITION = 0.0;
+
+    // Flywheel motor — goBilda 5203 Yellow Jacket 6000 RPM 1:1
+    private static final double FLYWHEEL_CPR = 28.0;
+
+    // Velocity PIDF (tuned; F=22 avoids the overshoot seen at F=24+)
+    private static final double FLYWHEEL_P = 5.0;
+    private static final double FLYWHEEL_I = 0.1;
+    private static final double FLYWHEEL_D = 1.0;
+    private static final double FLYWHEEL_F = 22.0;
+
+    // Manual fine-tune increments
+    private static final int    RPM_INCREMENT  = 100;
+    private static final double HOOD_INCREMENT = 0.05;
+
+    // Reverse speed for jam clearing
+    private static final double REVERSE_RPM = -1000.0;
+
     public enum ShotPreset {
-        LONG_RANGE(3500, 0.60),    // Long range: 2800 RPM target, high hood
-        MEDIUM_RANGE(2500, 0.60),  // Medium range: 2500 RPM target, medium hood
-        SHORT_RANGE(2200, 0.30);   // Short range: 2200 RPM target, low hood
+        LONG_RANGE  (2800, 0.60),
+        MEDIUM_RANGE(2500, 0.60),
+        SHORT_RANGE (2200, 0.30);
 
-        private final int targetRPM;     // Target RPM
+        private final int    targetRPM;
         private final double hoodPosition;
 
         ShotPreset(int targetRPM, double hoodPosition) {
-            this.targetRPM = targetRPM;
+            this.targetRPM    = targetRPM;
             this.hoodPosition = hoodPosition;
         }
 
-        public int getTargetRPM() {
-            return targetRPM;
-        }
+        public int    getTargetRPM()    { return targetRPM; }
+        public double getHoodPosition() { return hoodPosition; }
 
-        public double getHoodPosition() {
-            return hoodPosition;
-        }
-
-        /**
-         * Convert RPM to velocity in ticks per second
-         */
         public double getVelocity() {
-            return (targetRPM / 60.0) * 28.0; // 28 CPR for Yellow Jacket motor
+            return (targetRPM / 60.0) * 28.0;
         }
     }
 
-    // Hardware
-    private final Servo hoodServo;        // Position mode - hood adjustment
-    private final DcMotorEx flywheelMotor; // goBilda motor - flywheel shooter
+    public enum Status {
+        IDLE,
+        SPINNING_UP,
+        AT_SPEED,
+        REVERSING
+    }
 
-    // State tracking
-    private ShotPreset currentPreset = ShotPreset.SHORT_RANGE; // Default to short range
-    private double targetVelocity = 0.0; // Track current target velocity in ticks/sec
+    private final DcMotorEx flywheelMotor;
+    private final Servo     hoodServo;
 
-    // Hardware configuration names
-    private static final String HOOD_SERVO_NAME = "hoodServo";
-    private static final String FLYWHEEL_MOTOR_NAME = "flywheelMotor";
+    private double    targetVelocity = 0.0;
+    private ShotPreset currentPreset = ShotPreset.SHORT_RANGE;
 
-    // Constants for hood servo positions
-    private static final double HOOD_MIN_POSITION = 0.0; //
-    private static final double HOOD_MAX_POSITION = 0.60; //
-    // Default position is ZERO and the hood should be resting on the hard stop as low as possible.
-    private static final double HOOD_DEFAULT_POSITION = 0.0;
-
-    // Constants for flywheel motor (5203 Series Yellow Jacket 6000 RPM 1:1 Ratio)
-    // Motor specs: 6000 RPM free speed, 28 CPR (counts per revolution)
-    private static final double FLYWHEEL_CPR = 28.0; // Counts per revolution for RPM calculation
-
-    // Simple PIDF coefficients for velocity control
-    // Tuned to reach target RPM without overshoot
-    private static final double FLYWHEEL_P = 5.0;   // Proportional gain - reduced to prevent overshoot
-    private static final double FLYWHEEL_I = 0.1;   // Integral gain - reduced to prevent accumulation
-    private static final double FLYWHEEL_D = 1.0;   // Derivative - dampens overshoot and oscillation
-    private static final double FLYWHEEL_F = 22.0;  // Feedforward - tuned between undershoot (20) and overshoot (28)
-    // 24 is still going past RPM target a bit
-
-    /**
-     * Constructor - only needs HardwareMap
-     * @param hardwareMap The hardware map from the OpMode
-     */
     public ShooterSubsystem(HardwareMap hardwareMap) {
-        // Initialize servos
-        hoodServo = hardwareMap.get(Servo.class, HOOD_SERVO_NAME);
-
-        // Initialize motors
         flywheelMotor = hardwareMap.get(DcMotorEx.class, FLYWHEEL_MOTOR_NAME);
+        hoodServo     = hardwareMap.get(Servo.class,     HOOD_SERVO_NAME);
 
-        // Configure flywheel motor for velocity control with encoder
         flywheelMotor.setDirection(DcMotor.Direction.REVERSE);
         flywheelMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         flywheelMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         flywheelMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-
-        // Configure simple PIDF for velocity control
         flywheelMotor.setVelocityPIDFCoefficients(FLYWHEEL_P, FLYWHEEL_I, FLYWHEEL_D, FLYWHEEL_F);
 
-        // Initialize to default positions
         hoodServo.setPosition(HOOD_DEFAULT_POSITION);
         flywheelMotor.setVelocity(0);
     }
 
-    /**
-     * Periodic method called once per scheduler run
-     */
+    @Override
     public void periodic() {
-        // Add any periodic updates here if needed
     }
 
-    /* ========================================
-     * HOOD CONTROL METHODS
-     * ======================================== */
+    // ---- Status -------------------------------------------------------
 
-    /**
-     * Set the hood servo position
-     * @param position Position from 0.0 (min) to 1.0 (max)
-     */
+    public Status getStatus() {
+        if (targetVelocity < 0) return Status.REVERSING;
+        if (targetVelocity == 0) return Status.IDLE;
+        double tolerance = targetVelocity * 0.05;
+        double actual    = flywheelMotor.getVelocity();
+        if (Math.abs(actual - targetVelocity) <= tolerance) return Status.AT_SPEED;
+        return Status.SPINNING_UP;
+    }
+
+    public boolean isIdle()      { return getStatus() == Status.IDLE; }
+    public boolean isReady()     { return getStatus() == Status.AT_SPEED; }
+    public boolean isReversing() { return getStatus() == Status.REVERSING; }
+
+    // ---- Commands -----------------------------------------------------
+
+    public void setPreset(ShotPreset preset) {
+        currentPreset = preset;
+        setTargetRPM(preset.getTargetRPM());
+        setHoodPosition(preset.getHoodPosition());
+    }
+
+    public void setTargetRPM(double rpm) {
+        targetVelocity = (rpm / 60.0) * FLYWHEEL_CPR;
+        flywheelMotor.setVelocity(targetVelocity);
+    }
+
     public void setHoodPosition(double position) {
-        position = clamp(position, HOOD_MIN_POSITION, HOOD_MAX_POSITION);
-        hoodServo.setPosition(position);
+        hoodServo.setPosition(clamp(position, HOOD_MIN_POSITION, HOOD_MAX_POSITION));
     }
 
-    /**
-     * Get the current hood position
-     * @return Current position (0.0 to 1.0)
-     */
-    public double getHoodPosition() {
-        return hoodServo.getPosition();
-    }
-
-    /**
-     * Set hood to default position
-     */
-    public void hoodDefault() {
-        setHoodPosition(HOOD_DEFAULT_POSITION);
-    }
-
-    /* ========================================
-     * FLYWHEEL CONTROL METHODS
-     * ======================================== */
-
-    /**
-     * Set flywheel velocity directly in ticks per second
-     * @param velocity Target velocity in ticks per second
-     */
-    public void setFlywheelVelocity(double velocity) {
-        targetVelocity = velocity;
-        flywheelMotor.setVelocity(velocity);
-    }
-
-    /**
-     * Set flywheel to target RPM
-     * @param rpm Target RPM
-     */
-    public void setFlywheelRPM(int rpm) {
-        double velocity = (rpm / 60.0) * FLYWHEEL_CPR;
-        setFlywheelVelocity(velocity);
-    }
-
-    /**
-     * Stop the flywheel
-     */
     public void stopFlywheel() {
         targetVelocity = 0.0;
         flywheelMotor.setVelocity(0);
     }
 
-    /**
-     * Run flywheel in reverse at moderate speed (for clearing jams or ejecting artifacts)
-     * Uses negative velocity to spin flywheel backwards
-     */
-    public void runFlywheelReverse() {
-        // Run at -1000 RPM (negative = reverse direction)
-        double reverseRPM = -2000.0;
-        double reverseVelocity = (reverseRPM / 60.0) * FLYWHEEL_CPR;
-        targetVelocity = reverseVelocity;
-        flywheelMotor.setVelocity(reverseVelocity);
+    public void reverseFlywheel() {
+        targetVelocity = (REVERSE_RPM / 60.0) * FLYWHEEL_CPR;
+        flywheelMotor.setVelocity(targetVelocity);
     }
 
-    /**
-     * Get the current flywheel power (for telemetry)
-     * @return Current power (-1.0 to 1.0)
-     */
-    public double getFlywheelPower() {
-        return flywheelMotor.getPower();
-    }
+    // ---- Manual fine-tune ---------------------------------------------
 
-    /**
-     * Get the current flywheel velocity in ticks per second
-     * @return Current velocity in ticks per second (from encoder)
-     */
-    public double getFlywheelVelocity() {
-        return flywheelMotor.getVelocity();
-    }
-
-    /**
-     * Get the current flywheel RPM
-     * @return Current RPM calculated from encoder velocity
-     */
-    public double getCurrentRPM() {
-        return (getFlywheelVelocity() / FLYWHEEL_CPR) * 60.0;
-    }
-
-    /**
-     * Set the preset (range preset) - sets both flywheel velocity and hood position
-     * @param preset The desired shot preset
-     */
-    public void setPreset(ShotPreset preset) {
-        currentPreset = preset;
-        setFlywheelVelocity(preset.getVelocity());
-        setHoodPosition(preset.getHoodPosition());
-    }
-
-    /**
-     * Get the current preset
-     * @return Current shot preset
-     */
-    public ShotPreset getPreset() {
-        return currentPreset;
-    }
-
-    /**
-     * Check if flywheel has reached approximately its target velocity
-     * Uses a tolerance of 5% to account for real-world variance
-     * @return true if flywheel is near target velocity
-     */
-    public boolean isAtTargetRPM() {
-        if (targetVelocity == 0.0) {
-            return Math.abs(getFlywheelVelocity()) < 50.0; // Consider stopped if < 50 ticks/sec
-        }
-        double tolerance = targetVelocity * 0.05; // 5% tolerance
-        double actualVelocity = getFlywheelVelocity();
-        return Math.abs(actualVelocity - targetVelocity) <= tolerance;
-    }
-
-    /**
-     * Get the target RPM from current preset state
-     * @return Target RPM
-     */
-    public int getTargetRPM() {
-        return currentPreset.getTargetRPM();
-    }
-
-    /**
-     * Get the target velocity in ticks per second
-     * @return Target velocity
-     */
-    public double getTargetVelocity() {
-        return targetVelocity;
-    }
-
-    /**
-     * Increment flywheel RPM by 100
-     */
     public void incrementFlywheelRPM() {
-        int currentRPM = (int)getCurrentRPM();
-        setFlywheelRPM(currentRPM + 100);
+        setTargetRPM(getTargetRPM() + RPM_INCREMENT);
     }
 
-    /**
-     * Decrement flywheel RPM by 100
-     */
     public void decrementFlywheelRPM() {
-        int currentRPM = (int)getCurrentRPM();
-        setFlywheelRPM(currentRPM - 100);
+        setTargetRPM(getTargetRPM() - RPM_INCREMENT);
     }
 
+    // ---- Getters ------------------------------------------------------
 
+    public double     getCurrentRPM()   { return (flywheelMotor.getVelocity() / FLYWHEEL_CPR) * 60.0; }
+    public double     getTargetRPM()    { return (targetVelocity / FLYWHEEL_CPR) * 60.0; }
+    public double     getHoodPosition() { return hoodServo.getPosition(); }
+    public double     getFlywheelPower(){ return flywheelMotor.getPower(); }
+    public ShotPreset getPreset()       { return currentPreset; }
 
-    /* ========================================
-     * COMBINED CONTROL METHODS
-     * ======================================== */
+    // ---- Helper -------------------------------------------------------
 
-    /**
-     * Stop all scoring subsystem components
-     */
-    public void stopAll() {
-        stopFlywheel();
-        // Servos maintain their last position
-    }
-
-    /**
-     * Reset to default positions and stop motors
-     */
-    public void reset() {
-        hoodDefault();
-        stopFlywheel();
-    }
-
-    /* ========================================
-     * HELPER METHODS
-     * ======================================== */
-
-    /**
-     * Clamp value between min and max
-     * @param value Value to clamp
-     * @param min Minimum value
-     * @param max Maximum value
-     * @return Clamped value
-     */
     private double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
-
 }
