@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
-public abstract class PrimeTeleOpBase extends LinearOpMode {
+public abstract class TeleOpBase extends LinearOpMode {
 
     /* ========================================
      * SUBSYSTEMS
