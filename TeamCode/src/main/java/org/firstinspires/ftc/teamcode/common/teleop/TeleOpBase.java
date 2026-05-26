@@ -42,11 +42,12 @@ public abstract class TeleOpBase extends LinearOpMode {
     // Flywheel and index sequential control state
     private boolean flywheelRunning = false;
 
+    // Drive idle state (replaces DriveState.IDLE)
+    private boolean driveIdle = false;
+
     // Index motor delayed stop state
-    private boolean indexBottomDelayedStop = false;
-    private long indexBottomStopTime = 0;
-    private boolean indexTopDelayedStop = false;
-    private long indexTopStopTime = 0;
+    private boolean indexDelayedStop = false;
+    private long indexStopTime = 0;
 
     private boolean manualIndexingActive = false;
     private boolean intakeIndexMotorsStarted = false;
@@ -62,8 +63,7 @@ public abstract class TeleOpBase extends LinearOpMode {
     private static final double SHOOTER_MIN_POWER = 0.0;
     private static final double SHOOTER_MAX_POWER = 1.0;
     private static final double HOOD_INCREMENT = 0.05;
-    private static final long INDEX_BOTTOM_STOP_DELAY_MS = 1500;
-    private static final long INDEX_TOP_STOP_DELAY_MS = 1500;
+    private static final long INDEX_STOP_DELAY_MS = 1500;
 
     /* ========================================
      * CONFIGURATION VARIABLES
@@ -83,15 +83,12 @@ public abstract class TeleOpBase extends LinearOpMode {
         telemetry.addData("Status", "Initializing...");
         telemetry.update();
 
-        drive = new MecanumDriveSubsystem(hardwareMap);
+        // Odometry must be initialized before drive so its heading supplier is available
         odometry = new PinpointOdometrySubsystem(hardwareMap);
+        drive = new MecanumDriveSubsystem(hardwareMap, odometry::getHeadingRadians, config);
         intake = new IntakeSubsystem(hardwareMap);
         index = new IndexSubsystem(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
-
-        drive.setOdometry(odometry);
-        drive.setSensitivity(config.defaultSensitivity());
-        drive.setDeadzone(config.defaultDeadzone());
 
         telemetry.addData("Status", "Ready to start!");
         telemetry.addLine();
@@ -125,7 +122,7 @@ public abstract class TeleOpBase extends LinearOpMode {
 
         waitForStart();
 
-        drive.setState(DriveState.FIELD_CENTRIC);
+        drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC);
         drive.resetHeading();
 
         while (opModeIsActive()) {
@@ -138,18 +135,12 @@ public abstract class TeleOpBase extends LinearOpMode {
             handleConfigurationAdjustments();
             handleIntakeControls();
 
-            if (indexBottomDelayedStop && System.currentTimeMillis() >= indexBottomStopTime) {
-                index.stopBottomMotor();
-                indexBottomDelayedStop = false;
-            }
-            if (indexTopDelayedStop && System.currentTimeMillis() >= indexTopStopTime) {
-                index.stopTopMotor();
-                indexTopDelayedStop = false;
+            if (indexDelayedStop && System.currentTimeMillis() >= indexStopTime) {
+                index.stop();
+                indexDelayedStop = false;
             }
 
             handleIndexControls();
-
-            index.setFlywheelOverride(flywheelRunning);
             index.periodic();
 
             handleShooterControls();
@@ -166,11 +157,14 @@ public abstract class TeleOpBase extends LinearOpMode {
                 effectiveSpeed = baseSpeed + (TURBO_SPEED - baseSpeed) * gamepad1.right_trigger;
             }
 
-            drive.setSpeed(effectiveSpeed);
+            drive.setBaseSpeed(effectiveSpeed);
 
-            if (drive.getState() != DriveState.IDLE) {
+            if (!driveIdle) {
                 drive.drive(axial, lateral, yaw);
+            } else {
+                drive.stop();
             }
+            drive.periodic();
 
             updateTelemetry();
         }
@@ -180,20 +174,20 @@ public abstract class TeleOpBase extends LinearOpMode {
      * STATE TRANSITION HANDLER
      * ======================================== */
     private void handleStateTransitions() {
-        DriveState currentState = drive.getState();
-
         if (gamepad1.back && !lastBackState) {
-            drive.setState(DriveState.FIELD_CENTRIC);
+            drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC);
+            driveIdle = false;
         }
         lastBackState = gamepad1.back;
 
         if (gamepad1.start && !lastStartState) {
-            drive.setState(DriveState.ROBOT_CENTRIC);
+            drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.ROBOT_CENTRIC);
+            driveIdle = false;
         }
         lastStartState = gamepad1.start;
 
         if (gamepad1.guide && !lastGuideState) {
-            if (currentState == DriveState.FIELD_CENTRIC) {
+            if (drive.getHeadingMode() == MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC) {
                 drive.resetHeading();
                 telemetry.addData("Action", "Heading Reset!");
             }
@@ -201,9 +195,10 @@ public abstract class TeleOpBase extends LinearOpMode {
         lastGuideState = gamepad1.guide;
 
         if (gamepad1.a && !gamepad1.right_bumper && !gamepad1.left_bumper) {
-            drive.setState(DriveState.IDLE);
-        } else if (currentState == DriveState.IDLE && !gamepad1.a) {
-            drive.setState(DriveState.ROBOT_CENTRIC);
+            driveIdle = true;
+        } else if (driveIdle && !gamepad1.a) {
+            driveIdle = false;
+            drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.ROBOT_CENTRIC);
         }
     }
 
@@ -237,34 +232,28 @@ public abstract class TeleOpBase extends LinearOpMode {
      * ======================================== */
     private void handleIntakeControls() {
         if (gamepad1.left_bumper && gamepad1.a) {
-            index.runReverse();
+            index.reverse();
             manualIndexingActive = true;
-            indexBottomDelayedStop = false;
-            indexTopDelayedStop = false;
+            indexDelayedStop = false;
         } else if (gamepad1.left_bumper) {
             if (!manualIndexingActive) {
-                index.runBottomMotorForward();
-                index.runTopMotorForward();
+                index.intake();
                 manualIndexingActive = true;
             }
-            indexBottomDelayedStop = false;
-            indexTopDelayedStop = false;
+            indexDelayedStop = false;
         } else if (gamepad1.right_bumper && gamepad1.a) {
-            intake.ejectArtifact();
-            index.runReverse();
-            indexBottomDelayedStop = false;
-            indexTopDelayedStop = false;
+            intake.eject();
+            index.reverse();
+            indexDelayedStop = false;
             intakeIndexMotorsStarted = false;
             manualIndexingActive = false;
         } else if (gamepad1.right_bumper) {
-            intake.intakeArtifact();
+            intake.intake();
             if (!intakeIndexMotorsStarted) {
-                index.runBottomMotorForward();
-                index.runTopMotorForward();
+                index.intake();
                 intakeIndexMotorsStarted = true;
             }
-            indexBottomDelayedStop = false;
-            indexTopDelayedStop = false;
+            indexDelayedStop = false;
             manualIndexingActive = false;
         } else if (!gamepad2.left_bumper && !gamepad2.right_bumper) {
             intake.stop();
@@ -274,13 +263,9 @@ public abstract class TeleOpBase extends LinearOpMode {
                 index.stop();
                 manualIndexingActive = false;
             } else {
-                if (!indexBottomDelayedStop) {
-                    indexBottomDelayedStop = true;
-                    indexBottomStopTime = System.currentTimeMillis() + INDEX_BOTTOM_STOP_DELAY_MS;
-                }
-                if (!indexTopDelayedStop) {
-                    indexTopDelayedStop = true;
-                    indexTopStopTime = System.currentTimeMillis() + INDEX_TOP_STOP_DELAY_MS;
+                if (!indexDelayedStop) {
+                    indexDelayedStop = true;
+                    indexStopTime = System.currentTimeMillis() + INDEX_STOP_DELAY_MS;
                 }
             }
         }
@@ -291,23 +276,21 @@ public abstract class TeleOpBase extends LinearOpMode {
      * ======================================== */
     private void handleIndexControls() {
         if (gamepad2.left_bumper && gamepad2.a) {
-            index.runReverse();
+            index.reverse();
             manualIndexingActive = true;
-            indexBottomDelayedStop = false;
-            indexTopDelayedStop = false;
+            indexDelayedStop = false;
         } else if (gamepad2.left_bumper) {
             if (!manualIndexingActive) {
-                index.runForward();
+                index.feed();
                 manualIndexingActive = true;
             }
-            indexBottomDelayedStop = false;
-            indexTopDelayedStop = false;
+            indexDelayedStop = false;
         } else if (manualIndexingActive) {
             if (!gamepad2.right_bumper) {
                 index.stop();
             }
             manualIndexingActive = false;
-        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexBottomDelayedStop && !indexTopDelayedStop) {
+        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexDelayedStop) {
             index.stop();
         }
     }
@@ -352,16 +335,16 @@ public abstract class TeleOpBase extends LinearOpMode {
         lastGP2_DpadRightState = gamepad2.dpad_right;
 
         if (gamepad2.right_bumper && gamepad2.a) {
-            shooter.runFlywheelReverse();
-            index.runReverse();
+            shooter.reverseFlywheel();
+            index.reverse();
             flywheelRunning = true;
         } else if (gamepad2.right_bumper) {
             if (!flywheelRunning) {
                 shooter.setPreset(shooter.getPreset());
                 flywheelRunning = true;
             }
-            if (shooter.isAtTargetRPM()) {
-                index.runForward();
+            if (shooter.isReady()) {
+                index.feed();
             }
         } else {
             if (flywheelRunning) {
@@ -387,42 +370,30 @@ public abstract class TeleOpBase extends LinearOpMode {
 
         telemetry.addLine();
         telemetry.addLine("=== DRIVE STATE MACHINE ===");
-        telemetry.addData("Current State", drive.getStateString());
-        telemetry.addData("State Speed", "%.2f", drive.getStateSpeedMultiplier());
+        telemetry.addData("Current State", drive.getHeadingMode().name() + (driveIdle ? " (IDLE)" : ""));
         telemetry.addData("Base Speed", "%.2f", baseSpeed);
-        telemetry.addData("Effective Speed", "%.2f", drive.getStateSpeedMultiplier() * baseSpeed);
-        telemetry.addData("Using Pinpoint", drive.isUsingPinpoint() ? "YES" : "NO");
 
         telemetry.addLine();
         telemetry.addLine("=== INTAKE SUBSYSTEM ===");
-        telemetry.addData("Wheel State", intake.getWheelStateString());
-        telemetry.addData("Wheel Speed", "%.2f", intake.getSpeed());
-        telemetry.addData("Slide State", intake.getSlideStateString());
-        telemetry.addData("Slide Position", "%.3f", intake.getSlidePosition());
-        telemetry.addData("Auto Slide Control", intake.isAutoSlideControlEnabled() ? "ENABLED" : "DISABLED");
+        telemetry.addData("Wheel State", intake.getStatus().name());
+        telemetry.addData("Slide State", intake.isExtended() ? "EXTENDED" : "RETRACTED");
 
         telemetry.addLine();
         telemetry.addLine("=== INDEX SUBSYSTEM ===");
-        telemetry.addData("Index State", index.getStateString());
-        telemetry.addData("Bottom Motor", "%.2f (%.0f%%)", index.getBottomMotorPower(), index.getBottomMotorPower() * 100);
-        telemetry.addData("Top Motor", "%.2f (%.0f%%)", index.getTopMotorPower(), index.getTopMotorPower() * 100);
+        telemetry.addData("Index State", index.getStatus().name());
         telemetry.addLine();
-        telemetry.addData("Sensor Distance", "%.2f cm", index.getDistance());
-        telemetry.addData("Threshold", "%.2f cm", 3.0);
-        telemetry.addData("Artifact Detected", index.isArtifactDetected() ? "✓ YES (< 3cm)" : "✗ NO (>= 3cm)");
+        telemetry.addData("Artifact Detected", index.hasArtifact() ? "✓ YES (< 3cm)" : "✗ NO (>= 3cm)");
         telemetry.addLine();
-        telemetry.addData("Flywheel Override", index.isFlywheelOverrideActive() ? "ACTIVE" : "DISABLED");
         telemetry.addData("Manual Index", manualIndexingActive ? "ACTIVE" : "IDLE");
         telemetry.addData("Intake Started", intakeIndexMotorsStarted ? "YES" : "NO");
-        telemetry.addData("Bottom Delayed Stop", indexBottomDelayedStop ? String.format("PENDING (%d ms)", indexBottomStopTime - System.currentTimeMillis()) : "NONE");
-        telemetry.addData("Top Delayed Stop", indexTopDelayedStop ? String.format("PENDING (%d ms)", indexTopStopTime - System.currentTimeMillis()) : "NONE");
+        telemetry.addData("Delayed Stop", indexDelayedStop ? String.format("PENDING (%d ms)", indexStopTime - System.currentTimeMillis()) : "NONE");
 
         telemetry.addLine();
         telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
         telemetry.addData("Preset", shooter.getPreset().name());
         telemetry.addData("Target RPM", shooter.getTargetRPM());
         telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
-        telemetry.addData("At Target", shooter.isAtTargetRPM() ? "✓ YES" : "✗ NO");
+        telemetry.addData("At Target", shooter.isReady() ? "✓ YES" : "✗ NO");
         telemetry.addData("Motor Power", String.format("%.0f%%", shooter.getFlywheelPower() * 100));
         telemetry.addData("Preset Hood", String.format("%.2f", shooter.getPreset().getHoodPosition()));
         telemetry.addData("Current Hood", String.format("%.2f", shooter.getHoodPosition()));
@@ -435,8 +406,8 @@ public abstract class TeleOpBase extends LinearOpMode {
 
         telemetry.addLine();
         telemetry.addLine("=== MODES ===");
-        telemetry.addData("Field-Centric", drive.getState() == DriveState.FIELD_CENTRIC ? "ON" : "OFF");
-        telemetry.addData("Robot-Centric", drive.getState() == DriveState.ROBOT_CENTRIC ? "ON" : "OFF");
+        telemetry.addData("Field-Centric", drive.getHeadingMode() == MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC ? "ON" : "OFF");
+        telemetry.addData("Robot-Centric", drive.getHeadingMode() == MecanumDriveSubsystem.HeadingMode.ROBOT_CENTRIC ? "ON" : "OFF");
 
         String speedMode = "Normal";
         if (gamepad1.left_trigger > 0.1) {
