@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.common.pedropathing;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
-import com.pedropathing.ftc.MecanumConstants;
+//import com.pedropathing.ftc.MecanumConstants; // cannot find
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -58,15 +58,15 @@ public class PedroConfig {
     // Motor names match MecanumDriveSubsystem hardware map names ("Back" not "Rear").
     // Directions confirmed: left motors REVERSE, right motors FORWARD.
     // xVelocity / yVelocity are PLACEHOLDER values — replace after running velocity tuning.
-    public static final MecanumConstants MECANUM_CONSTANTS = new MecanumConstants()
-            .leftFrontMotorName("leftFront")
-            .leftRearMotorName("leftBack")
-            .rightFrontMotorName("rightFront")
-            .rightRearMotorName("rightBack")
-            .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
+//    public static final MecanumConstants MECANUM_CONSTANTS = new MecanumConstants()
+//            .leftFrontMotorName("leftFront")
+//            .leftRearMotorName("leftBack")
+//            .rightFrontMotorName("rightFront")
+//            .rightRearMotorName("rightBack")
+//            .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
+//            .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
+//            .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+//            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
 
     // ─── Follower (path-following) constants ──────────────────────────────────
     // All PID/feedforward values are defaults and MUST be tuned on the physical robot.
@@ -82,7 +82,7 @@ public class PedroConfig {
     public static Follower createFollower(HardwareMap hardwareMap) {
         return new FollowerBuilder(FOLLOWER_CONSTANTS, hardwareMap)
                 .pinpointLocalizer(PINPOINT_CONSTANTS)
-                .mecanumDrivetrain(MECANUM_CONSTANTS)
+//                .mecanumDrivetrain(MECANUM_CONSTANTS)
                 .pathConstraints(PATH_CONSTRAINTS)
                 .build();
     }
