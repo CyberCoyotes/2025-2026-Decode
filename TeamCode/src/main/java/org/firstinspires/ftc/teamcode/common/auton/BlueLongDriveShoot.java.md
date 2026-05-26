@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.common.auton;
 
-import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
+import static org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;

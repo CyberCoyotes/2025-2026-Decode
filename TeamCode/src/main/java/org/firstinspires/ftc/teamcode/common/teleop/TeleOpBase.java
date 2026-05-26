@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.common.teleop;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.common.config.RobotConfig;
 import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
-import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem.DriveState;
 import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
