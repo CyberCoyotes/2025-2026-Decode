@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.common.subsystems;
+package org.firstinspires.ftc.teamcode.common.helpers;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -10,31 +10,52 @@ import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit
 import java.util.Locale;
 
 /**
- * GoBilda Pinpoint Odometry Computer Subsystem for Teams 11940 & 22091
+ * Plain helper wrapping the goBilda Pinpoint odometry computer for Teams 11940 &amp; 22091.
  *
- * Provides accurate position tracking and heading information using:
- * - Two perpendicular dead wheel odometry pods
- * - Integrated IMU (LSM6DSV16X)
- * - Pose Exponential algorithm for position calculation
+ * <p>This is a <strong>helper</strong>, not a subsystem. The Pinpoint is pure-read sensor
+ * hardware — nothing ever commands it, so it does not extend {@code SubsystemBase} and is not
+ * registered with the FTCLib scheduler. Instead, the OpMode calls {@link #update()} once at the
+ * top of every loop tick to pull fresh data from the device over I2C.</p>
  *
- * HARDWARE CONFIGURATION:
- * - Module is mounted UPSIDE DOWN underneath the chassis
- * - Located approximately CENTER of robot front-to-back
- * - Located approximately 3.75 inches RIGHT of center (left-to-right)
- * - Two goBILDA spring-loaded swing-arm odometry pods
+ * <p><strong>Typical wiring in TeleOp:</strong>
+ * <pre>
+ *   PinpointOdometry odometry = new PinpointOdometry(hardwareMap);
+ *   MecanumDriveSubsystem drive = new MecanumDriveSubsystem(
+ *           hardwareMap, odometry::getHeadingRadians, config);
+ *   // ... in loop:
+ *   odometry.update();
+ * </pre>
+ * The drive subsystem receives heading as a {@code DoubleSupplier} — it never holds a reference
+ * to {@code PinpointOdometry} directly, keeping subsystem boundaries clean.</p>
  *
- * COORDINATE SYSTEM:
- * - X axis: Forward/backward (forward is positive)
- * - Y axis: Left/right (left is positive)
- * - Heading: Clockwise is positive (inverted due to upside-down IMU mounting)
+ * <p><strong>Device status</strong> is exposed via {@link #getDeviceStatus()}, which returns the
+ * SDK's own {@link GoBildaPinpointDriver.DeviceStatus} enum (READY, CALIBRATING, NOT_READY,
+ * FAULT_NO_PODS_DETECTED, FAULT_X_POD_NOT_DETECTED, FAULT_Y_POD_NOT_DETECTED, FAULT_BAD_READ).
+ * Use {@link #isReady()} as a convenience predicate for the common case.</p>
  *
- * WIRING:
- * - Connect to I2C port on Control Hub or Expansion Hub
- * - Hardware map name: "odo"
- * - X pod (forward): should count up when robot moves forward
- * - Y pod (strafe): should count up when robot moves left
+ * <p><strong>Hardware:</strong>
+ * <ul>
+ *   <li>Module mounted UPSIDE DOWN underneath the chassis</li>
+ *   <li>Located approximately CENTER front-to-back, 3.75 inches RIGHT of center</li>
+ *   <li>Two goBILDA spring-loaded swing-arm odometry pods</li>
+ *   <li>I2C hardware config name: {@value #ODO_NAME} — do not change without driver-station reconfiguration</li>
+ * </ul>
+ * </p>
+ *
+ * <p><strong>Coordinate system:</strong>
+ * <ul>
+ *   <li>X axis: Forward/backward (forward is positive)</li>
+ *   <li>Y axis: Left/right (left is positive)</li>
+ *   <li>Heading: Clockwise is positive (inverted due to upside-down IMU mounting)</li>
+ * </ul>
+ * </p>
  */
-public class PinpointOdometrySubsystem {
+public class PinpointOdometry {
+
+    /* ========================================
+     * HARDWARE NAME
+     * ======================================== */
+    private static final String ODO_NAME = "odo";
 
     /* ========================================
      * HARDWARE
@@ -44,9 +65,6 @@ public class PinpointOdometrySubsystem {
     /* ========================================
      * CONFIGURATION CONSTANTS
      * ======================================== */
-    // Hardware name in configuration
-    private static final String ODOMETRY_DEVICE_NAME = "odo";
-
     // Pod offsets relative to robot center of rotation (in millimeters)
     // X offset: sideways distance (left positive, right negative)
     // Y offset: forward/back distance (forward positive, back negative)
@@ -103,13 +121,13 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Initialize the Pinpoint Odometry Computer
+     * Initialize the Pinpoint Odometry Computer.
      *
      * @param hardwareMap The hardware map from the OpMode
      */
-    public PinpointOdometrySubsystem(HardwareMap hardwareMap) {
+    public PinpointOdometry(HardwareMap hardwareMap) {
         // Initialize the Pinpoint driver
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, ODOMETRY_DEVICE_NAME);
+        odo = hardwareMap.get(GoBildaPinpointDriver.class, ODO_NAME);
 
         // Configure pod offsets
         // These define how far the odometry pods are from the robot's center of rotation
@@ -133,11 +151,10 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Update the odometry system
-     * Call this method once per loop to get the latest position data
+     * Pull fresh data from the Pinpoint over I2C and cache the result.
      *
-     * IMPORTANT: This must be called regularly (ideally every loop iteration)
-     * for accurate position tracking
+     * <p>Call once at the top of every OpMode loop tick. Reads all sensor channels
+     * (position, velocity, heading) in a single I2C transaction.</p>
      */
     public void update() {
         // Request update from Pinpoint (reads all sensors via I2C)
@@ -167,8 +184,8 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Update only the heading (faster than full update)
-     * Use this if you only need heading information and want to save I2C bandwidth
+     * Update only the heading (faster than full update).
+     * Use this if you only need heading information and want to save I2C bandwidth.
      */
     public void updateHeadingOnly() {
         odo.update(GoBildaPinpointDriver.ReadData.ONLY_UPDATE_HEADING);
@@ -199,8 +216,8 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Get the current robot position as a Pose2D
-     * Contains X, Y, and heading
+     * Get the current robot position as a Pose2D.
+     * Contains X, Y, and heading.
      *
      * @return Current position (default units: MM and DEGREES)
      */
@@ -209,8 +226,8 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get X position (forward/backward)
-     * Applies distance calibration multiplier for accurate measurements
+     * Get X position (forward/backward).
+     * Applies distance calibration multiplier for accurate measurements.
      *
      * @param unit Distance unit (MM, CM, INCH, etc.)
      * @return X coordinate (calibrated)
@@ -220,8 +237,8 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get Y position (left/right)
-     * Applies distance calibration multiplier for accurate measurements
+     * Get Y position (left/right).
+     * Applies distance calibration multiplier for accurate measurements.
      *
      * @param unit Distance unit (MM, CM, INCH, etc.)
      * @return Y coordinate (calibrated)
@@ -231,7 +248,7 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get the robot heading (rotation angle)
+     * Get the robot heading (rotation angle).
      *
      * @param unit Angle unit (DEGREES or RADIANS)
      * @return Heading angle
@@ -241,8 +258,8 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get the robot heading in degrees
-     * Convenience method for field-centric drive
+     * Get the robot heading in degrees.
+     * Convenience method for field-centric drive.
      *
      * @return Heading in degrees
      */
@@ -251,8 +268,9 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get the robot heading in radians
-     * Convenience method for field-centric drive
+     * Get the robot heading in radians.
+     * Convenience method for field-centric drive and {@code DoubleSupplier} injection into
+     * {@code MecanumDriveSubsystem} ({@code odometry::getHeadingRadians}).
      *
      * @return Heading in radians
      */
@@ -265,7 +283,7 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Get X velocity (forward/backward speed)
+     * Get X velocity (forward/backward speed).
      *
      * @param unit Distance unit for velocity
      * @return X velocity in units/second
@@ -275,7 +293,7 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get Y velocity (strafe speed)
+     * Get Y velocity (strafe speed).
      *
      * @param unit Distance unit for velocity
      * @return Y velocity in units/second
@@ -285,7 +303,7 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get heading velocity (rotation speed)
+     * Get heading velocity (rotation speed).
      *
      * @param unit Angle unit for velocity (DEGREES or RADIANS)
      * @return Heading velocity in units/second
@@ -300,12 +318,15 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Reset position to (0, 0, 0) and recalibrate the IMU
-     * Robot must be stationary when calling this method
+     * Reset position to (0, 0, 0) and recalibrate the IMU.
+     * Robot must be stationary when calling this method.
      *
-     * Recommended usage:
-     * - At the start of autonomous mode
-     * - When repositioning robot to a known location
+     * <p>Recommended usage:
+     * <ul>
+     *   <li>At the start of autonomous mode</li>
+     *   <li>When repositioning robot to a known location</li>
+     * </ul>
+     * </p>
      */
     public void resetPosAndIMU() {
         odo.resetPosAndIMU();
@@ -313,18 +334,18 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Recalibrate the IMU without resetting position
-     * Robot must be stationary when calling this method
+     * Recalibrate the IMU without resetting position.
+     * Robot must be stationary when calling this method.
      *
-     * Use this if heading drift is observed but position is still accurate
+     * <p>Use this if heading drift is observed but position is still accurate.</p>
      */
     public void recalibrateIMU() {
         odo.recalibrateIMU();
     }
 
     /**
-     * Set the robot position to a specific pose
-     * Useful for setting a known starting position in autonomous
+     * Set the robot position to a specific pose.
+     * Useful for setting a known starting position in autonomous.
      *
      * @param pose The new position to set
      */
@@ -338,16 +359,19 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Get the current device status
+     * Get the current device status from the Pinpoint SDK.
      *
-     * Possible status values:
-     * - READY: Device is working normally
-     * - CALIBRATING: IMU is calibrating, outputs are on hold
-     * - NOT_READY: Device is resetting (after power cycle)
-     * - FAULT_NO_PODS_DETECTED: No odometry pods detected
-     * - FAULT_X_POD_NOT_DETECTED: X pod not detected
-     * - FAULT_Y_POD_NOT_DETECTED: Y pod not detected
-     * - FAULT_BAD_READ: Bad I2C read detected
+     * <p>Possible values (from {@link GoBildaPinpointDriver.DeviceStatus}):
+     * <ul>
+     *   <li>{@code READY} — device is working normally</li>
+     *   <li>{@code CALIBRATING} — IMU is calibrating; outputs are on hold</li>
+     *   <li>{@code NOT_READY} — device is resetting (after power cycle)</li>
+     *   <li>{@code FAULT_NO_PODS_DETECTED} — no odometry pods detected</li>
+     *   <li>{@code FAULT_X_POD_NOT_DETECTED} — X pod not detected</li>
+     *   <li>{@code FAULT_Y_POD_NOT_DETECTED} — Y pod not detected</li>
+     *   <li>{@code FAULT_BAD_READ} — bad I2C read detected</li>
+     * </ul>
+     * </p>
      *
      * @return Current device status
      */
@@ -356,16 +380,16 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Check if the device is ready for use
+     * Check if the device is ready for use.
      *
-     * @return true if status is READY, false otherwise
+     * @return {@code true} if status is {@code READY}, {@code false} otherwise
      */
     public boolean isReady() {
         return odo.getDeviceStatus() == GoBildaPinpointDriver.DeviceStatus.READY;
     }
 
     /**
-     * Get the Pinpoint device update frequency
+     * Get the Pinpoint device update frequency.
      *
      * @return Frequency in Hz
      */
@@ -374,7 +398,7 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get the Control Hub loop frequency
+     * Get the Control Hub loop frequency.
      *
      * @return Frequency in Hz
      */
@@ -383,7 +407,7 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get the firmware version of the Pinpoint device
+     * Get the firmware version of the Pinpoint device.
      *
      * @return Version number as string
      */
@@ -392,8 +416,8 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get the yaw scalar (heading calibration value)
-     * This can be adjusted if heading drift is observed
+     * Get the yaw scalar (heading calibration value).
+     * This can be adjusted if heading drift is observed.
      *
      * @return Yaw scalar value
      */
@@ -406,8 +430,8 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Get formatted position string for telemetry
-     * Format: {X: 123.456, Y: 123.456, H: 123.456}
+     * Get formatted position string for telemetry.
+     * Format: {@code {X: 123.456, Y: 123.456, H: 123.456}}
      *
      * @param distanceUnit Unit for X and Y
      * @param angleUnit Unit for heading
@@ -421,8 +445,8 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get formatted velocity string for telemetry
-     * Format: {XVel: 123.456, YVel: 123.456, HVel: 123.456}
+     * Get formatted velocity string for telemetry.
+     * Format: {@code {XVel: 123.456, YVel: 123.456, HVel: 123.456}}
      *
      * @param distanceUnit Unit for X and Y velocities
      * @param angleUnit Unit for heading velocity
@@ -436,8 +460,8 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get compact telemetry string for dashboard
-     * Includes position in inches and heading in degrees
+     * Get compact telemetry string for dashboard.
+     * Includes position in inches and heading in degrees.
      *
      * @return Compact telemetry string
      */
@@ -458,7 +482,7 @@ public class PinpointOdometrySubsystem {
     }
 
     /**
-     * Get detailed telemetry string with all diagnostic info
+     * Get detailed telemetry string with all diagnostic info.
      *
      * @return Detailed telemetry string
      */
@@ -497,8 +521,8 @@ public class PinpointOdometrySubsystem {
      * ======================================== */
 
     /**
-     * Get position in format compatible with Pedro Pathing 2.0
-     * Pedro Pathing uses inches for distance
+     * Get position in format compatible with Pedro Pathing 2.0.
+     * Pedro Pathing uses inches for distance.
      *
      * @return Position with X, Y in inches and heading in radians
      */
