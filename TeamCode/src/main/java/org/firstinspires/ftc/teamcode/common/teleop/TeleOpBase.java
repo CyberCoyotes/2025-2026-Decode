@@ -276,10 +276,14 @@ public abstract class TeleOpBase extends CommandOpMode {
                 pinpoint.getX(DistanceUnit.INCH),
                 pinpoint.getY(DistanceUnit.INCH));
 
-        telemetry.addData("Pinpoint",
-                "%s  %.0f Hz",
-                pinpoint.getDeviceStatus(),
-                pinpoint.getPinpointFrequency());
+        if (pinpoint.isAvailable()) {
+            telemetry.addData("Pinpoint",
+                    "%s  %.0f Hz",
+                    pinpoint.getDeviceStatus(),
+                    pinpoint.getPinpointFrequency());
+        } else {
+            telemetry.addData("Pinpoint", "NOT CONFIGURED — add \"odo\" to hardware config");
+        }
 
         // ---- Vision --------------------------------------------------------
         if (limelight.hasTarget()) {

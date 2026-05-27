@@ -28,6 +28,13 @@ import java.util.Locale;
  * The drive subsystem receives heading as a {@code DoubleSupplier} — it never holds a reference
  * to {@code PinpointOdometry} directly, keeping subsystem boundaries clean.</p>
  *
+ * <p><strong>Absent device:</strong> If the hardware configuration does not contain a device named
+ * {@value #ODO_NAME}, the constructor silently sets {@code odo = null} rather than crashing the
+ * OpMode. All getters return safe zero/default values; {@link #isAvailable()} returns
+ * {@code false}; {@link #getDeviceStatus()} returns {@code NOT_READY}. The robot can still run
+ * in robot-centric drive mode without heading feedback — add the device to the hardware config
+ * to restore full field-centric and auton capability.</p>
+ *
  * <p><strong>Device status</strong> is exposed via {@link #getDeviceStatus()}, which returns the
  * SDK's own {@link GoBildaPinpointDriver.DeviceStatus} enum (READY, CALIBRATING, NOT_READY,
  * FAULT_NO_PODS_DETECTED, FAULT_X_POD_NOT_DETECTED, FAULT_Y_POD_NOT_DETECTED, FAULT_BAD_READ).
@@ -60,7 +67,8 @@ public class PinpointOdometry {
     /* ========================================
      * HARDWARE
      * ======================================== */
-    private final GoBildaPinpointDriver odo;
+    // null when the device is absent from the hardware configuration
+    private GoBildaPinpointDriver odo;
 
     /* ========================================
      * CONFIGURATION CONSTANTS
@@ -126,22 +134,29 @@ public class PinpointOdometry {
      * @param hardwareMap The hardware map from the OpMode
      */
     public PinpointOdometry(HardwareMap hardwareMap) {
-        // Initialize the Pinpoint driver
-        odo = hardwareMap.get(GoBildaPinpointDriver.class, ODO_NAME);
+        try {
+            // Initialize the Pinpoint driver
+            odo = hardwareMap.get(GoBildaPinpointDriver.class, ODO_NAME);
 
-        // Configure pod offsets
-        // These define how far the odometry pods are from the robot's center of rotation
-        odo.setOffsets(X_OFFSET_MM, Y_OFFSET_MM, DistanceUnit.MM);
+            // Configure pod offsets
+            // These define how far the odometry pods are from the robot's center of rotation
+            odo.setOffsets(X_OFFSET_MM, Y_OFFSET_MM, DistanceUnit.MM);
 
-        // Configure encoder resolution (goBILDA 4-bar pods)
-        odo.setEncoderResolution(ENCODER_RESOLUTION);
+            // Configure encoder resolution (goBILDA 4-bar pods)
+            odo.setEncoderResolution(ENCODER_RESOLUTION);
 
-        // Configure encoder directions for upside-down mounting
-        odo.setEncoderDirections(X_ENCODER_DIRECTION, Y_ENCODER_DIRECTION);
+            // Configure encoder directions for upside-down mounting
+            odo.setEncoderDirections(X_ENCODER_DIRECTION, Y_ENCODER_DIRECTION);
 
-        // Reset position and calibrate IMU
-        // This should be called when robot is stationary
-        odo.resetPosAndIMU();
+            // Reset position and calibrate IMU
+            // This should be called when robot is stationary
+            odo.resetPosAndIMU();
+        } catch (Exception e) {
+            // Device absent from hardware config — all getters return safe defaults.
+            // Fix: add an I2C device named "odo" of type "GoBILDA Pinpoint Computer"
+            // in the Driver Station robot configuration.
+            odo = null;
+        }
 
         lastUpdateTime = System.nanoTime();
     }
@@ -157,6 +172,8 @@ public class PinpointOdometry {
      * (position, velocity, heading) in a single I2C transaction.</p>
      */
     public void update() {
+        if (odo == null) return;
+
         // Request update from Pinpoint (reads all sensors via I2C)
         odo.update();
 
@@ -188,6 +205,8 @@ public class PinpointOdometry {
      * Use this if you only need heading information and want to save I2C bandwidth.
      */
     public void updateHeadingOnly() {
+        if (odo == null) return;
+
         odo.update(GoBildaPinpointDriver.ReadData.ONLY_UPDATE_HEADING);
         Pose2D rawPosition = odo.getPosition();
 
@@ -289,7 +308,7 @@ public class PinpointOdometry {
      * @return X velocity in units/second
      */
     public double getVelocityX(DistanceUnit unit) {
-        return odo.getVelX(unit);
+        return (odo != null) ? odo.getVelX(unit) : 0.0;
     }
 
     /**
@@ -299,7 +318,7 @@ public class PinpointOdometry {
      * @return Y velocity in units/second
      */
     public double getVelocityY(DistanceUnit unit) {
-        return odo.getVelY(unit);
+        return (odo != null) ? odo.getVelY(unit) : 0.0;
     }
 
     /**
@@ -309,6 +328,7 @@ public class PinpointOdometry {
      * @return Heading velocity in units/second
      */
     public double getHeadingVelocity(UnnormalizedAngleUnit unit) {
+        if (odo == null) return 0.0;
         double rawVelocity = odo.getHeadingVelocity(unit);
         return INVERT_HEADING ? -rawVelocity : rawVelocity;
     }
@@ -329,7 +349,7 @@ public class PinpointOdometry {
      * </p>
      */
     public void resetPosAndIMU() {
-        odo.resetPosAndIMU();
+        if (odo != null) odo.resetPosAndIMU();
         currentPosition = new Pose2D(DistanceUnit.MM, 0, 0, AngleUnit.DEGREES, 0);
     }
 
@@ -340,7 +360,7 @@ public class PinpointOdometry {
      * <p>Use this if heading drift is observed but position is still accurate.</p>
      */
     public void recalibrateIMU() {
-        odo.recalibrateIMU();
+        if (odo != null) odo.recalibrateIMU();
     }
 
     /**
@@ -350,7 +370,7 @@ public class PinpointOdometry {
      * @param pose The new position to set
      */
     public void setPosition(Pose2D pose) {
-        odo.setPosition(pose);
+        if (odo != null) odo.setPosition(pose);
         currentPosition = pose;
     }
 
@@ -376,7 +396,18 @@ public class PinpointOdometry {
      * @return Current device status
      */
     public GoBildaPinpointDriver.DeviceStatus getDeviceStatus() {
-        return odo.getDeviceStatus();
+        return (odo != null) ? odo.getDeviceStatus() : GoBildaPinpointDriver.DeviceStatus.NOT_READY;
+    }
+
+    /**
+     * Returns {@code true} if the Pinpoint is present in the hardware config and responding.
+     * Use this to guard field-centric drive or autonomous path-following when the device may
+     * be absent during bench testing.
+     *
+     * @return {@code false} when the device was not found during initialization
+     */
+    public boolean isAvailable() {
+        return odo != null;
     }
 
     /**
@@ -385,7 +416,7 @@ public class PinpointOdometry {
      * @return {@code true} if status is {@code READY}, {@code false} otherwise
      */
     public boolean isReady() {
-        return odo.getDeviceStatus() == GoBildaPinpointDriver.DeviceStatus.READY;
+        return (odo != null) && odo.getDeviceStatus() == GoBildaPinpointDriver.DeviceStatus.READY;
     }
 
     /**
@@ -394,7 +425,7 @@ public class PinpointOdometry {
      * @return Frequency in Hz
      */
     public double getPinpointFrequency() {
-        return odo.getFrequency();
+        return (odo != null) ? odo.getFrequency() : 0.0;
     }
 
     /**
@@ -412,7 +443,7 @@ public class PinpointOdometry {
      * @return Version number as string
      */
     public String getDeviceVersion() {
-        return String.valueOf(odo.getDeviceVersion());
+        return (odo != null) ? String.valueOf(odo.getDeviceVersion()) : "N/A";
     }
 
     /**
@@ -422,7 +453,7 @@ public class PinpointOdometry {
      * @return Yaw scalar value
      */
     public double getYawScalar() {
-        return odo.getYawScalar();
+        return (odo != null) ? odo.getYawScalar() : 0.0;
     }
 
     /* ========================================
@@ -466,6 +497,16 @@ public class PinpointOdometry {
      * @return Compact telemetry string
      */
     public String getTelemetry() {
+        if (odo == null) {
+            return String.format(Locale.US,
+                    "Pinpoint Odometry\n" +
+                    "Position: X=%.2f\" Y=%.2f\" H=%.1f°\n" +
+                    "Status: NOT CONFIGURED — add \"%s\" to hardware config",
+                    currentPosition.getX(DistanceUnit.INCH),
+                    currentPosition.getY(DistanceUnit.INCH),
+                    currentPosition.getHeading(AngleUnit.DEGREES),
+                    ODO_NAME);
+        }
         return String.format(Locale.US,
                 "Pinpoint Odometry\n" +
                 "Position: X=%.2f\" Y=%.2f\" H=%.1f°\n" +
@@ -487,6 +528,24 @@ public class PinpointOdometry {
      * @return Detailed telemetry string
      */
     public String getDetailedTelemetry() {
+        if (odo == null) {
+            return String.format(Locale.US,
+                    "=== Pinpoint Odometry ===\n" +
+                    "*** DEVICE NOT CONFIGURED ***\n" +
+                    "Add I2C device \"%s\" (GoBILDA Pinpoint Computer)\n" +
+                    "to the Driver Station hardware configuration.\n" +
+                    "Position (inches):\n" +
+                    "  X: %.3f  Y: %.3f  Heading: %.2f°\n" +
+                    "Configuration:\n" +
+                    "  X Offset: %.2fmm  Y Offset: %.2fmm\n" +
+                    "  X Dir: %s  Y Dir: %s",
+                    ODO_NAME,
+                    currentPosition.getX(DistanceUnit.INCH),
+                    currentPosition.getY(DistanceUnit.INCH),
+                    currentPosition.getHeading(AngleUnit.DEGREES),
+                    X_OFFSET_MM, Y_OFFSET_MM,
+                    X_ENCODER_DIRECTION, Y_ENCODER_DIRECTION);
+        }
         return String.format(Locale.US,
                 "=== Pinpoint Odometry ===\n" +
                 "Position (inches):\n" +
