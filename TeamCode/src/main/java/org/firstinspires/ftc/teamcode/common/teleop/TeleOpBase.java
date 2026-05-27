@@ -1,421 +1,237 @@
 package org.firstinspires.ftc.teamcode.common.teleop;
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.arcrobotics.ftclib.command.CommandOpMode;
+import com.arcrobotics.ftclib.gamepad.GamepadEx;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.common.commands.DefaultDriveCommand;
 import org.firstinspires.ftc.teamcode.common.config.RobotConfig;
-import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
-import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.common.helpers.Limelight;
+import org.firstinspires.ftc.teamcode.common.helpers.PinpointOdometry;
 import org.firstinspires.ftc.teamcode.common.subsystems.IndexSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.IntakeSubsystem;
+import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
 import org.firstinspires.ftc.teamcode.common.subsystems.ShooterSubsystem;
-import org.firstinspires.ftc.teamcode.common.subsystems.PinpointOdometrySubsystem;
 
-public abstract class TeleOpBase extends LinearOpMode {
+/**
+ * Abstract base for all team-specific TeleOp OpModes.
+ *
+ * <h2>Structure</h2>
+ * <ol>
+ *   <li><strong>Helpers updated first</strong> — {@code pinpoint.update()} and
+ *       {@code limelight.update()} fire at the top of every loop tick, before the FTCLib
+ *       scheduler runs. This guarantees that the heading supplier wired into
+ *       {@link MecanumDriveSubsystem} delivers fresh data within the same tick, so
+ *       field-centric rotation is never one cycle stale.</li>
+ *   <li><strong>Scheduler runs subsystems and commands</strong> — {@code super.run()} dispatches
+ *       {@code periodic()} on each registered subsystem and advances all active commands.</li>
+ *   <li><strong>Telemetry last</strong> — {@code updateTelemetry()} reads the freshly-updated
+ *       state of every subsystem and helper and flushes the driver station in a single call.</li>
+ * </ol>
+ *
+ * <h2>Gamepad configuration</h2>
+ * This build is a <strong>single-driver demo configuration</strong>: all controls live on
+ * {@code gamepad1}. {@code gamepad2} is unused and no field for it is declared. Flavor classes
+ * that extend this base should bind all commands in their {@link #bindCommands()} override using
+ * {@code driverGamepad} only.
+ *
+ * <h2>Session structure</h2>
+ * <ul>
+ *   <li><strong>Session A (this file)</strong> — shell: subsystem + helper construction,
+ *       default drive command, helper update loop. No trigger bindings.</li>
+ *   <li><strong>Session B</strong> — populates {@link #bindCommands()} with trigger bindings
+ *       for all current command classes: {@code IntakeCommand}, {@code EjectCommand},
+ *       {@code ShootCommand}, {@code ClearJamCommand}, {@code ClearIndexJamCommand},
+ *       and drive-mode / speed-mode instant commands via {@code DefaultDriveCommand}.</li>
+ *   <li><strong>Session C</strong> — updates the team flavor wrappers
+ *       ({@code team11940/PrimeTeleOp.java}, {@code team22091/PrimeTeleOp.java}) to extend
+ *       this class.</li>
+ * </ul>
+ */
+public abstract class TeleOpBase extends CommandOpMode {
 
-    /* ========================================
-     * SUBSYSTEMS
-     * ======================================== */
+    // ---- Subsystems (actuator hardware — registered with the scheduler) ----
+
     private MecanumDriveSubsystem drive;
-    private PinpointOdometrySubsystem odometry;
-    private IntakeSubsystem intake;
-    private IndexSubsystem index;
-    private ShooterSubsystem shooter;
+    private IntakeSubsystem       intake;
+    private IndexSubsystem        index;
+    private ShooterSubsystem      shooter;
 
-    /* ========================================
-     * BUTTON STATE TRACKING
-     * ======================================== */
-    private boolean lastBackState = false;
-    private boolean lastStartState = false;
-    private boolean lastGuideState = false;
-    private boolean lastDpadUpState = false;
-    private boolean lastDpadDownState = false;
-    private boolean lastDpadLeftState = false;
-    private boolean lastDpadRightState = false;
+    // ---- Helpers (pure-read sensors — updated manually, NOT registered) ----
 
-    // Gamepad 2 - Shooter controls
-    private boolean lastGP2_XState = false;
-    private boolean lastGP2_YState = false;
-    private boolean lastGP2_BState = false;
-    private boolean lastGP2_DpadUpState = false;
-    private boolean lastGP2_DpadDownState = false;
-    private boolean lastGP2_DpadLeftState = false;
-    private boolean lastGP2_DpadRightState = false;
+    private PinpointOdometry pinpoint;
+    private Limelight        limelight;
 
-    // Flywheel and index sequential control state
-    private boolean flywheelRunning = false;
+    // ---- Gamepads ----------------------------------------------------------
+    // Single-driver demo configuration: gamepad2 is unused; no field is declared for it.
 
-    // Drive idle state (replaces DriveState.IDLE)
-    private boolean driveIdle = false;
+    private GamepadEx driverGamepad;
 
-    // Index motor delayed stop state
-    private boolean indexDelayedStop = false;
-    private long indexStopTime = 0;
+    // ---- Config ------------------------------------------------------------
 
-    private boolean manualIndexingActive = false;
-    private boolean intakeIndexMotorsStarted = false;
-
-    /* ========================================
-     * CONSTANTS
-     * ======================================== */
-    private static final double SPEED_STEP = 0.05;
-    private static final double SENSITIVITY_STEP = 0.1;
-    private static final double SLOW_MOTION_SPEED = 0.30;
-    private static final double TURBO_SPEED = 1.0;
-    private static final double SHOOTER_POWER_INCREMENT = 0.05;
-    private static final double SHOOTER_MIN_POWER = 0.0;
-    private static final double SHOOTER_MAX_POWER = 1.0;
-    private static final double HOOD_INCREMENT = 0.05;
-    private static final long INDEX_STOP_DELAY_MS = 1500;
-
-    /* ========================================
-     * CONFIGURATION VARIABLES
-     * ======================================== */
-    private double baseSpeed;
-    private double shooterPower = 0.50;
     private RobotConfig config;
 
+    // ---- Abstract hook -----------------------------------------------------
+
+    /**
+     * Provide the per-robot configuration for this OpMode flavor.
+     * Called once at the start of {@link #initialize()}.
+     */
     protected abstract RobotConfig getRobotConfig();
 
+    // ========================================================================
+    // INITIALIZE
+    // ========================================================================
+
     @Override
-    public void runOpMode() throws InterruptedException {
+    public void initialize() {
 
+        // 1. Config first — subsystems read defaults from it during construction.
         config = getRobotConfig();
-        baseSpeed = config.defaultBaseSpeed();
 
-        telemetry.addData("Status", "Initializing...");
-        telemetry.update();
+        // 2. Gamepad wrapper.
+        driverGamepad = new GamepadEx(gamepad1);
 
-        // Odometry must be initialized before drive so its heading supplier is available
-        odometry = new PinpointOdometrySubsystem(hardwareMap);
-        drive = new MecanumDriveSubsystem(hardwareMap, odometry::getHeadingRadians, config);
-        intake = new IntakeSubsystem(hardwareMap);
-        index = new IndexSubsystem(hardwareMap);
+        // 3. Helpers first — drive captures pinpoint::getHeadingRadians as a live
+        //    DoubleSupplier, so the helper must exist before drive is constructed.
+        pinpoint  = new PinpointOdometry(hardwareMap);
+        limelight = new Limelight(hardwareMap);
+
+        // 4. Drive — wires in the heading supplier from pinpoint.
+        drive = new MecanumDriveSubsystem(hardwareMap, pinpoint::getHeadingRadians, config);
+
+        // 5. Remaining actuator subsystems.
+        intake  = new IntakeSubsystem(hardwareMap);
+        index   = new IndexSubsystem(hardwareMap);
         shooter = new ShooterSubsystem(hardwareMap);
 
-        telemetry.addData("Status", "Ready to start!");
-        telemetry.addLine();
-        telemetry.addLine("=== GAMEPAD 1 (DRIVER) ===");
-        telemetry.addLine("  Left Stick      - Strafe");
-        telemetry.addLine("  Right Stick     - Rotate");
-        telemetry.addLine("  Left Trigger    - Slow Motion (30% Speed)");
-        telemetry.addLine("  Right Trigger   - Turbo Mode (100% Speed)");
-        telemetry.addLine("  Left Bumper     - Index Motors Only");
-        telemetry.addLine("  Right Bumper    - Intake (Wheels + Index)");
-        telemetry.addLine("  RB + A Button   - Eject (Reverse Intake)");
-        telemetry.addLine("  A Button (alone) - Emergency Stop");
-        telemetry.addLine("  BACK Button     - Toggle Field-Centric");
-        telemetry.addLine("  START Button    - Toggle Robot-Centric");
-        telemetry.addLine("  MODE Button     - Reset Heading");
-        telemetry.addLine("  D-Pad Up/Down   - Adjust Speed");
-        telemetry.addLine("  D-Pad Left/Right - Adjust Sensitivity");
-        telemetry.addLine();
-        telemetry.addLine("=== GAMEPAD 2 (OPERATOR) ===");
-        telemetry.addLine("  Left Bumper     - Run Index Motor Forward");
-        telemetry.addLine("  LB + A Button   - Reverse Index Only");
-        telemetry.addLine("  Right Bumper    - Shoot at Preset (Flywheel→Index)");
-        telemetry.addLine("  RB + A Button   - Reverse Flywheel & Index");
-        telemetry.addLine("  X Button        - SHORT_RANGE Preset (RPM+Hood)");
-        telemetry.addLine("  Y Button        - MEDIUM_RANGE Preset (RPM+Hood)");
-        telemetry.addLine("  B Button        - LONG_RANGE Preset (RPM+Hood)");
-        telemetry.addLine("  D-Pad Left      - Hood Servo Down (Manual)");
-        telemetry.addLine("  D-Pad Right     - Hood Servo Up (Manual)");
-        telemetry.addLine("  D-Pad Up/Down   - Adjust Shooter RPM (±100)");
-        telemetry.update();
+        // 6. Register actuator subsystems so the scheduler calls their periodic() each tick.
+        //    Helpers are NOT registered — they have no periodic() and are not SubsystemBase.
+        register(drive, intake, index, shooter);
 
-        waitForStart();
+        // 7. Default drive command — runs whenever no other command claims the drive subsystem.
+        drive.setDefaultCommand(new DefaultDriveCommand(drive, driverGamepad));
 
+        // 8. Initial drive state: field-centric from match start, heading zeroed here.
         drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC);
         drive.resetHeading();
 
-        while (opModeIsActive()) {
+        // 9. Signal to the drive station that init is complete.
+        telemetry.addData("Status", "Ready");
+        telemetry.update();
 
-            odometry.update();
-            intake.periodic();
-            shooter.periodic();
-
-            handleStateTransitions();
-            handleConfigurationAdjustments();
-            handleIntakeControls();
-
-            if (indexDelayedStop && System.currentTimeMillis() >= indexStopTime) {
-                index.stop();
-                indexDelayedStop = false;
-            }
-
-            handleIndexControls();
-            index.periodic();
-
-            handleShooterControls();
-
-            double axial = -gamepad1.left_stick_y;
-            double lateral = gamepad1.left_stick_x;
-            double yaw = gamepad1.right_stick_x;
-
-            double effectiveSpeed = baseSpeed;
-            if (gamepad1.left_trigger > 0.1) {
-                double targetSpeed = baseSpeed * SLOW_MOTION_SPEED;
-                effectiveSpeed = baseSpeed + (targetSpeed - baseSpeed) * gamepad1.left_trigger;
-            } else if (gamepad1.right_trigger > 0.1) {
-                effectiveSpeed = baseSpeed + (TURBO_SPEED - baseSpeed) * gamepad1.right_trigger;
-            }
-
-            drive.setBaseSpeed(effectiveSpeed);
-
-            if (!driveIdle) {
-                drive.drive(axial, lateral, yaw);
-            } else {
-                drive.stop();
-            }
-            drive.periodic();
-
-            updateTelemetry();
-        }
+        // 10. Trigger bindings — populated by Session B.
+        bindCommands();
     }
 
-    /* ========================================
-     * STATE TRANSITION HANDLER
-     * ======================================== */
-    private void handleStateTransitions() {
-        if (gamepad1.back && !lastBackState) {
-            drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC);
-            driveIdle = false;
-        }
-        lastBackState = gamepad1.back;
+    // ========================================================================
+    // RUN LOOP
+    // ========================================================================
 
-        if (gamepad1.start && !lastStartState) {
-            drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.ROBOT_CENTRIC);
-            driveIdle = false;
-        }
-        lastStartState = gamepad1.start;
+    /**
+     * Main loop tick.
+     *
+     * <p>Helper updates fire <em>before</em> {@code super.run()} so that
+     * {@link MecanumDriveSubsystem#periodic()} consumes fresh heading data within the
+     * same tick. Telemetry is flushed last, after all state has settled.
+     */
+    @Override
+    public void run() {
+        pinpoint.update();   // pull fresh pose + heading from Pinpoint over I2C
+        limelight.update();  // pull latest result + status snapshot from Limelight
 
-        if (gamepad1.guide && !lastGuideState) {
-            if (drive.getHeadingMode() == MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC) {
-                drive.resetHeading();
-                telemetry.addData("Action", "Heading Reset!");
-            }
-        }
-        lastGuideState = gamepad1.guide;
+        super.run();         // scheduler: subsystem periodic() + active commands
 
-        if (gamepad1.a && !gamepad1.right_bumper && !gamepad1.left_bumper) {
-            driveIdle = true;
-        } else if (driveIdle && !gamepad1.a) {
-            driveIdle = false;
-            drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.ROBOT_CENTRIC);
-        }
+        updateTelemetry();
     }
 
-    /* ========================================
-     * CONFIGURATION ADJUSTMENT HANDLER
-     * ======================================== */
-    private void handleConfigurationAdjustments() {
-        if (gamepad1.dpad_up && !lastDpadUpState) {
-            baseSpeed = Math.min(1.0, baseSpeed + SPEED_STEP);
-        }
-        lastDpadUpState = gamepad1.dpad_up;
+    // ========================================================================
+    // BIND COMMANDS
+    // ========================================================================
 
-        if (gamepad1.dpad_down && !lastDpadDownState) {
-            baseSpeed = Math.max(0.1, baseSpeed - SPEED_STEP);
-        }
-        lastDpadDownState = gamepad1.dpad_down;
-
-        if (gamepad1.dpad_right && !lastDpadRightState) {
-            drive.setSensitivity(Math.min(2.0, drive.getSensitivity() + SENSITIVITY_STEP));
-        }
-        lastDpadRightState = gamepad1.dpad_right;
-
-        if (gamepad1.dpad_left && !lastDpadLeftState) {
-            drive.setSensitivity(Math.max(0.5, drive.getSensitivity() - SENSITIVITY_STEP));
-        }
-        lastDpadLeftState = gamepad1.dpad_left;
+    /**
+     * Override in a subclass to wire trigger bindings.
+     *
+     * <p>Called once at the end of {@link #initialize()}, after subsystems, helpers,
+     * and the default drive command are fully constructed. Bindings declared here can
+     * safely reference any field on this class.
+     */
+    protected void bindCommands() {
+        // Session B: trigger bindings go here.
     }
 
-    /* ========================================
-     * INTAKE CONTROL HANDLER
-     * ======================================== */
-    private void handleIntakeControls() {
-        if (gamepad1.left_bumper && gamepad1.a) {
-            index.reverse();
-            manualIndexingActive = true;
-            indexDelayedStop = false;
-        } else if (gamepad1.left_bumper) {
-            if (!manualIndexingActive) {
-                index.intake();
-                manualIndexingActive = true;
-            }
-            indexDelayedStop = false;
-        } else if (gamepad1.right_bumper && gamepad1.a) {
-            intake.eject();
-            index.reverse();
-            indexDelayedStop = false;
-            intakeIndexMotorsStarted = false;
-            manualIndexingActive = false;
-        } else if (gamepad1.right_bumper) {
-            intake.intake();
-            if (!intakeIndexMotorsStarted) {
-                index.intake();
-                intakeIndexMotorsStarted = true;
-            }
-            indexDelayedStop = false;
-            manualIndexingActive = false;
-        } else if (!gamepad2.left_bumper && !gamepad2.right_bumper) {
-            intake.stop();
-            intakeIndexMotorsStarted = false;
+    // ========================================================================
+    // TELEMETRY
+    // ========================================================================
 
-            if (manualIndexingActive) {
-                index.stop();
-                manualIndexingActive = false;
-            } else {
-                if (!indexDelayedStop) {
-                    indexDelayedStop = true;
-                    indexStopTime = System.currentTimeMillis() + INDEX_STOP_DELAY_MS;
-                }
-            }
-        }
-    }
+    /**
+     * Emit one driver-station screen worth of status from all subsystems and helpers.
+     *
+     * <p>Called at the end of every {@link #run()} tick. All formatting is delegated to
+     * {@code telemetry.addData(key, format, args)} to avoid per-frame string allocation.
+     * Aim: ~12 lines, no scrolling required on a standard driver-station display.
+     */
+    protected void updateTelemetry() {
 
-    /* ========================================
-     * INDEX CONTROL HANDLER
-     * ======================================== */
-    private void handleIndexControls() {
-        if (gamepad2.left_bumper && gamepad2.a) {
-            index.reverse();
-            manualIndexingActive = true;
-            indexDelayedStop = false;
-        } else if (gamepad2.left_bumper) {
-            if (!manualIndexingActive) {
-                index.feed();
-                manualIndexingActive = true;
-            }
-            indexDelayedStop = false;
-        } else if (manualIndexingActive) {
-            if (!gamepad2.right_bumper) {
-                index.stop();
-            }
-            manualIndexingActive = false;
-        } else if (!gamepad2.right_bumper && !gamepad1.right_bumper && !indexDelayedStop) {
-            index.stop();
-        }
-    }
+        // ---- Drive ---------------------------------------------------------
+        telemetry.addData("Drive",
+                "%s | %s | spd=%.2f | sens=%.1f",
+                drive.getHeadingMode().name(),
+                drive.getSpeedMode().name(),
+                drive.getBaseSpeed(),
+                drive.getSensitivity());
 
-    /* ========================================
-     * SHOOTER CONTROL HANDLER (GAMEPAD 2)
-     * ======================================== */
-    private void handleShooterControls() {
-        if (gamepad2.x && !lastGP2_XState) {
-            shooter.setPreset(ShooterSubsystem.ShotPreset.SHORT_RANGE);
-        }
-        lastGP2_XState = gamepad2.x;
+        telemetry.addData("Heading",
+                "%.1f deg",
+                Math.toDegrees(drive.getHeading()));
 
-        if (gamepad2.y && !lastGP2_YState) {
-            shooter.setPreset(ShooterSubsystem.ShotPreset.MEDIUM_RANGE);
-        }
-        lastGP2_YState = gamepad2.y;
+        // ---- Odometry ------------------------------------------------------
+        telemetry.addData("Position",
+                "X=%.2f\"  Y=%.2f\"",
+                pinpoint.getX(DistanceUnit.INCH),
+                pinpoint.getY(DistanceUnit.INCH));
 
-        if (gamepad2.b && !lastGP2_BState) {
-            shooter.setPreset(ShooterSubsystem.ShotPreset.LONG_RANGE);
-        }
-        lastGP2_BState = gamepad2.b;
+        telemetry.addData("Pinpoint",
+                "%s  %.0f Hz",
+                pinpoint.getDeviceStatus(),
+                pinpoint.getPinpointFrequency());
 
-        if (gamepad2.dpad_up && !lastGP2_DpadUpState) {
-            shooter.incrementFlywheelRPM();
-        }
-        lastGP2_DpadUpState = gamepad2.dpad_up;
-
-        if (gamepad2.dpad_down && !lastGP2_DpadDownState) {
-            shooter.decrementFlywheelRPM();
-        }
-        lastGP2_DpadDownState = gamepad2.dpad_down;
-
-        if (gamepad2.dpad_left && !lastGP2_DpadLeftState) {
-            shooter.setHoodPosition(shooter.getHoodPosition() - HOOD_INCREMENT);
-        }
-        lastGP2_DpadLeftState = gamepad2.dpad_left;
-
-        if (gamepad2.dpad_right && !lastGP2_DpadRightState) {
-            shooter.setHoodPosition(shooter.getHoodPosition() + HOOD_INCREMENT);
-        }
-        lastGP2_DpadRightState = gamepad2.dpad_right;
-
-        if (gamepad2.right_bumper && gamepad2.a) {
-            shooter.reverseFlywheel();
-            index.reverse();
-            flywheelRunning = true;
-        } else if (gamepad2.right_bumper) {
-            if (!flywheelRunning) {
-                shooter.setPreset(shooter.getPreset());
-                flywheelRunning = true;
-            }
-            if (shooter.isReady()) {
-                index.feed();
-            }
+        // ---- Vision --------------------------------------------------------
+        if (limelight.hasTarget()) {
+            telemetry.addData("Limelight",
+                    "%s  tx=%.1f  ty=%.1f",
+                    limelight.getStatus(),
+                    limelight.getTx(),
+                    limelight.getTy());
         } else {
-            if (flywheelRunning) {
-                shooter.stopFlywheel();
-                if (!gamepad1.right_bumper) {
-                    index.stop();
-                }
-                flywheelRunning = false;
-            }
+            telemetry.addData("Limelight", limelight.getStatus().name());
         }
-    }
 
-    /* ========================================
-     * TELEMETRY
-     * ======================================== */
-    private void updateTelemetry() {
-        telemetry.addLine("=== PINPOINT ODOMETRY ===");
-        telemetry.addData("Position X", "%.2f in", odometry.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
-        telemetry.addData("Position Y", "%.2f in", odometry.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
-        telemetry.addData("Heading", "%.1f°", odometry.getHeadingDegrees());
-        telemetry.addData("Status", odometry.getDeviceStatus());
-        telemetry.addData("Frequency", "%.0f Hz", odometry.getPinpointFrequency());
+        // ---- Intake --------------------------------------------------------
+        telemetry.addData("Intake",
+                "%s | slides=%s",
+                intake.getStatus().name(),
+                intake.isExtended() ? "OUT" : "IN");
 
-        telemetry.addLine();
-        telemetry.addLine("=== DRIVE STATE MACHINE ===");
-        telemetry.addData("Current State", drive.getHeadingMode().name() + (driveIdle ? " (IDLE)" : ""));
-        telemetry.addData("Base Speed", "%.2f", baseSpeed);
+        // ---- Index ---------------------------------------------------------
+        telemetry.addData("Index",
+                "%s | artifact=%s",
+                index.getStatus().name(),
+                index.hasArtifact() ? "YES" : "no");
 
-        telemetry.addLine();
-        telemetry.addLine("=== INTAKE SUBSYSTEM ===");
-        telemetry.addData("Wheel State", intake.getStatus().name());
-        telemetry.addData("Slide State", intake.isExtended() ? "EXTENDED" : "RETRACTED");
+        // ---- Shooter -------------------------------------------------------
+        telemetry.addData("Shooter",
+                "%s%s",
+                shooter.getStatus().name(),
+                shooter.isReady() ? " [READY]" : "");
 
-        telemetry.addLine();
-        telemetry.addLine("=== INDEX SUBSYSTEM ===");
-        telemetry.addData("Index State", index.getStatus().name());
-        telemetry.addLine();
-        telemetry.addData("Artifact Detected", index.hasArtifact() ? "✓ YES (< 3cm)" : "✗ NO (>= 3cm)");
-        telemetry.addLine();
-        telemetry.addData("Manual Index", manualIndexingActive ? "ACTIVE" : "IDLE");
-        telemetry.addData("Intake Started", intakeIndexMotorsStarted ? "YES" : "NO");
-        telemetry.addData("Delayed Stop", indexDelayedStop ? String.format("PENDING (%d ms)", indexStopTime - System.currentTimeMillis()) : "NONE");
+        telemetry.addData("Preset",
+                "%s  tgt=%.0f  act=%.0f RPM",
+                shooter.getPreset().name(),
+                shooter.getTargetRPM(),
+                shooter.getCurrentRPM());
 
-        telemetry.addLine();
-        telemetry.addLine("=== SHOOTER SUBSYSTEM ===");
-        telemetry.addData("Preset", shooter.getPreset().name());
-        telemetry.addData("Target RPM", shooter.getTargetRPM());
-        telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
-        telemetry.addData("At Target", shooter.isReady() ? "✓ YES" : "✗ NO");
-        telemetry.addData("Motor Power", String.format("%.0f%%", shooter.getFlywheelPower() * 100));
-        telemetry.addData("Preset Hood", String.format("%.2f", shooter.getPreset().getHoodPosition()));
-        telemetry.addData("Current Hood", String.format("%.2f", shooter.getHoodPosition()));
-        telemetry.addData("Sequential Mode", flywheelRunning ? "RUNNING" : "IDLE");
-
-        telemetry.addLine();
-        telemetry.addLine("=== CONFIGURATION ===");
-        telemetry.addData("Sensitivity", "%.1f", drive.getSensitivity());
-        telemetry.addData("Deadzone", "%.2f", config.defaultDeadzone());
-
-        telemetry.addLine();
-        telemetry.addLine("=== MODES ===");
-        telemetry.addData("Field-Centric", drive.getHeadingMode() == MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC ? "ON" : "OFF");
-        telemetry.addData("Robot-Centric", drive.getHeadingMode() == MecanumDriveSubsystem.HeadingMode.ROBOT_CENTRIC ? "ON" : "OFF");
-
-        String speedMode = "Normal";
-        if (gamepad1.left_trigger > 0.1) {
-            speedMode = "SLOW MOTION (30%)";
-        } else if (gamepad1.right_trigger > 0.1) {
-            speedMode = "TURBO (100%)";
-        }
-        telemetry.addData("Speed Mode", speedMode);
+        telemetry.addData("Hood", "%.2f", shooter.getHoodPosition());
 
         telemetry.update();
     }
