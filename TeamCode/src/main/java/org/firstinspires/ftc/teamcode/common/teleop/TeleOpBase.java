@@ -168,75 +168,79 @@ public abstract class TeleOpBase extends CommandOpMode {
     protected void bindCommands() {
 
         // ---- Drive: precision speed mode ------------------------------------
-        // Left trigger held → PRECISION; releasing returns to NORMAL.
-        // whileFalse ensures NORMAL is restored even if the trigger isn't pressed at startup.
-        new Trigger(() -> driverGamepad.getLeftTrigger() > 0.1)
-                .whileTrue(new RunCommand(() -> drive.setSpeedMode(SpeedMode.PRECISION), drive))
-                .whileFalse(new RunCommand(() -> drive.setSpeedMode(SpeedMode.NORMAL), drive));
+        // Left trigger held → PRECISION; releasing → NORMAL (instant, fires once on release).
+        // Local variable needed so two bindings can share the same Trigger instance.
+        Trigger leftTriggerActive = new Trigger(
+                () -> driverGamepad.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER) > 0.1);
+        leftTriggerActive.whileActiveContinuous(
+                new RunCommand(() -> drive.setSpeedMode(SpeedMode.PRECISION), drive));
+        leftTriggerActive.whenInactive(
+                new InstantCommand(() -> drive.setSpeedMode(SpeedMode.NORMAL), drive));
 
         // ---- Intake / eject -------------------------------------------------
         // Left bumper held → run intake wheels forward + extend slides.
         driverGamepad.getGamepadButton(GamepadKeys.Button.LEFT_BUMPER)
-                .whileTrue(new IntakeCommand(intake));
+                .whileHeld(new IntakeCommand(intake));
 
         // X held → run intake wheels in reverse (eject).
         driverGamepad.getGamepadButton(GamepadKeys.Button.X)
-                .whileTrue(new EjectCommand(intake));
+                .whileHeld(new EjectCommand(intake));
 
         // ---- Shooting -------------------------------------------------------
         // Right bumper held → spin up + feed when at speed.
         driverGamepad.getGamepadButton(GamepadKeys.Button.RIGHT_BUMPER)
-                .whileTrue(new ShootCommand(shooter, index));
+                .whileHeld(new ShootCommand(shooter, index));
 
         // Right trigger pressed → same shoot sequence (separate binding; easy to reassign later).
-        new Trigger(() -> driverGamepad.getRightTrigger() > 0.1)
-                .whileTrue(new ShootCommand(shooter, index));
+        new Trigger(() -> driverGamepad.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) > 0.1)
+                .whileActiveContinuous(new ShootCommand(shooter, index));
 
         // ---- Preset selection -----------------------------------------------
         // A → SHORT_RANGE preset (2 200 RPM, hood 0.30).
         driverGamepad.getGamepadButton(GamepadKeys.Button.A)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> shooter.setPreset(ShooterSubsystem.ShotPreset.SHORT_RANGE), shooter));
 
         // B → MEDIUM_RANGE preset (2 500 RPM, hood 0.60).
         driverGamepad.getGamepadButton(GamepadKeys.Button.B)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> shooter.setPreset(ShooterSubsystem.ShotPreset.MEDIUM_RANGE), shooter));
 
         // Y → LONG_RANGE preset (2 800 RPM, hood 0.60).
         driverGamepad.getGamepadButton(GamepadKeys.Button.Y)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> shooter.setPreset(ShooterSubsystem.ShotPreset.LONG_RANGE), shooter));
 
         // ---- Heading / drive mode -------------------------------------------
         // BACK → switch to field-centric heading mode.
         driverGamepad.getGamepadButton(GamepadKeys.Button.BACK)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> drive.setHeadingMode(MecanumDriveSubsystem.HeadingMode.FIELD_CENTRIC),
                         drive));
 
-        // GUIDE → zero the field-centric heading reference.
-        driverGamepad.getGamepadButton(GamepadKeys.Button.GUIDE)
-                .onTrue(new InstantCommand(() -> drive.resetHeading(), drive));
+        // START → zero the field-centric heading reference.
+        // (GUIDE is not a valid GamepadKeys.Button in FTCLib 2.1.1 and is OS-reserved anyway.)
+        driverGamepad.getGamepadButton(GamepadKeys.Button.START)
+                .whenPressed(new InstantCommand(() -> drive.resetHeading(), drive));
 
         // ---- Configuration adjustments --------------------------------------
         // D-pad up/down: base speed ±0.05, clamped [0.1, 1.0].
         driverGamepad.getGamepadButton(GamepadKeys.Button.DPAD_UP)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> drive.setBaseSpeed(Math.min(1.0, drive.getBaseSpeed() + 0.05)), drive));
 
         driverGamepad.getGamepadButton(GamepadKeys.Button.DPAD_DOWN)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> drive.setBaseSpeed(Math.max(0.1, drive.getBaseSpeed() - 0.05)), drive));
 
         // D-pad right/left: sensitivity ±0.1, clamped [0.5, 2.0].
         driverGamepad.getGamepadButton(GamepadKeys.Button.DPAD_RIGHT)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> drive.setSensitivity(Math.min(2.0, drive.getSensitivity() + 0.1)),
                         drive));
 
         driverGamepad.getGamepadButton(GamepadKeys.Button.DPAD_LEFT)
-                .onTrue(new InstantCommand(
+                .whenPressed(new InstantCommand(
                         () -> drive.setSensitivity(Math.max(0.5, drive.getSensitivity() - 0.1)),
                         drive));
     }
