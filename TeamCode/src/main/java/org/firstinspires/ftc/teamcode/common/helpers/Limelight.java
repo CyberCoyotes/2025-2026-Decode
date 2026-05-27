@@ -62,15 +62,20 @@ public class Limelight {
         LOCKED
     }
 
-    private final Limelight3A limelight;
-    private LLResult           latestResult;
-    private LLStatus           latestStatus;
+    private Limelight3A limelight;   // null when camera is absent from hardware config
+    private LLResult    latestResult;
+    private LLStatus    latestStatus;
 
     public Limelight(HardwareMap hardwareMap) {
-        limelight = hardwareMap.get(Limelight3A.class, LIMELIGHT_NAME);
-        limelight.pipelineSwitch(DEFAULT_PIPELINE);
-        limelight.setPollRateHz(POLL_RATE_HZ);
-        limelight.start();
+        try {
+            limelight = hardwareMap.get(Limelight3A.class, LIMELIGHT_NAME);
+            limelight.pipelineSwitch(DEFAULT_PIPELINE);
+            limelight.setPollRateHz(POLL_RATE_HZ);
+            limelight.start();
+        } catch (Exception e) {
+            // Camera absent from hardware config — all getters return safe defaults.
+            limelight = null;
+        }
     }
 
     /**
@@ -80,6 +85,7 @@ public class Limelight {
      * All getters reflect the values captured during the most recent {@code update()} call.</p>
      */
     public void update() {
+        if (limelight == null) return;
         latestResult = limelight.getLatestResult();
         latestStatus = limelight.getStatus();
     }
@@ -98,8 +104,9 @@ public class Limelight {
      * (e.g. stale FPS reading, status timestamp) as needed.
      */
     public Status getStatus() {
-        if (latestStatus == null || latestStatus.getTemp() <= 0.0) return Status.OFFLINE;
-        if (latestResult == null || !latestResult.isValid())        return Status.SEARCHING;
+        if (limelight == null)                                       return Status.OFFLINE;
+        if (latestStatus == null || latestStatus.getTemp() <= 0.0)  return Status.OFFLINE;
+        if (latestResult == null || !latestResult.isValid())         return Status.SEARCHING;
         return Status.LOCKED;
     }
 
@@ -213,6 +220,6 @@ public class Limelight {
      * @param pipelineIndex pipeline to activate (0–9).
      */
     public void switchPipeline(int pipelineIndex) {
-        limelight.pipelineSwitch(pipelineIndex);
+        if (limelight != null) limelight.pipelineSwitch(pipelineIndex);
     }
 }
