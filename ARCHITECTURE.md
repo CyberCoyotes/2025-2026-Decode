@@ -29,18 +29,57 @@ We are rewriting the 2025-2026 DECODE codebase from iterative (`LinearOpMode` + 
 
 ## 2. MUST — non-negotiable conventions
 
+### Subsystems vs. helpers
+
+Hardware that the robot **commands** (motors, servos, actuators) gets a `SubsystemBase` wrapper with state, status, and `periodic()` work. Hardware that the robot **reads** (sensors, vision, odometry, IMU) is a **plain helper class** with getters and a manual `update()` call from the OpMode. The distinction matches FRC convention and the 2027 WPILib transition: in WPILib, gyros and vision pipelines are injected dependencies, not subsystems.
+
+Rule of thumb:
+
+- Does anything ever need to `addRequirements()` it to claim exclusive ownership? → subsystem.
+- Does anything ever need a `setDefaultCommand()` on it? → subsystem.
+- Is it pure-read sensor data with no command surface? → helper.
+
+Helpers live in `common/helpers/` (not `common/subsystems/`). They have:
+
+- A public `update()` method called by the OpMode (typically as the first line of the main loop tick).
+- Public getters and predicates as needed.
+- Hardware name strings as `private static final String` constants at the top.
+- No `extends SubsystemBase`, no `periodic()`, no scheduler integration.
+
 ### Subsystem pattern
 
 Every subsystem MUST:
 
 - Live in `common/subsystems/` (shared) — never in a flavor source set.
-- Expose a public `Status` enum with gerund names (`INTAKING`, `SPINNING_UP`, `AT_SPEED`).
-- Provide `public Status getStatus()`.
-- Provide boolean predicates for common queries (`isIdle()`, `isReady()`, `hasArtifact()`).
-- Provide command methods named as verbs (`intake()`, `feed()`, `stop()`, `shoot()`).
+- Extend FTCLib's `SubsystemBase`.
 - Provide a `periodic()` method called by the scheduler. Even if empty, it's there.
 - Store hardware config name strings as `private static final String` at the top of the class.
-- Derive status from existing state where possible (no redundant state variables to keep in sync).
+- Have no knowledge of other subsystems — no fields, parameters, or method calls referencing other subsystem types.
+
+**State vs status** — the foundational distinction:
+
+- **State** is data the subsystem owns that outside code modifies (target RPM, hood position, selected preset). Expose with `set`/`get` methods.
+- **Status** is a derived projection of state for outside code to observe. Expose with `getStatus()` + predicates. Never settable from outside.
+- If you find yourself writing `setStatus()`, you have a state field misnamed as status — rename it.
+
+**When to use a `Status` enum** — apply the 3-condition test, use an enum if **any** is true:
+
+1. The subsystem has 3+ meaningfully different conditions (two = boolean, wrap in `isX()` predicate).
+2. The condition is derived/computed from other state, not directly set.
+3. `periodic()` behavior varies non-trivially by condition (do X vs. do Y, not just do X vs. don't).
+
+When you use a `Status` enum:
+
+- Values use gerund names (`INTAKING`, `SPINNING_UP`, `AT_SPEED`).
+- `getStatus()` derives from existing state where possible — no redundant stored field.
+- Also expose the most common queries as boolean predicates (`isIdle()`, `isReady()`).
+
+When the subsystem has only boolean conditions:
+
+- No `Status` enum. No `getStatus()`. Don't fabricate one for consistency.
+- Expose `isX()` / `hasX()` predicates directly. Example: `isExtended()`, `hasArtifact()`.
+
+**Command methods** are verbs: `intake()`, `feed()`, `stop()`, `shoot()`, `reverse()`.
 
 ### Command pattern
 
@@ -58,7 +97,7 @@ Every command MUST:
 - **Classes:** Nouns. `ShooterSubsystem`, `ShootCommand`, `Team11940Config`.
 - **Status enum values:** Gerunds. `INTAKING`, `SPINNING_UP`, `FEEDING`.
 - **Command methods on subsystems:** Action verbs. `intake()`, `shoot()`, `stop()`, `reset()`.
-- **Setters:** `set` + property. `setHoodPosition()`, `setPreset()`.
+- **Setters:** `set` + property. `setHoodPosition()`, `setShotState()`.
 - **Getters:** `get` + property, OR `is`/`has` + property for booleans. `getCurrentRPM()`, `isReady()`, `hasArtifact()`.
 - **Commands:** Verb + `Command`. `ShootCommand`, `IntakeCommand`, `ClearJamCommand`.
 
@@ -83,12 +122,13 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 ├── common/
 │   ├── config/          RobotConfig interface + Pedro/auton constants
 │   ├── subsystems/      All shared subsystems (Shooter, Index, Intake, Drive, etc.)
+│   ├── helpers/         Sensor wrappers and other non-subsystem helpers (Pinpoint, Limelight)
 │   ├── commands/        All shared commands (ShootCommand, IntakeCommand, etc.)
 │   ├── teleop/          PrimeTeleOpBase (abstract CommandOpMode)
 │   ├── auton/           PedroAutonBase + shared auton commands/paths
 │   └── pedropathing/    PedroConfig, Tuning, TUNING.md, paths/
-├── team11940/           Team11940Config, TeleOp wrapper (@TeleOp name + getRobotConfig())
-└── team22091/           Team22091Config, TeleOp wrapper (@TeleOp name + getRobotConfig())
+├── team11940/           Team11940Config, PrimeTeleOp wrapper, team-specific commands/auton
+└── team22091/           Team22091Config, PrimeTeleOp wrapper, team-specific commands/auton
 ```
 
 ### Dependencies
@@ -124,6 +164,9 @@ These are the smells we're rewriting away from. Do not reintroduce them.
 
 - **No shared mutable state between subsystems.** TeleOp must not track flags like `flywheelRunning` and push them into other subsystems. If subsystem A needs to know about subsystem B's state, A queries B's `getStatus()` — but ideally A doesn't need to know at all, and the command layer makes the cross-cutting decision.
 - **No subsystem accepting another subsystem's state as a parameter.** `setFlywheelOverride(boolean)` is the canonical example. Delete on sight.
+- **No `setStatus()` methods.** Status is derived and observed, not set. If outside code needs to set something, it's state — name it accordingly (`setTargetRPM`, `setPreset`).
+- **No two-value `Status` enums.** `enum Status { OPEN, CLOSED }` is a boolean wearing a hat. Use `isOpen()` / `isClosed()` predicates instead.
+- **No redundant stored Status fields.** If `getStatus()` can derive from existing state (target velocity, motor power, sensor reading), do that. A stored `Status currentStatus` field that mirrors other fields is exactly the synchronization risk the rewrite is eliminating.
 - **No `lastXxxState` edge-detect booleans.** Triggers handle this.
 - **No `sleep()` calls in commands or subsystems.** Use `WaitCommand` or check elapsed time via the command's own timer.
 - **No factory chains longer than 3 lines.** If it grows, extract to a command class.
@@ -132,13 +175,14 @@ These are the smells we're rewriting away from. Do not reintroduce them.
 - **No subsystem-to-subsystem hard dependencies in constructors.** Subsystems are constructed independently from `HardwareMap`. Commands compose them.
 - **No `@Disabled` annotations on production OpModes** (used freely on test OpModes).
 - **No silent name changes.** Hardware names, file names, class names, method names locked once committed.
+- **No reflexively making sensors into subsystems.** Pure-read hardware (sensors, vision, odometry) is a plain helper class. Promoting to `SubsystemBase` only for consistency violates the actuator/sensor distinction. See section 2 "Subsystems vs. helpers."
 - **No reinventing conventions.** If something isn't in this doc, ask. Don't pick.
 
 ---
 
 ## 4. Reference implementation — the gold standard
 
-**`ShooterSubsystem` is the gold-standard subsystem.**
+**`ShooterSubsystem` is the gold-standard subsystem.** [CONFIRM: agree, or pick a different one]
 
 Every other subsystem must match its pattern:
 - Public `Status` enum
@@ -148,7 +192,7 @@ Every other subsystem must match its pattern:
 - Hardware names as `private static final String` constants
 - No knowledge of other subsystems
 
-**`ShootCommand` is the gold-standard command.** Write `IntakeCommand` first to validate the pattern (one subsystem, simple lifecycle), then write `ShootCommand` as the template all other commands follow. `ShootCommand` cannot be written until `ShooterSubsystem` and `IndexSubsystem` are rewritten with their `Status` enums.
+**`ShootCommand` is the gold-standard command.** [CONFIRM: write this first, then use as template]
 
 Every other command must match its pattern:
 - Extends `CommandBase`
@@ -226,13 +270,13 @@ When in doubt during a rewrite session, re-read these two files. They are the so
 
 ### Shot presets (locked unless retuned)
 
-| Preset | Target RPM | Hood position |
+Defined by the `ShotPreset` enum. Operator selects via `shooter.setPreset(ShotPreset.LONG_RANGE)`. Each value resolves to a target RPM and hood position.
+
+| `ShotPreset` value | Target RPM | Hood position |
 |---|---|---|
 | `SHORT_RANGE` | 2200 | 0.30 |
 | `MEDIUM_RANGE` | 2500 | 0.60 |
 | `LONG_RANGE` | 2800 | 0.60 |
-
-> **Known code drift:** `ShooterSubsystem.ShotPreset.LONG_RANGE` is currently hardcoded to 3500 RPM (experimental value). Fix to 2800 when rewriting ShooterSubsystem.
 
 ---
 
@@ -267,7 +311,7 @@ Written in English. No code. This is what the robot does, not how. If a rewrite 
 ### Shooter
 
 - One flywheel motor with velocity-PIDF control, one hood servo.
-- Three shot presets (`SHORT_RANGE`, `MEDIUM_RANGE`, `LONG_RANGE`) each setting both flywheel RPM and hood position.
+- Three shot presets defined by the `ShotPreset` enum (`SHORT_RANGE`, `MEDIUM_RANGE`, `LONG_RANGE`), each resolving to a target flywheel RPM and hood position. Selected via `shooter.setPreset(...)`.
 - Manual fine-tune: ±100 RPM, ±0.05 hood per press.
 - Status derived: `IDLE` (target = 0), `SPINNING_UP` (target > 0, not at RPM), `AT_SPEED` (within 5% of target), `REVERSING` (target < 0).
 - Reverse mode runs flywheel at -1000 RPM for jam clearing.
@@ -275,10 +319,10 @@ Written in English. No code. This is what the robot does, not how. If a rewrite 
 ### Shoot sequence (composite behavior)
 
 1. Operator presses RB.
-2. Shooter commanded to current preset (spins up).
-3. Wait for `AT_SPEED` OR 2-second timeout — whichever comes first. Index fires regardless after the wait.
-4. Index commanded to `FEEDING`; continues until RB is released.
-5. On release of RB, shooter returns to `IDLE`, index returns to `IDLE`.
+2. Shooter commanded to current preset via `setPreset()` (spins up).
+3. When shooter reports `AT_SPEED`, index commanded to `FEEDING`.
+4. Continue feeding for up to 2 seconds OR until artifact count = 0 (whichever first). [CONFIRM: timeout value, end condition]
+5. On release of RB, shooter returns to IDLE, index returns to IDLE.
 
 ### Jam clear (composite behavior)
 
@@ -305,11 +349,12 @@ Written in English. No code. This is what the robot does, not how. If a rewrite 
 
 ## 7. Pose fusion (Limelight + Pinpoint)
 
-**Deferred — not part of the command-based rewrite.**
+[CONFIRM — high level shape; specific implementation in a follow-up issue]
 
-All OpModes use raw Pinpoint pose during the rewrite. Limelight remains available for telemetry and vision-alignment commands but does not feed the pose estimate.
-
-Pose fusion is a follow-on project after the rewrite is stable. When that project starts, open a new issue and design it there rather than in this document.
+- Pinpoint provides continuous high-frequency pose estimate.
+- Limelight provides absolute pose corrections from AprilTags when visible.
+- Fusion: trust Pinpoint by default; when Limelight reports a valid botpose with acceptable latency, blend the AprilTag pose into the Pinpoint estimate (latency-compensated).
+- Both teleop and auton consume the fused pose, not the raw Pinpoint pose.
 
 ---
 
@@ -329,14 +374,14 @@ After each session: commit, push, update the GitHub issue with the commit hash, 
 
 `[CONFIRM]` markers throughout this doc flag decisions that are not yet locked. Claude Code is instructed (section 8) to stop and ask when it hits one relevant to the current task. When a decision is made, replace the `[CONFIRM]` with the chosen answer and note the change in the commit message.
 
-- [x] `ShooterSubsystem` is the gold standard
-- [x] `IntakeCommand` is written first (pattern validation); `ShootCommand` is written second and becomes the gold-standard template
-- [x] Shoot sequence: wait for `AT_SPEED` OR 2-second timeout (whichever first), then feed regardless; command ends on button release
-- [x] Shoot sequence timeout value: 2 seconds (spin-up wait only, not total command duration)
-- [x] Pose fusion: deferred; raw Pinpoint pose used throughout the rewrite; fusion is a separate follow-on project
-- [x] `IntakeSubsystem` stays as one class (wheels + slides); auto-slide coupling is intentional physical behavior, not a command-layer concern
-- [x] Existing button bindings carry forward unchanged into the rewrite
-- [x] All commands live in `common/commands/`; no team-specific command directories. Team identity is fully expressed by the `@TeleOp` display name (in the flavor wrapper) and tuning values in `RobotConfig`.
+- [ ] `ShooterSubsystem` is the gold standard (or pick another)
+- [ ] `ShootCommand` is the first command to write (or pick another)
+- [ ] Shoot sequence timeout value (2 seconds? configurable?)
+- [ ] Shoot sequence end condition (timeout only, artifact-count, both?)
+- [ ] Pose fusion implementation approach (latency-compensated blend vs. simple replacement)
+- [ ] Whether `IntakeSubsystem` stays as one class (wheels + slides) or splits into two
+- [ ] Whether the existing button bindings carry forward unchanged or get simplified
+- [ ] Whether per-team commands go in `team11940/commands/` and `team22091/commands/`, or stay in `common/commands/` with team-specific factories
 
 ---
 
