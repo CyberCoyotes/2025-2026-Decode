@@ -1,6 +1,5 @@
-package org.firstinspires.ftc.teamcode.common.subsystems;
+package org.firstinspires.ftc.teamcode.common.helpers;
 
-import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
@@ -12,7 +11,42 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import java.util.Collections;
 import java.util.List;
 
-public class LimelightSubsystem extends SubsystemBase {
+/**
+ * Plain helper wrapping the Limelight 3A vision camera for Teams 11940 &amp; 22091.
+ *
+ * <p>This is a <strong>helper class</strong>, not a subsystem. The Limelight is pure-read sensor
+ * hardware — nothing ever commands it, so it does not extend {@code SubsystemBase} and is not
+ * registered with the FTCLib scheduler. Instead, the OpMode calls {@link #update()} once per loop
+ * tick (typically right after {@code pinpoint.update()}) to pull the latest result and status
+ * snapshots from the SDK.</p>
+ *
+ * <p><strong>Typical wiring in TeleOp:</strong>
+ * <pre>
+ *   Limelight limelight = new Limelight(hardwareMap);
+ *   // ... in loop:
+ *   limelight.update();
+ *   if (limelight.hasTarget()) { ... limelight.getTx() ... }
+ * </pre>
+ * </p>
+ *
+ * <p><strong>Vision-pipeline state</strong> is exposed via {@link #getStatus()}, which returns the
+ * {@link Status} enum ({@code OFFLINE}, {@code SEARCHING}, {@code LOCKED}). Use
+ * {@link #hasTarget()} / {@link #isLocked()} as convenience predicates for the common case.</p>
+ *
+ * <p><strong>Hardware:</strong>
+ * <ul>
+ *   <li>Hardware config name: {@value #LIMELIGHT_NAME} — do not change without driver-station
+ *       reconfiguration (ARCHITECTURE.md §5)</li>
+ *   <li>Pipeline 0 = AprilTag 36h11 (configured in the Limelight web interface, not in code)</li>
+ *   <li>IP: 192.168.1.11</li>
+ * </ul>
+ * </p>
+ *
+ * <p><strong>Pose fusion:</strong> {@link #getBotPose()} and {@link #getTotalLatencyMs()} are the
+ * two values consumed by the latency-compensated Pinpoint + Limelight fusion described in
+ * ARCHITECTURE.md §7.</p>
+ */
+public class Limelight {
 
     // Hardware config name (ARCHITECTURE.md §5)
     private static final String LIMELIGHT_NAME = "limelight";
@@ -32,15 +66,20 @@ public class LimelightSubsystem extends SubsystemBase {
     private LLResult           latestResult;
     private LLStatus           latestStatus;
 
-    public LimelightSubsystem(HardwareMap hardwareMap) {
+    public Limelight(HardwareMap hardwareMap) {
         limelight = hardwareMap.get(Limelight3A.class, LIMELIGHT_NAME);
         limelight.pipelineSwitch(DEFAULT_PIPELINE);
         limelight.setPollRateHz(POLL_RATE_HZ);
         limelight.start();
     }
 
-    @Override
-    public void periodic() {
+    /**
+     * Pull the latest result and status snapshots from the Limelight SDK.
+     *
+     * <p>Call once per OpMode loop tick, typically right after {@code pinpoint.update()}.
+     * All getters reflect the values captured during the most recent {@code update()} call.</p>
+     */
+    public void update() {
         latestResult = limelight.getLatestResult();
         latestStatus = limelight.getStatus();
     }
@@ -157,7 +196,7 @@ public class LimelightSubsystem extends SubsystemBase {
      * <p>Exposes internal SDK state. Use only for debugging or telemetry display —
      * do not branch on {@code LLStatus} fields in production logic.
      *
-     * @return the most recent status snapshot, or {@code null} before the first {@link #periodic()} call.
+     * @return the most recent status snapshot, or {@code null} before the first {@link #update()} call.
      */
     public LLStatus getLLStatus() {
         return latestStatus;
