@@ -1,229 +1,163 @@
-# FTC Team 11940 - Driver & Operator Control Guide
+# FTC Team 11940 - Driver Control Guide
 
-**Reed City Middle School | 2025-2026 Season**
+**Reed City Middle School | 2025-2026 Season | Demo / Recruiting Configuration**
+
+---
+
+## About This Configuration
+
+This guide reflects the **single-driver demo bot** configuration: all primary functions live on one gamepad so one person can drive and demonstrate every robot capability without an operator. A future iteration will split controls back across two gamepads when the team competes with both a driver and an operator.
 
 ---
 
 ## 🎮 GAMEPAD 1 - DRIVER CONTROLS
 
-### **Driving**
+### Driving
+
 | Control | Function |
-|---------|----------|
+|---|---|
 | **Left Stick** | Strafe (side-to-side and forward/backward movement) |
 | **Right Stick** | Rotate (turn left/right) |
-| **Left Trigger** | Slow Motion Mode (30% speed while held) |
-| **Right Trigger** | Turbo Mode (100% speed while held) |
+| **Left Trigger** | Precision Mode (slow speed while held, for fine positioning) |
 
-### **Intake System**
+### Intake & Eject
+
 | Control | Function |
-|---------|----------|
-| **Left Bumper** | Run ONLY index motors (immediate stop when released, no delay) |
-| **Left Bumper + A** | Reverse ONLY index motors (no intake wheels) |
-| **Right Bumper** | Run intake wheels IN + extends slides + runs BOTH index motors (sensor auto-stops top motor) |
-| **Right Bumper + A** | Eject wheels OUT (reverse intake AND reverse index motors) |
+|---|---|
+| **Left Bumper** | Intake — wheels run in, slides extend, indexer runs forward (sensor auto-holds artifact when detected) |
+| **X Button** | Eject — wheels run out, slides extend, indexer reverses |
 
-> **Note:** Slides automatically extend when intake runs and retract when stopped. Wheels continue running for 600ms after slides retract. Both index motors continue for 1500ms after release to complete artifact transfer. The REV v3 color sensor can stop the top index motor early when an artifact is detected (< 3cm), while the bottom motor continues to hold it in position.
+> **Note:** Slides extend automatically when intake runs and retract when stopped. Wheels continue briefly after slides retract to complete the artifact transfer. The REV V3 color sensor stops the top indexer motor when an artifact is detected (< 3 cm); the bottom motor continues to hold it in position, ready to feed the shooter.
 
-### **Drive Modes**
+### Shooting
+
 | Control | Function |
-|---------|----------|
+|---|---|
+| **Right Bumper** | Shoot at the currently selected preset |
+| **Right Trigger** | Shoot at the currently selected preset (same as RB — will become vision-assisted shoot in a future update) |
+
+### Shooting Presets
+
+| Control | Function | Description |
+|---|---|---|
+| **A Button** | SHORT_RANGE | Close shots |
+| **B Button** | MEDIUM_RANGE | Mid-range shots |
+| **Y Button** | LONG_RANGE | Far shots |
+
+The preset arrangement on the diamond corresponds roughly to distance: A (bottom, closest) → B (right, mid) → Y (top, farthest).
+
+### Drive Modes & Heading
+
+| Control | Function |
+|---|---|
 | **BACK Button** | Switch to Field-Centric mode |
-| **START Button** | Switch to Robot-Centric mode |
-| **MODE Button** | Reset Heading (only works in Field-Centric mode) |
-| **A Button (alone)** | Emergency Stop (hold to freeze all drive motors) |
+| **START Button** | *(Reserved for future use — operator handoff, vision-align, etc.)* |
+| **GUIDE Button** | Reset Heading (only meaningful in Field-Centric mode) |
 
-### **Configuration**
+> START is intentionally unbound. When a feature needs a top-level button binding in the future (e.g. vision-align toggle, operator-handoff mode), that's where it goes.
+
+### Configuration Adjustment
+
 | Control | Function |
-|---------|----------|
-| **D-Pad Up** | Increase drive speed |
-| **D-Pad Down** | Decrease drive speed |
+|---|---|
+| **D-Pad Up** | Increase base drive speed |
+| **D-Pad Down** | Decrease base drive speed |
 | **D-Pad Right** | Increase steering sensitivity |
 | **D-Pad Left** | Decrease steering sensitivity |
 
 ---
 
-## 🎮 GAMEPAD 2 - OPERATOR CONTROLS
-
-### **Shooting System**
-| Control | Function |
-|---------|----------|
-| **Right Bumper** | Shoot at current preset (spins flywheel → waits for target RPM → runs index motor) |
-| **Right Bumper + A** | **Reverse flywheel & index** (runs both in reverse at -1000 RPM for clearing jams) |
-| **Left Bumper** | Manual index motor control forward (immediate stop, no delay) |
-| **Left Bumper + A** | **Reverse index only** (runs index motors in reverse, no flywheel) |
-
-### **Shooting Presets**
-| Control | Function | Description |
-|---------|----------|-------------|
-| **X Button** | SHORT_RANGE Preset | Sets flywheel RPM and hood angle for close shots |
-| **Y Button** | MEDIUM_RANGE Preset | Sets flywheel RPM and hood angle for mid-range shots |
-| **B Button** | LONG_RANGE Preset | Sets flywheel RPM and hood angle for far shots |
-
-### **Manual Fine-Tuning**
-| Control | Function |
-|---------|----------|
-| **D-Pad Up** | Increase shooter RPM by 100 |
-| **D-Pad Down** | Decrease shooter RPM by 100 |
-| **D-Pad Right** | Hood servo UP (increase angle) |
-| **D-Pad Left** | Hood servo DOWN (decrease angle) |
-
----
-
 ## 📊 TELEMETRY INFORMATION
 
-### **During Match - Key Status Indicators**
+### During Operation — Key Status Indicators
 
-**Drive Subsystem:**
-- Current drive mode (Field-Centric, Robot-Centric, Turbo, Precision)
+**Drive:**
+- Current heading mode (Field-Centric or Robot-Centric)
 - Effective speed multiplier
 - Robot heading (degrees)
 - Position (X, Y coordinates in inches)
 
-**Intake Subsystem:**
-- Wheel state (INTAKE, EJECT, IDLE)
-- Slide state (IN, OUT)
-- Auto slide control status
+**Intake:**
+- Wheel status (INTAKING, EJECTING, IDLE, FINISHING)
+- Slide position (EXTENDED / RETRACTED)
 
-**Index Subsystem:**
-- Index motor state (FORWARD, REVERSE, IDLE)
-- Bottom and top motor power (separate readings)
-- **Sensor distance** (cm reading from REV v3 color sensor)
-- **Artifact detected** (✓ YES when distance < 3cm)
-- Flywheel override status (ACTIVE when shooting)
-- Manual indexing active (ACTIVE/IDLE)
-- Delayed stop pending (PENDING with countdown timer)
+**Index:**
+- Status (INTAKING, FEEDING, REVERSING, IDLE)
+- Distance sensor reading (cm)
+- Artifact detected (✓ YES when distance < 3 cm)
 
-**Shooter Subsystem:**
+**Shooter:**
 - Current preset (SHORT_RANGE, MEDIUM_RANGE, LONG_RANGE)
-- Target RPM vs Current RPM
-- At target indicator (✓ YES / ✗ NO)
+- Status (IDLE, SPINNING_UP, AT_SPEED, REVERSING)
+- Target RPM vs current RPM
+- Ready indicator (✓ YES when at target)
 - Hood position
-- Sequential mode status (RUNNING/IDLE)
 
 ---
 
 ## 💡 OPERATION TIPS
 
-### **For Drivers (Gamepad 1)**
+1. **Pick a preset before shooting.** Tap A, B, or Y to select the distance preset. The shooter doesn't spin up until you press Right Bumper or Right Trigger — selecting a preset only changes which RPM and hood angle the shooter *would* use.
 
-1. **Drive Mode Selection** - Use **BACK** for Field-Centric mode (move relative to field) or **START** for Robot-Centric mode (move relative to robot orientation).
+2. **Watch for "Ready" before firing.** When you press Right Bumper, the flywheel spins up first. The indexer waits to feed until the shooter reports it's at target speed (or until a 2-second timeout, whichever comes first). The "Ready ✓" telemetry indicator shows you when the wait is over.
 
-2. **Reset Heading Often** - Press **MODE** button after aligning with field to reset your reference point in Field-Centric mode.
+3. **Use precision mode for tight spots.** Hold Left Trigger to slow the robot down for detail driving — lining up to a specific angle for demos, navigating between obstacles, etc. Release to return to normal speed.
 
-3. **Speed Control** - Use triggers for instant speed changes:
-   - **Left Trigger** = Slow motion (30% speed) for precise positioning
-   - **Right Trigger** = Turbo (100% speed) for quick movement
-   - Release triggers for normal speed
+4. **Reset heading when starting a demo.** In Field-Centric mode, "forward" is always the direction the robot was pointing when heading was last reset. Press GUIDE before each demo so the audience sees "push stick up, robot goes away from us" as the consistent behavior.
 
-4. **Emergency Stop** - Hold **A** button alone to immediately stop all drive motors if you lose control.
+5. **Field-Centric vs. Robot-Centric.**
+   - **Field-Centric (default):** Robot moves relative to the field. Pushing the left stick up always moves the robot away from where the driver is standing, regardless of which way the robot is facing. Easier for new drivers; better for demos.
+   - **Robot-Centric:** Robot moves relative to its own orientation. Pushing the stick up moves the robot in whatever direction its front is pointing. Useful for very precise approach maneuvers but harder to drive instinctively.
+   - Press BACK to switch to Field-Centric if you ever toggle away from it.
 
-5. **Index Only Control** - Press **Left Bumper** to run ONLY index motors without intake wheels:
-   - Immediate stop when released (no delay)
-   - Useful for feeding artifacts to shooter
-   - Press **Left Bumper + A** to reverse index motors only
+6. **Speed adjustments save battery.** Drop base speed (D-Pad Down) for long demo sessions where you're not racing. Higher speed drains the battery faster and makes precise positioning harder.
 
-6. **Intake Combo** - When you press **Right Bumper**, the system automatically:
-   - Spins intake wheels IN
-   - Extends slides automatically
-   - Runs BOTH index motors forward
-   - **Color sensor can stop top motor early when artifact detected (< 3cm)**
-   - Bottom motor continues running to hold artifact
-   - After release, intake wheels continue for 600ms
-   - After release, index motors continue for 1500ms to complete transfer
-
-7. **Eject Combo** - Press **Right Bumper + A** together to reverse intake AND reverse index motors (for clearing jams or ejecting artifacts from the entire system).
-
-8. **Speed Adjustment** - Use **D-Pad Up/Down** during match to adjust base speed on the fly.
-
-### **For Operators (Gamepad 2)**
-
-1. **Use Presets First** - Press **X**, **Y**, or **B** to quickly select shooting distance preset (sets both RPM and hood angle).
-
-2. **Sequential Shooting** - Hold **Right Bumper** to shoot:
-   - Flywheel spins up first
-   - Index motor automatically starts when flywheel reaches target RPM
-   - Watch telemetry for "At Target: ✓ YES" indicator
-
-3. **Manual Indexing** - Use **Left Bumper** for immediate index motor control without delay. Useful for:
-   - Loading artifacts into shooter
-   - Testing mechanisms
-   - Fine positioning
-
-4. **Reverse Index Only** - Press **Left Bumper + A** together to:
-   - Run ONLY index motors in REVERSE (no flywheel)
-   - Useful for clearing index jams without disturbing flywheel
-   - Good for backing out artifacts that got stuck in index
-
-5. **Clearing Flywheel Jams** - Press **Right Bumper + A** together to:
-   - Run flywheel in REVERSE at -1000 RPM
-   - Run both index motors in REVERSE
-   - Effectively clear jams from entire shooting system
-   - Release to stop both systems
-
-6. **Fine-Tuning Shots** - After selecting a preset, use **D-Pad** to adjust:
-   - **Up/Down** for RPM (±100 per press)
-   - **Left/Right** for hood angle
-
-7. **Watch the Telemetry** - Key indicators for shooting:
-   - "At Target: ✓ YES" = Safe to shoot
-   - "Current RPM" should match "Target RPM"
-   - "Sequential Mode: RUNNING" = Shooting sequence active
-   - **"Artifact Detected: ✓ YES"** = Artifact ready in index (from sensor)
+7. **Eject is for "just in case."** During a normal demo, you shouldn't need it — the intake/shoot cycle handles artifacts cleanly. X is there for clearing a stuck artifact or correcting a mis-intake. If you find yourself using it frequently, something else is wrong (check telemetry).
 
 ---
 
 ## ⚠️ IMPORTANT NOTES
 
-### **REV v3 Color Sensor (Smart Artifact Detection)**
-- **Distance Threshold**: 3.0 cm
-- **Function**: Automatically stops top index motor when artifact is detected during intake
-- Bottom motor continues to hold artifact securely in position
-- **Flywheel Override**: Sensor is disabled when shooting (flywheel running) to allow artifact to feed through
-- Monitor "Sensor Distance" and "Artifact Detected" in telemetry for real-time feedback
+### REV V3 Color Sensor (Smart Artifact Detection)
 
-### **Intake & Index Timing**
-- **Gamepad 1 Left Bumper**: Index motors only - immediate stop when released (no delay)
-- **Gamepad 1 Left Bumper + A**: Reverse index motors only (no intake wheels)
-- **Gamepad 1 Right Bumper**: Intake wheels stop after 600ms delay, index motors stop after 1500ms delay
-- **Gamepad 1 Right Bumper + A**: Eject combo - reverses intake AND index motors (no delay)
-- **Gamepad 2 Left Bumper**: Immediate stop when released (no delay)
-- **Gamepad 2 Left Bumper + A**: Reverse index only combo - runs index motors in reverse
-- **Gamepad 2 Right Bumper + A**: Reverse combo - runs flywheel and index in reverse for jam clearing
-- Manual indexing cancels any pending delayed stops from intake combo
+- **Distance threshold:** 3.0 cm
+- When the intake runs (Left Bumper), the sensor monitors for an artifact. Once detected, the top indexer motor stops automatically while the bottom motor continues holding the artifact in feed position.
+- When shooting (Right Bumper or Right Trigger), the indexer feeds regardless of the sensor — this is intentional, since the artifact needs to clear past the sensor to reach the flywheel.
+- Monitor "Artifact Detected" telemetry for real-time feedback on whether an artifact is loaded.
 
-### **Drive Mode Differences**
-- **Field-Centric**: Robot moves relative to field orientation (forward is always away from drivers)
-- **Robot-Centric**: Robot moves relative to robot orientation (forward is robot's front)
-- **Slow Motion** (Left Trigger): 30% speed for precise positioning
-- **Turbo** (Right Trigger): 100% speed for quick movement
+### Shooter Sequence
 
-### **Shooter Safety**
-- Flywheel must reach target RPM before index motor starts (automatic)
-- Always verify "At Target: ✓ YES" in telemetry before shooting
-- Color sensor automatically detects artifact presence before shooting
-- Sensor is overridden during shooting to allow artifact to feed through
-- Use presets during competition for consistent, tested shots
-- Manual RPM adjustment is for testing and fine-tuning only
-- **Reverse function (RB + A)** is for jam clearing only - not for normal operation
+- **Flywheel must reach target RPM before the indexer feeds.** The 2-second timeout exists as a safety: if PIDF tuning is off or the battery is weak, the shot still fires after 2 seconds even if the flywheel isn't quite at speed. Shots fired during spin-up will be lower-energy than expected.
+- **The shoot button must be held.** Releasing Right Bumper / Right Trigger stops both the flywheel and the indexer.
+
+### Drive Mode Defaults
+
+- **Default mode:** Field-Centric
+- **Turbo was intentionally omitted** from this build. Demos benefit from predictable, consistent speed. Base speed of 0.85 with precision-on-left-trigger covers the useful range.
 
 ---
 
 ## 🔧 DEFAULT SETTINGS
 
 | Setting | Value |
-|---------|-------|
+|---|---|
 | Base Speed | 0.85 (85%) |
-| Slow Motion Speed | 0.30 (30%) |
-| Turbo Speed | 1.0 (100%) |
+| Precision Speed | 0.30 (30%) |
 | Sensitivity | 1.2 |
 | Deadzone | 0.1 |
-| Index Bottom Motor Delay | 1500ms |
-| Index Top Motor Delay | 1500ms (sensor can override) |
-| Intake Wheel Stop Delay | 600ms |
-| Shooter RPM Increment | 100 RPM per press |
-| Hood Position Increment | 0.05 per press |
-| **Color Sensor Distance Threshold** | **3.0 cm** |
-| **Reverse Flywheel RPM** | **-1000 RPM** |
+| Color Sensor Distance Threshold | 3.0 cm |
+| Shooter Spin-Up Timeout | 2.0 seconds |
+| Shooter RPM Increment (auton tuning) | 100 RPM |
+| Hood Position Increment (auton tuning) | 0.05 |
+| Reverse Flywheel RPM (jam clear) | -1000 RPM |
+
+### Shot Presets
+
+| Preset | Target RPM | Hood Position |
+|---|---|---|
+| SHORT_RANGE | 2200 | 0.30 |
+| MEDIUM_RANGE | 2500 | 0.60 |
+| LONG_RANGE | 2800 | 0.60 |
 
 ---
 
@@ -233,10 +167,12 @@
 
 **Source File:** `PrimeTeleOp.java`
 
-**Hardware:** REV v3 Color Sensor for artifact detection
+**Hardware:** REV V3 Color Sensor, GoBilda Pinpoint odometry, Limelight 3A vision camera (vision integration coming in future update)
 
-**Last Updated:** 2025-12-03
+**Configuration:** Single-driver demo bot — all functions on Gamepad 1, Gamepad 2 unused
+
+**Last Updated:** *date of commit*
 
 ---
 
-*Print this guide and keep it at the driver station for quick reference during matches!*
+*Print this guide and keep it at the driver station for quick reference during demos!*
