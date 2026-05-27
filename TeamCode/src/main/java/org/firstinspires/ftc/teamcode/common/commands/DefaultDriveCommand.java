@@ -40,6 +40,13 @@ import org.firstinspires.ftc.teamcode.common.subsystems.MecanumDriveSubsystem;
  *       emergency stop:</strong> bound as separate {@code InstantCommand} / {@code RunCommand}
  *       trigger bindings in the TeleOp class. They are not handled here.</li>
  * </ul>
+ *
+ * // All three axes negated so that driver-intuitive inputs (stick up = forward,
+ * // stick right = strafe right, stick right on right stick = clockwise rotation)
+ * // match the robot's coordinate system as defined by motor wiring.
+ * // Motor directions are individually correct (verified via MotorDirectionTest);
+ * // the negation is purely an input-convention transform.
+ * 
  */
 public class DefaultDriveCommand extends CommandBase {
 
@@ -60,8 +67,8 @@ public class DefaultDriveCommand extends CommandBase {
     @Override
     public void execute() {
         double forward = -driverGamepad.getLeftY();  // gamepad Y is inverted: up = negative
-        double strafe  =  driverGamepad.getLeftX();
-        double rotate  =  driverGamepad.getRightX();
+        double strafe  =  -driverGamepad.getLeftX();
+        double rotate  =  -driverGamepad.getRightX();
         drive.drive(forward, strafe, rotate);
     }
 
